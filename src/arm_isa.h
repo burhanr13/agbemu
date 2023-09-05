@@ -78,15 +78,15 @@ typedef union {
     } branch_ex;
     struct {
         word rm : 4;
-        word c4 : 1; // 1
+        word c3 : 1; // 1
         word h : 1;
         word s : 1;
-        word c3 : 5; // 00001
+        word c2 : 5; // 00001
         word rd : 4;
         word rn : 4;
         word l : 1;
         word w : 1;
-        word c2 : 1; // 0
+        word i : 1; // 0
         word u : 1;
         word p : 1;
         word c1 : 3; // 000
@@ -94,16 +94,16 @@ typedef union {
     } data_transh_reg;
     struct {
         word offlo : 4;
-        word c4 : 1; // 1
+        word c3 : 1; // 1
         word h : 1;
         word s : 1;
-        word c3 : 1; // 1
+        word c2 : 1; // 1
         word offhi : 4;
         word rd : 4;
         word rn : 4;
         word l : 1;
         word w : 1;
-        word c2 : 1; // 1
+        word i : 1; // 1
         word u : 1;
         word p : 1;
         word c1 : 3; // 000
@@ -160,8 +160,7 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr);
-void exec_arm_data_transh_reg(Arm7TDMI* cpu, ArmInstr instr);
-void exec_arm_data_transh_imm(Arm7TDMI* cpu, ArmInstr instr);
+void exec_arm_data_transh(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_data_trans(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_undefined(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_data_trans_block(Arm7TDMI* cpu, ArmInstr instr);

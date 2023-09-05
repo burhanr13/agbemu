@@ -9,7 +9,12 @@ void draw_bg_line_m1(PPU* ppu) {}
 
 void draw_bg_line_m2(PPU* ppu) {}
 
-void draw_bg_line_m3(PPU* ppu) {}
+void draw_bg_line_m3(PPU* ppu) {
+    word start_addr = GBA_SCREEN_W * ppu->ly;
+    for (int x = 0; x < GBA_SCREEN_W;x++){
+        ppu->screen[ppu->ly][x] = ppu->master->vram.h[start_addr + x];
+    }
+}
 
 void draw_bg_line_m4(PPU* ppu) {
     word start_addr = (ppu->master->io.dispcnt.frame_sel) ? 0xa000 : 0x0000;
