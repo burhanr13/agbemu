@@ -9,16 +9,18 @@ void init_gba(GBA* gba, Cartridge* cart) {
     memset(gba, 0, sizeof *gba);
     gba->cart = cart;
     gba->cpu.master = gba;
+    gba->ppu.master = gba;
 
     gba->cpu.pc = 0x08000000;
 }
 
-void gba_load_bios(GBA* gba, char* filename) {
+bool gba_load_bios(GBA* gba, char* filename) {
     FILE* fp = fopen(filename, "rb");
-    if (!fp) return;
+    if (!fp) return false;
 
     fread(gba->bios.b, 1, BIOS_SIZE, fp);
     fclose(fp);
+    return true;
 }
 
 byte gba_readb(GBA* gba, word addr, int* cycles) {
@@ -32,32 +34,26 @@ byte gba_readb(GBA* gba, word addr, int* cycles) {
             }
             break;
         case R_EWRAM:
-            if (addr < EWRAM_SIZE) {
-                return gba->ewram.b[addr];
-            }
+            return gba->ewram.b[addr % EWRAM_SIZE];
             break;
         case R_IWRAM:
-            if (addr < IWRAM_SIZE) {
-                return gba->iwram.b[addr];
-            }
+            return gba->iwram.b[addr % IWRAM_SIZE];
             break;
         case R_IO:
-
+            if (addr < 0x60) {
+                return ppu_read(&gba->ppu, addr);
+            }
             break;
         case R_CRAM:
-            if (addr < CRAM_SIZE) {
-                return gba->cram.b[addr];
-            }
+            return gba->cram.b[addr % CRAM_SIZE];
             break;
         case R_VRAM:
-            if (addr < VRAM_SIZE) {
-                return gba->vram.b[addr];
-            }
+            addr %= 0x20000;
+            if (addr > VRAM_SIZE) addr -= 0x8000;
+            return gba->vram.b[addr];
             break;
         case R_OAM:
-            if (addr < OAM_SIZE) {
-                return gba->oam.b[addr];
-            }
+            return gba->oam.b[addr % OAM_SIZE];
             break;
         case R_ROM0:
         case R_ROM0EX:
@@ -89,32 +85,26 @@ hword gba_readh(GBA* gba, word addr, int* cycles) {
             }
             break;
         case R_EWRAM:
-            if (addr < EWRAM_SIZE) {
-                return gba->ewram.h[addr >> 1];
-            }
+            return gba->ewram.h[addr % EWRAM_SIZE >> 1];
             break;
         case R_IWRAM:
-            if (addr < IWRAM_SIZE) {
-                return gba->iwram.h[addr >> 1];
-            }
+            return gba->iwram.h[addr % IWRAM_SIZE >> 1];
             break;
         case R_IO:
-
+            if (addr < 0x60) {
+                return ppu_read(&gba->ppu, addr & ~1);
+            }
             break;
         case R_CRAM:
-            if (addr < CRAM_SIZE) {
-                return gba->cram.h[addr >> 1];
-            }
+            return gba->cram.h[addr % CRAM_SIZE >> 1];
             break;
         case R_VRAM:
-            if (addr < VRAM_SIZE) {
-                return gba->vram.h[addr >> 1];
-            }
+            addr %= 0x20000;
+            if (addr > VRAM_SIZE) addr -= 0x8000;
+            return gba->vram.h[addr >> 1];
             break;
         case R_OAM:
-            if (addr < OAM_SIZE) {
-                return gba->oam.h[addr >> 1];
-            }
+            return gba->oam.h[addr % OAM_SIZE >> 1];
             break;
         case R_ROM0:
         case R_ROM0EX:
@@ -146,32 +136,26 @@ word gba_read(GBA* gba, word addr, int* cycles) {
             }
             break;
         case R_EWRAM:
-            if (addr < EWRAM_SIZE) {
-                return gba->ewram.w[addr >> 2];
-            }
+            return gba->ewram.w[addr % EWRAM_SIZE >> 2];
             break;
         case R_IWRAM:
-            if (addr < IWRAM_SIZE) {
-                return gba->iwram.w[addr >> 2];
-            }
+            return gba->iwram.w[addr % IWRAM_SIZE >> 2];
             break;
         case R_IO:
-
+            if (addr < 0x60) {
+                return ppu_read(&gba->ppu, addr);
+            }
             break;
         case R_CRAM:
-            if (addr < CRAM_SIZE) {
-                return gba->cram.w[addr >> 2];
-            }
+            return gba->cram.w[addr % CRAM_SIZE >> 2];
             break;
         case R_VRAM:
-            if (addr < VRAM_SIZE) {
-                return gba->vram.w[addr >> 2];
-            }
+            addr %= 0x20000;
+            if (addr > VRAM_SIZE) addr -= 0x8000;
+            return gba->vram.w[addr >> 2];
             break;
         case R_OAM:
-            if (addr < OAM_SIZE) {
-                return gba->oam.w[addr >> 2];
-            }
+            return gba->oam.w[addr % OAM_SIZE >> 2];
             break;
         case R_ROM0:
         case R_ROM0EX:
@@ -194,41 +178,31 @@ word gba_read(GBA* gba, word addr, int* cycles) {
 
 void gba_writeb(GBA* gba, word addr, byte b, int* cycles) {
     word region = addr >> 24;
-    word rom_addr = addr % 1 << 27;
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            if (addr < BIOS_SIZE) {
-                gba->bios.b[addr] = b;
-            }
             break;
         case R_EWRAM:
-            if (addr < EWRAM_SIZE) {
-                gba->ewram.b[addr] = b;
-            }
+            gba->ewram.b[addr % EWRAM_SIZE] = b;
             break;
         case R_IWRAM:
-            if (addr < IWRAM_SIZE) {
-                gba->iwram.b[addr] = b;
-            }
+            gba->iwram.b[addr % IWRAM_SIZE] = b;
             break;
         case R_IO:
-
+            if (addr < 0x60) {
+                ppu_write(&gba->ppu, addr, b);
+            }
             break;
         case R_CRAM:
-            if (addr < CRAM_SIZE) {
-                gba->cram.b[addr] = b;
-            }
+            gba->cram.b[addr % CRAM_SIZE] = b;
             break;
         case R_VRAM:
-            if (addr < VRAM_SIZE) {
-                gba->vram.b[addr] = b;
-            }
+            addr %= 0x20000;
+            if (addr > VRAM_SIZE) addr -= 0x8000;
+            gba->vram.b[addr] = b;
             break;
         case R_OAM:
-            if (addr < OAM_SIZE) {
-                gba->oam.b[addr] = b;
-            }
+            gba->oam.b[addr % OAM_SIZE] = b;
             break;
         case R_ROM0:
         case R_ROM0EX:
@@ -236,9 +210,6 @@ void gba_writeb(GBA* gba, word addr, byte b, int* cycles) {
         case R_ROM1EX:
         case R_ROM2:
         case R_ROM2EX:
-            if (rom_addr < gba->cart->rom_size) {
-                gba->cart->rom.b[rom_addr] = b;
-            }
             break;
         case R_SRAM:
             if (addr < gba->cart->ram_size) {
@@ -250,41 +221,31 @@ void gba_writeb(GBA* gba, word addr, byte b, int* cycles) {
 
 void gba_writeh(GBA* gba, word addr, hword h, int* cycles) {
     word region = addr >> 24;
-    word rom_addr = addr % 1 << 27;
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            if (addr < BIOS_SIZE) {
-                gba->bios.h[addr >> 1] = h;
-            }
             break;
         case R_EWRAM:
-            if (addr < EWRAM_SIZE) {
-                gba->ewram.h[addr >> 1] = h;
-            }
+            gba->ewram.h[addr % EWRAM_SIZE >> 1] = h;
             break;
         case R_IWRAM:
-            if (addr < IWRAM_SIZE) {
-                gba->iwram.h[addr >> 1] = h;
-            }
+            gba->iwram.h[addr % IWRAM_SIZE >> 1] = h;
             break;
         case R_IO:
-
+            if (addr < 0x60) {
+                ppu_write(&gba->ppu, addr, h);
+            }
             break;
         case R_CRAM:
-            if (addr < CRAM_SIZE) {
-                gba->cram.h[addr >> 1] = h;
-            }
+            gba->cram.h[addr % CRAM_SIZE >> 1] = h;
             break;
         case R_VRAM:
-            if (addr < VRAM_SIZE) {
-                gba->vram.h[addr >> 1] = h;
-            }
+            addr %= 0x20000;
+            if (addr > VRAM_SIZE) addr -= 0x8000;
+            gba->vram.h[addr >> 1] = h;
             break;
         case R_OAM:
-            if (addr < OAM_SIZE) {
-                gba->oam.h[addr >> 1] = h;
-            }
+            gba->oam.h[addr % OAM_SIZE >> 1] = h;
             break;
         case R_ROM0:
         case R_ROM0EX:
@@ -292,9 +253,6 @@ void gba_writeh(GBA* gba, word addr, hword h, int* cycles) {
         case R_ROM1EX:
         case R_ROM2:
         case R_ROM2EX:
-            if (rom_addr < gba->cart->rom_size) {
-                gba->cart->rom.h[rom_addr >> 1] = h;
-            }
             break;
         case R_SRAM:
             if (addr < gba->cart->ram_size) {
@@ -306,41 +264,31 @@ void gba_writeh(GBA* gba, word addr, hword h, int* cycles) {
 
 void gba_write(GBA* gba, word addr, word w, int* cycles) {
     word region = addr >> 24;
-    word rom_addr = addr % 1 << 27;
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            if (addr < BIOS_SIZE) {
-                gba->bios.w[addr >> 2] = w;
-            }
             break;
         case R_EWRAM:
-            if (addr < EWRAM_SIZE) {
-                gba->ewram.w[addr >> 2] = w;
-            }
+            gba->ewram.w[addr % EWRAM_SIZE >> 2] = w;
             break;
         case R_IWRAM:
-            if (addr < IWRAM_SIZE) {
-                gba->iwram.w[addr >> 2] = w;
-            }
+            gba->iwram.w[addr % EWRAM_SIZE >> 2] = w;
             break;
         case R_IO:
-
+            if (addr < 0x60) {
+                ppu_write(&gba->ppu, addr, w);
+            }
             break;
         case R_CRAM:
-            if (addr < CRAM_SIZE) {
-                gba->cram.w[addr >> 2] = w;
-            }
+            gba->cram.w[addr % CRAM_SIZE >> 2] = w;
             break;
         case R_VRAM:
-            if (addr < VRAM_SIZE) {
-                gba->vram.w[addr >> 2] = w;
-            }
+            addr %= 0x20000;
+            if (addr > VRAM_SIZE) addr -= 0x8000;
+            gba->vram.w[addr >> 2] = w;
             break;
         case R_OAM:
-            if (addr < OAM_SIZE) {
-                gba->oam.w[addr >> 2] = w;
-            }
+            gba->oam.w[addr % OAM_SIZE >> 2] = w;
             break;
         case R_ROM0:
         case R_ROM0EX:
@@ -348,9 +296,6 @@ void gba_write(GBA* gba, word addr, word w, int* cycles) {
         case R_ROM1EX:
         case R_ROM2:
         case R_ROM2EX:
-            if (rom_addr < gba->cart->rom_size) {
-                gba->cart->rom.w[rom_addr >> 2] = w;
-            }
             break;
         case R_SRAM:
             if (addr < gba->cart->ram_size) {
@@ -361,5 +306,8 @@ void gba_write(GBA* gba, word addr, word w, int* cycles) {
 }
 
 void tick_gba(GBA* gba) {
-    cpu_tick(&gba->cpu);
+    if(gba->cycles % 4 == 0) tick_ppu(&gba->ppu);
+    tick_cpu(&gba->cpu);
+
+    gba->cycles++;
 }

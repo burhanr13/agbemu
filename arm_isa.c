@@ -84,7 +84,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
     word op1 = cpu->r[instr.data_proc.rn];
     if (instr.data_proc.rn == 15) op1 += 4;
     word op2;
-    word z = cpu->cpsr.z, c = cpu->cpsr.c, n = cpu->cpsr.n, v = cpu->cpsr.v;
+    word z, c = cpu->cpsr.c, n, v = cpu->cpsr.v;
     if (instr.data_proc.i) {
         op2 = instr.data_proc.op2 & 0xff;
         word shift_amt = instr.data_proc.op2 >> 8;

@@ -3,6 +3,7 @@
 
 #include "arm7tdmi.h"
 #include "cartridge.h"
+#include "ppu.h"
 #include "types.h"
 
 enum {
@@ -34,8 +35,11 @@ enum {
 
 typedef struct _GBA {
     Arm7TDMI cpu;
+    PPU ppu;
 
     Cartridge* cart;
+
+    dword cycles;
 
     union {
         byte b[BIOS_SIZE];
@@ -77,7 +81,7 @@ typedef struct _GBA {
 
 void init_gba(GBA* gba, Cartridge* cart);
 
-void gba_load_bios(GBA* gba, char* filename);
+bool gba_load_bios(GBA* gba, char* filename);
 
 byte gba_readb(GBA* gba, word addr, int* cycles);
 hword gba_readh(GBA* gba, word addr, int* cycles);

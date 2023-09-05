@@ -51,7 +51,7 @@ typedef struct {
 
 } Arm7TDMI;
 
-void cpu_tick(Arm7TDMI* cpu);
+void tick_cpu(Arm7TDMI* cpu);
 
 void cpu_update_mode(Arm7TDMI* cpu, CpuMode old);
 

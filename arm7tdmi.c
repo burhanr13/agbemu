@@ -4,8 +4,8 @@
 #include "gba.h"
 #include "types.h"
 
-void cpu_tick(Arm7TDMI* cpu) {
-    if(cpu->cpsr.t) {
+void tick_cpu(Arm7TDMI* cpu) {
+    if (cpu->cpsr.t) {
 
     } else {
         arm_exec_instr(cpu);
@@ -13,7 +13,7 @@ void cpu_tick(Arm7TDMI* cpu) {
 }
 
 RegBank get_bank(CpuMode mode) {
-    switch(mode) {
+    switch (mode) {
         case M_USER:
             return B_USER;
         case M_FIQ:
