@@ -29,6 +29,7 @@ RegBank get_bank(CpuMode mode) {
         case M_SYSTEM:
             return B_USER;
     }
+    return B_USER;
 }
 
 void cpu_update_mode(Arm7TDMI* cpu, CpuMode old) {

@@ -6,7 +6,7 @@ bool eval_cond(Arm7TDMI* cpu, ArmInstr instr) {
     switch (instr.cond) {
         case C_AL:
             return true;
-        caseC_EQ:
+        case C_EQ:
             return cpu->cpsr.z;
         case C_NE:
             return !cpu->cpsr.z;

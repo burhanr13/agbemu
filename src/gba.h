@@ -3,6 +3,7 @@
 
 #include "arm7tdmi.h"
 #include "cartridge.h"
+#include "io.h"
 #include "ppu.h"
 #include "types.h"
 
@@ -58,6 +59,8 @@ typedef struct _GBA {
         hword h[IWRAM_SIZE >> 1];
         word w[IWRAM_SIZE >> 2];
     } iwram;
+
+    IO io;
 
     union {
         byte b[CRAM_SIZE];

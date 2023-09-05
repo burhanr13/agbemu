@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "arm7tdmi.h"
+#include "io.h"
 
 void init_gba(GBA* gba, Cartridge* cart) {
     memset(gba, 0, sizeof *gba);
@@ -40,8 +41,8 @@ byte gba_readb(GBA* gba, word addr, int* cycles) {
             return gba->iwram.b[addr % IWRAM_SIZE];
             break;
         case R_IO:
-            if (addr < 0x60) {
-                return ppu_read(&gba->ppu, addr);
+            if (addr < IO_SIZE) {
+                return io_readb(&gba->io, addr);
             }
             break;
         case R_CRAM:
@@ -91,8 +92,8 @@ hword gba_readh(GBA* gba, word addr, int* cycles) {
             return gba->iwram.h[addr % IWRAM_SIZE >> 1];
             break;
         case R_IO:
-            if (addr < 0x60) {
-                return ppu_read(&gba->ppu, addr & ~1);
+            if (addr < IO_SIZE) {
+                io_readh(&gba->io, addr & ~1);
             }
             break;
         case R_CRAM:
@@ -142,8 +143,8 @@ word gba_read(GBA* gba, word addr, int* cycles) {
             return gba->iwram.w[addr % IWRAM_SIZE >> 2];
             break;
         case R_IO:
-            if (addr < 0x60) {
-                return ppu_read(&gba->ppu, addr);
+            if (addr < IO_SIZE) {
+                io_readw(&gba->io, addr & ~0b11);
             }
             break;
         case R_CRAM:
@@ -189,8 +190,8 @@ void gba_writeb(GBA* gba, word addr, byte b, int* cycles) {
             gba->iwram.b[addr % IWRAM_SIZE] = b;
             break;
         case R_IO:
-            if (addr < 0x60) {
-                ppu_write(&gba->ppu, addr, b);
+            if (addr < IO_SIZE) {
+                io_writeb(&gba->io, addr, b);
             }
             break;
         case R_CRAM:
@@ -232,8 +233,8 @@ void gba_writeh(GBA* gba, word addr, hword h, int* cycles) {
             gba->iwram.h[addr % IWRAM_SIZE >> 1] = h;
             break;
         case R_IO:
-            if (addr < 0x60) {
-                ppu_write(&gba->ppu, addr, h);
+            if (addr < IO_SIZE) {
+                io_writeh(&gba->io, addr & ~1, h);
             }
             break;
         case R_CRAM:
@@ -275,8 +276,8 @@ void gba_write(GBA* gba, word addr, word w, int* cycles) {
             gba->iwram.w[addr % EWRAM_SIZE >> 2] = w;
             break;
         case R_IO:
-            if (addr < 0x60) {
-                ppu_write(&gba->ppu, addr, w);
+            if (addr < IO_SIZE) {
+                io_writew(&gba->io, addr & ~0b11, w);
             }
             break;
         case R_CRAM:
@@ -306,7 +307,7 @@ void gba_write(GBA* gba, word addr, word w, int* cycles) {
 }
 
 void tick_gba(GBA* gba) {
-    if(gba->cycles % 4 == 0) tick_ppu(&gba->ppu);
+    if (gba->cycles % 4 == 0) tick_ppu(&gba->ppu);
     tick_cpu(&gba->cpu);
 
     gba->cycles++;
