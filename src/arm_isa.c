@@ -1,5 +1,7 @@
 #include "arm_isa.h"
 
+#include <stdio.h>
+
 #include "arm7tdmi.h"
 
 bool eval_cond(Arm7TDMI* cpu, ArmInstr instr) {
