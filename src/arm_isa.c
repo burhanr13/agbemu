@@ -127,7 +127,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
                 sop2 >>= shift_amt;
                 op2 = sop2;
                 break;
-            case 3: // ROR
+            case 3:                   // ROR
                 if (shift_amt == 0) { // RRX
                     c = op2 & 1;
                     op2 >>= 1;
@@ -206,7 +206,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
             break;
     }
 
-    if(arith){
+    if (arith) {
         res += op1 + op2;
         c = (op1 > res) ? 1 : 0;
         sword sop1 = op1, sop2 = op2, sres = res;
@@ -215,14 +215,14 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
     z = (res == 0) ? 1 : 0;
     n = (res >> 31) & 1;
 
-    if(save) {
+    if (save) {
         cpu->r[instr.data_proc.rd] = res;
     }
 
-    if(instr.data_proc.s){
-        if(instr.data_proc.rd==15){
+    if (instr.data_proc.s) {
+        if (instr.data_proc.rd == 15) {
             CpuMode mode = cpu->cpsr.m;
-            if(!(mode==M_USER || mode==M_SYSTEM)) {
+            if (!(mode == M_USER || mode == M_SYSTEM)) {
                 cpu->cpsr.w = cpu->spsr;
                 cpu_update_mode(cpu, mode);
             }
@@ -233,15 +233,62 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
             cpu->cpsr.v = v;
         }
     }
+
+    if (!(save || instr.data_proc.s)) {
+        word p = (instr.data_proc.opcode >> 1) & 1;
+        if (instr.data_proc.opcode & 1) { // MSR
+            word rm = instr.data_proc.op2 & 0b1111;
+            if (instr.data_proc.rn & 1) {
+                if (p) {
+                    cpu->spsr = cpu->r[rm];
+                } else {
+                    CpuMode mode = cpu->cpsr.m;
+                    if (mode > M_USER) {
+                        cpu->cpsr.w = cpu->r[rm];
+                        cpu_update_mode(cpu, mode);
+                    } else {
+                        cpu->cpsr.w &= 0x0fffffff;
+                        cpu->cpsr.w |= cpu->r[rm] & 0xf0000000;
+                    }
+                }
+            } else {
+                word data;
+                if (instr.data_proc.i) {
+                    data = instr.data_proc.op2 & 0xff;
+                    word rot = instr.data_proc.op2 >> 8;
+                    rot *= 2;
+                    data = (data >> rot) | (data << (32 - rot));
+                } else {
+                    data = cpu->r[rm];
+                }
+                if (p) {
+                    cpu->spsr &= 0x0fffffff;
+                    cpu->spsr |= data & 0xf0000000;
+                } else {
+                    cpu->cpsr.w &= 0x0fffffff;
+                    cpu->cpsr.w |= data & 0xf0000000;
+                }
+            }
+        } else { // MRS
+            word psr;
+            if (p) {
+                psr = cpu->spsr;
+            } else {
+                psr = cpu->cpsr.w;
+            }
+            cpu->r[instr.data_proc.rd] = psr;
+        }
+    }
+
     printf("add");
 }
 
 void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
     cpu->r[instr.multiply.rd] =
         cpu->r[instr.multiply.rm] * cpu->r[instr.multiply.rs];
-    if(instr.multiply.a)
+    if (instr.multiply.a)
         cpu->r[instr.multiply.rd] += cpu->r[instr.multiply.rn];
-    if(instr.multiply.s) {
+    if (instr.multiply.s) {
         cpu->cpsr.z = (cpu->r[instr.multiply.rd] == 0) ? 1 : 0;
         cpu->cpsr.n = (cpu->r[instr.multiply.rd] >> 31) & 1;
     }
@@ -251,18 +298,18 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
 
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
     dword res;
-    if(instr.multiply_long.u) {
+    if (instr.multiply_long.u) {
         res = (sdword) cpu->r[instr.multiply_long.rm] *
               (sdword) cpu->r[instr.multiply_long.rs];
     } else {
         res = (dword) cpu->r[instr.multiply_long.rm] *
               (dword) cpu->r[instr.multiply_long.rs];
     }
-    if(instr.multiply_long.a) {
+    if (instr.multiply_long.a) {
         res += (dword) cpu->r[instr.multiply_long.rdlo] |
                ((dword) cpu->r[instr.multiply_long.rdhi] << 32);
     }
-    if(instr.multiply_long.s){
+    if (instr.multiply_long.s) {
         cpu->cpsr.z = (res == 0) ? 1 : 0;
         cpu->cpsr.n = (res >> 63) & 1;
     }
@@ -276,7 +323,7 @@ void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {
     printf("swap");
 }
 
-void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr) { // BX
+void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr) {
     cpu->pc = cpu->r[instr.branch_ex.rn];
     cpu->cpsr.t = cpu->r[instr.branch_ex.rn] & 1;
     printf("bx");
@@ -319,7 +366,8 @@ void exec_arm_data_trans(Arm7TDMI* cpu, ArmInstr instr) {
                     offset >>= 1;
                     offset |= cpu->cpsr.c << 31;
                 } else {
-                    offset = (offset >> shift_amt) | (offset << (32 - shift_amt));
+                    offset =
+                        (offset >> shift_amt) | (offset << (32 - shift_amt));
                 }
                 break;
         }
