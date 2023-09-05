@@ -51,7 +51,7 @@ void tick_ppu(PPU* ppu) {
         ppu->master->io.dispstat.hblank = 0;
         if (ppu->ly < GBA_SCREEN_H) {
 
-            draw_bg_line_m4(ppu);
+            draw_bg_line(ppu);
 
         } else if (ppu->ly == GBA_SCREEN_H) {
             ppu->master->io.dispstat.vblank = 1;

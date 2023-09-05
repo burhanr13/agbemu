@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
     SDL_Renderer* renderer;
     SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 4, GBA_SCREEN_H * 4, 0, &window,
                                 &renderer);
+    SDL_SetWindowTitle(window, "agbemu");
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 

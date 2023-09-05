@@ -80,6 +80,8 @@ void arm_exec_instr(Arm7TDMI* cpu) {
     } else if (instr.data_proc.c1 == 0b00) {
         exec_arm_data_proc(cpu, instr);
     }
+
+    printf(". ");
 }
 
 void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
@@ -231,6 +233,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
             cpu->cpsr.v = v;
         }
     }
+    printf("add");
 }
 
 void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
@@ -242,6 +245,8 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
         cpu->cpsr.z = (cpu->r[instr.multiply.rd] == 0) ? 1 : 0;
         cpu->cpsr.n = (cpu->r[instr.multiply.rd] >> 31) & 1;
     }
+
+    printf("mul");
 }
 
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
@@ -263,18 +268,27 @@ void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
     }
     cpu->r[instr.multiply_long.rdlo] = res;
     cpu->r[instr.multiply_long.rdhi] = res >> 32;
+
+    printf("mull");
 }
 
-void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {}
+void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {
+    printf("swap");
+}
 
 void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr) { // BX
     cpu->pc = cpu->r[instr.branch_ex.rn];
     cpu->cpsr.t = cpu->r[instr.branch_ex.rn] & 1;
+    printf("bx");
 }
 
-void exec_arm_data_transh_reg(Arm7TDMI* cpu, ArmInstr instr) {}
+void exec_arm_data_transh_reg(Arm7TDMI* cpu, ArmInstr instr) {
+    printf("ldrh");
+}
 
-void exec_arm_data_transh_imm(Arm7TDMI* cpu, ArmInstr instr) {}
+void exec_arm_data_transh_imm(Arm7TDMI* cpu, ArmInstr instr) {
+    printf("ldrhi");
+}
 
 void exec_arm_data_trans(Arm7TDMI* cpu, ArmInstr instr) {
     word addr = cpu->r[instr.data_trans.rn];
@@ -344,11 +358,16 @@ void exec_arm_data_trans(Arm7TDMI* cpu, ArmInstr instr) {
     if (instr.data_trans.w || !instr.data_trans.p) {
         cpu->r[instr.data_trans.rn] = addr;
     }
+    printf("ldr");
 }
 
-void exec_arm_undefined(Arm7TDMI* cpu, ArmInstr instr) {}
+void exec_arm_undefined(Arm7TDMI* cpu, ArmInstr instr) {
+    printf("und");
+}
 
-void exec_arm_data_trans_block(Arm7TDMI* cpu, ArmInstr instr) {}
+void exec_arm_data_trans_block(Arm7TDMI* cpu, ArmInstr instr) {
+    printf("ldm");
+}
 
 void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr) {
     word offset = instr.branch.offset;
@@ -356,6 +375,9 @@ void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr) {
     offset <<= 2;
     if (instr.branch.l) cpu->lr = cpu->pc & ~0b11;
     cpu->pc += 4 + offset;
+    printf("b");
 }
 
-void exec_arm_sw_intr(Arm7TDMI* cpu, ArmInstr instr) {}
+void exec_arm_sw_intr(Arm7TDMI* cpu, ArmInstr instr) {
+    printf("swi");
+}

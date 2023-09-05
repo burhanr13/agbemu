@@ -26,7 +26,7 @@ bool gba_load_bios(GBA* gba, char* filename) {
 
 byte gba_readb(GBA* gba, word addr, int* cycles) {
     word region = addr >> 24;
-    word rom_addr = addr % 1 << 27;
+    word rom_addr = addr % (1 << 27);
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
@@ -77,7 +77,7 @@ byte gba_readb(GBA* gba, word addr, int* cycles) {
 
 hword gba_readh(GBA* gba, word addr, int* cycles) {
     word region = addr >> 24;
-    word rom_addr = addr % 1 << 27;
+    word rom_addr = addr % (1 << 27);
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
@@ -128,7 +128,7 @@ hword gba_readh(GBA* gba, word addr, int* cycles) {
 
 word gba_read(GBA* gba, word addr, int* cycles) {
     word region = addr >> 24;
-    word rom_addr = addr % 1 << 27;
+    word rom_addr = addr % (1 << 27);
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
