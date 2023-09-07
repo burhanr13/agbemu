@@ -486,7 +486,65 @@ void exec_arm_undefined(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void exec_arm_data_trans_block(Arm7TDMI* cpu, ArmInstr instr) {
+    int rcount = 0;
+    int rlist[16];
+    for (int i = 0; i < 16; i++) {
+        if (instr.data_trans_block.rlist & (1 << i)) rlist[rcount++] = i;
+    }
+    word addr = cpu->r[instr.data_trans_block.rn];
+    word wback = addr;
+    if (instr.data_trans_block.u) {
+        wback += 4 * rcount;
+    } else {
+        wback -= 4 * rcount;
+        addr = wback;
+    }
+    if (instr.data_trans_block.p == instr.data_trans_block.u) addr += 4;
     cpu_fetch(cpu);
+
+    bool user_trans = instr.data_trans_block.s &&
+                      !((instr.data_trans_block.rlist & (1 << 15)) &&
+                        instr.data_trans_block.l);
+    CpuMode mode = cpu->cpsr.m;
+    if (user_trans) {
+        cpu->cpsr.m = M_USER;
+        cpu_update_mode(cpu, mode);
+    }
+
+    if (instr.data_trans_block.l) {
+        cpu_internal_cycle(cpu);
+        if (instr.data_trans_block.w) cpu->r[instr.data_trans_block.rn] = wback;
+    }
+
+    for (int i = 0; i < rcount; i++, addr += 4) {
+        word data;
+        if (instr.data_trans_block.l) {
+            data = cpu_read(cpu, addr);
+            cpu->r[rlist[i]] = data;
+        } else {
+            data = cpu->r[rlist[i]];
+            cpu_write(cpu, addr, data);
+            if (i == 0 && instr.data_trans_block.w)
+                cpu->r[instr.data_trans_block.rn] = wback;
+        }
+    }
+
+    if (user_trans) {
+        cpu->cpsr.m = mode;
+        cpu_update_mode(cpu, M_USER);
+    }
+
+    if ((instr.data_trans_block.rlist & (1 << 15)) &&
+        instr.data_trans_block.l) {
+        if (instr.data_trans_block.s) {
+            CpuMode mode = cpu->cpsr.m;
+            if (!(mode == M_USER || mode == M_SYSTEM)) {
+                cpu->cpsr.w = cpu->spsr;
+                cpu_update_mode(cpu, mode);
+            }
+        }
+        cpu_flush(cpu);
+    }
 }
 
 void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr) {
