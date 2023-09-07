@@ -287,7 +287,7 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
     word op = cpu->r[instr.multiply.rs];
     for (int i = 1; i <= 4; i++) {
         cpu_internal_cycle(cpu);
-        if ((op>>8*i) == 0 || (-op>>8*i) == 0) break;
+        if ((op >> 8 * i) == 0 || (-op >> 8 * i) == 0) break;
     }
     cpu->r[instr.multiply.rd] =
         cpu->r[instr.multiply.rm] * cpu->r[instr.multiply.rs];
@@ -307,7 +307,9 @@ void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
     word op = cpu->r[instr.multiply.rs];
     for (int i = 1; i <= 4; i++) {
         cpu_internal_cycle(cpu);
-        if ((op >> 8 * i) == 0 || ((-op >> 8 * i) == 0 && instr.multiply_long.u)) break;
+        if ((op >> 8 * i) == 0 ||
+            ((-op >> 8 * i) == 0 && instr.multiply_long.u))
+            break;
     }
     dword res;
     if (instr.multiply_long.u) {
@@ -331,7 +333,25 @@ void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {
+    word addr = cpu->r[instr.swap.rn];
     cpu_fetch(cpu);
+    if (instr.swap.b) {
+        byte data;
+        cpu_internal_cycle(cpu);
+        data = cpu_readb(cpu, addr);
+        cpu->r[instr.swap.rd] = data;
+        data = cpu->r[instr.swap.rm];
+        cpu_writeb(cpu, addr, data);
+    } else {
+        word data;
+        cpu_internal_cycle(cpu);
+        data = cpu_read(cpu, addr);
+        word rot = (addr % 4) * 8;
+        data = data >> rot | data << (32 - rot);
+        cpu->r[instr.swap.rd] = data;
+        data = cpu->r[instr.swap.rm];
+        cpu_write(cpu, addr, data);
+    }
 }
 
 void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr) {
@@ -383,7 +403,7 @@ void exec_arm_data_transh(Arm7TDMI* cpu, ArmInstr instr) {
         cpu->r[instr.data_transh_imm.rn] = addr;
     }
 
-    if(instr.data_transh_imm.rd == 15 && instr.data_transh_imm.l)
+    if (instr.data_transh_imm.rd == 15 && instr.data_transh_imm.l)
         cpu_flush(cpu);
 }
 
