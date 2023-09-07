@@ -42,9 +42,9 @@ bool eval_cond(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void arm_exec_instr(Arm7TDMI* cpu) {
-    ArmInstr instr = {cpu_read(cpu, cpu->pc)};
-    cpu->pc += 4;
+    ArmInstr instr = cpu->cur_instr;
     if (!eval_cond(cpu, instr)) {
+        cpu_fetch(cpu);
         return;
     }
 
@@ -83,9 +83,8 @@ void arm_exec_instr(Arm7TDMI* cpu) {
 }
 
 void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
-    word op1 = cpu->r[instr.data_proc.rn];
-    if (instr.data_proc.rn == 15) op1 += 4;
     word op2;
+    bool shiftr = false;
     word z, c = cpu->cpsr.c, n, v = cpu->cpsr.v;
     if (instr.data_proc.i) {
         op2 = instr.data_proc.op2 & 0xff;
@@ -93,20 +92,21 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
         shift_amt *= 2;
         op2 = (op2 >> shift_amt) | (op2 << (32 - shift_amt));
     } else {
-        word rm = instr.data_proc.op2 & 0b1111;
-        op2 = cpu->r[rm];
-        if (rm == 15) op2 += 4;
         word shift = instr.data_proc.op2 >> 4;
         word shift_type = (shift >> 1) & 0b11;
         word shift_amt;
         if (shift & 1) {
+            cpu_fetch(cpu);
+            shiftr = true;
             word rs = shift >> 4;
             shift_amt = cpu->r[rs] & 0xff;
-            if (instr.data_proc.rn == 15) op1 += 4;
-            if (rm == 15) op2 += 4;
+            cpu_internal_cycle(cpu);
         } else {
             shift_amt = shift >> 3;
         }
+
+        word rm = instr.data_proc.op2 & 0b1111;
+        op2 = cpu->r[rm];
         switch (shift_type) {
             case 0: // LSL
                 if (shift_amt) c = (op2 >> (32 - shift_amt)) & 1;
@@ -137,6 +137,8 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
                 break;
         }
     }
+    word op1 = cpu->r[instr.data_proc.rn];
+    if (!shiftr) cpu_fetch(cpu);
 
     word res = 0;
     bool arith = false;
@@ -215,6 +217,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
 
     if (save) {
         cpu->r[instr.data_proc.rd] = res;
+        if (instr.data_proc.rd == 15) cpu_flush(cpu);
     }
 
     if (instr.data_proc.s) {
@@ -280,10 +283,18 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
+    cpu_fetch(cpu);
+    word op = cpu->r[instr.multiply.rs];
+    for (int i = 1; i <= 4; i++) {
+        cpu_internal_cycle(cpu);
+        if ((op>>8*i) == 0 || (-op>>8*i) == 0) break;
+    }
     cpu->r[instr.multiply.rd] =
         cpu->r[instr.multiply.rm] * cpu->r[instr.multiply.rs];
-    if (instr.multiply.a)
+    if (instr.multiply.a) {
+        cpu_internal_cycle(cpu);
         cpu->r[instr.multiply.rd] += cpu->r[instr.multiply.rn];
+    }
     if (instr.multiply.s) {
         cpu->cpsr.z = (cpu->r[instr.multiply.rd] == 0) ? 1 : 0;
         cpu->cpsr.n = (cpu->r[instr.multiply.rd] >> 31) & 1;
@@ -291,6 +302,13 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
+    cpu_fetch(cpu);
+    cpu_internal_cycle(cpu);
+    word op = cpu->r[instr.multiply.rs];
+    for (int i = 1; i <= 4; i++) {
+        cpu_internal_cycle(cpu);
+        if ((op >> 8 * i) == 0 || ((-op >> 8 * i) == 0 && instr.multiply_long.u)) break;
+    }
     dword res;
     if (instr.multiply_long.u) {
         res = (sdword) cpu->r[instr.multiply_long.rm] *
@@ -300,6 +318,7 @@ void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
               (dword) cpu->r[instr.multiply_long.rs];
     }
     if (instr.multiply_long.a) {
+        cpu_internal_cycle(cpu);
         res += (dword) cpu->r[instr.multiply_long.rdlo] |
                ((dword) cpu->r[instr.multiply_long.rdhi] << 32);
     }
@@ -312,17 +331,18 @@ void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {
-    printf("swap ");
+    cpu_fetch(cpu);
 }
 
 void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr) {
+    cpu_fetch(cpu);
     cpu->pc = cpu->r[instr.branch_ex.rn];
     cpu->cpsr.t = cpu->r[instr.branch_ex.rn] & 1;
+    cpu_flush(cpu);
 }
 
 void exec_arm_data_transh(Arm7TDMI* cpu, ArmInstr instr) {
     word addr = cpu->r[instr.data_trans.rn];
-    if (instr.data_trans.rn == 15) addr += 4;
     word offset;
     if (instr.data_transh_imm.i) {
         offset =
@@ -330,6 +350,7 @@ void exec_arm_data_transh(Arm7TDMI* cpu, ArmInstr instr) {
     } else {
         offset = cpu->r[instr.data_transh_reg.rm];
     }
+    cpu_fetch(cpu);
 
     if (!instr.data_transh_imm.u) offset = -offset;
     if (instr.data_transh_imm.p) addr += offset;
@@ -337,6 +358,7 @@ void exec_arm_data_transh(Arm7TDMI* cpu, ArmInstr instr) {
     if (instr.data_transh_imm.s) {
         sword data;
         if (instr.data_trans.l) {
+            cpu_internal_cycle(cpu);
             if (instr.data_transh_imm.h) {
                 data = (shword) cpu_readh(cpu, addr);
             } else {
@@ -347,11 +369,11 @@ void exec_arm_data_transh(Arm7TDMI* cpu, ArmInstr instr) {
     } else if (instr.data_transh_imm.h) {
         hword data;
         if (instr.data_trans.l) {
+            cpu_internal_cycle(cpu);
             data = cpu_readh(cpu, addr);
             cpu->r[instr.data_transh_imm.rd] = data;
         } else {
             data = cpu->r[instr.data_transh_imm.rd];
-            if (instr.data_transh_imm.rd == 15) data += 8;
             cpu_writeh(cpu, addr, data);
         }
     }
@@ -360,11 +382,13 @@ void exec_arm_data_transh(Arm7TDMI* cpu, ArmInstr instr) {
     if (instr.data_transh_imm.w || !instr.data_transh_imm.p) {
         cpu->r[instr.data_transh_imm.rn] = addr;
     }
+
+    if(instr.data_transh_imm.rd == 15 && instr.data_transh_imm.l)
+        cpu_flush(cpu);
 }
 
 void exec_arm_data_trans(Arm7TDMI* cpu, ArmInstr instr) {
     word addr = cpu->r[instr.data_trans.rn];
-    if (instr.data_trans.rn == 15) addr += 4;
     word offset;
     if (instr.data_trans.i) {
         word rm = instr.data_trans.offset & 0b1111;
@@ -400,29 +424,31 @@ void exec_arm_data_trans(Arm7TDMI* cpu, ArmInstr instr) {
         offset = instr.data_trans.offset;
     }
 
+    cpu_fetch(cpu);
+
     if (!instr.data_trans.u) offset = -offset;
     if (instr.data_trans.p) addr += offset;
 
     if (instr.data_trans.b) {
         byte data;
         if (instr.data_trans.l) {
+            cpu_internal_cycle(cpu);
             data = cpu_readb(cpu, addr);
             cpu->r[instr.data_trans.rd] = data;
         } else {
             data = cpu->r[instr.data_trans.rd];
-            if (instr.data_trans.rd == 15) data += 8;
             cpu_writeb(cpu, addr, data);
         }
     } else {
         word data;
         if (instr.data_trans.l) {
+            cpu_internal_cycle(cpu);
             data = cpu_read(cpu, addr);
             word rot = (addr % 4) * 8;
             data = data >> rot | data << (32 - rot);
             cpu->r[instr.data_trans.rd] = data;
         } else {
             data = cpu->r[instr.data_trans.rd];
-            if (instr.data_trans.rd == 15) data += 8;
             cpu_write(cpu, addr, data);
         }
     }
@@ -431,24 +457,29 @@ void exec_arm_data_trans(Arm7TDMI* cpu, ArmInstr instr) {
     if (instr.data_trans.w || !instr.data_trans.p) {
         cpu->r[instr.data_trans.rn] = addr;
     }
+
+    if (instr.data_trans.rd == 15 && instr.data_trans.l) cpu_flush(cpu);
 }
 
 void exec_arm_undefined(Arm7TDMI* cpu, ArmInstr instr) {
-    printf("und ");
+    cpu_handle_interrupt(cpu, I_UND);
 }
 
 void exec_arm_data_trans_block(Arm7TDMI* cpu, ArmInstr instr) {
-    printf("ldm ");
+    cpu_fetch(cpu);
 }
 
 void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr) {
     word offset = instr.branch.offset;
     if (offset & (1 << 23)) offset |= 0xff000000;
     offset <<= 2;
-    if (instr.branch.l) cpu->lr = cpu->pc & ~0b11;
-    cpu->pc += 4 + offset;
+    word dest = cpu->pc + offset;
+    if (instr.branch.l) cpu->lr = (cpu->pc - 4) & ~0b11;
+    cpu_fetch(cpu);
+    cpu->pc = dest;
+    cpu_flush(cpu);
 }
 
 void exec_arm_sw_intr(Arm7TDMI* cpu, ArmInstr instr) {
-    printf("swi ");
+    cpu_handle_interrupt(cpu, I_SWI);
 }

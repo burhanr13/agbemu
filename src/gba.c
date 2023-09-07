@@ -13,6 +13,10 @@ void init_gba(GBA* gba, Cartridge* cart) {
     gba->ppu.master = gba;
 
     gba->cpu.pc = 0x08000000;
+    gba->cpu.cpsr.m = M_USER;
+    gba->cpu.banked_sp[B_SVC] = 0x3007fe0;
+    gba->cpu.banked_sp[B_IRQ] = 0x3007fa0;
+    gba->cpu.banked_sp[B_USER] = 0x3007f00;
 }
 
 bool gba_load_bios(GBA* gba, char* filename) {
@@ -93,7 +97,7 @@ hword gba_readh(GBA* gba, word addr, int* cycles) {
             break;
         case R_IO:
             if (addr < IO_SIZE) {
-                io_readh(&gba->io, addr & ~1);
+                return io_readh(&gba->io, addr & ~1);
             }
             break;
         case R_CRAM:
@@ -144,7 +148,7 @@ word gba_read(GBA* gba, word addr, int* cycles) {
             break;
         case R_IO:
             if (addr < IO_SIZE) {
-                io_readw(&gba->io, addr & ~0b11);
+                return io_readw(&gba->io, addr & ~0b11);
             }
             break;
         case R_CRAM:

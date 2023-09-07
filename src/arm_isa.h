@@ -1,26 +1,9 @@
 #ifndef ARM_ISA_H
 #define ARM_ISA_H
 
-#include "arm7tdmi.h"
 #include "types.h"
 
-enum {
-    C_EQ,
-    C_NE,
-    C_CS,
-    C_CC,
-    C_MI,
-    C_PL,
-    C_VS,
-    C_VC,
-    C_HI,
-    C_LS,
-    C_GE,
-    C_LT,
-    C_GT,
-    C_LE,
-    C_AL
-};
+typedef struct _Arm7TDMI Arm7TDMI;
 
 typedef union {
     word w;
