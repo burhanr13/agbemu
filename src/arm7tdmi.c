@@ -1,5 +1,7 @@
 #include "arm7tdmi.h"
 
+#include <stdio.h>
+
 #include "arm_isa.h"
 #include "gba.h"
 #include "thumb_isa.h"

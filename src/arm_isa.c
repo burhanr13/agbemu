@@ -233,7 +233,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
         }
         if (sub) {
             res = op1 - op2;
-            c = (op1 >= res) ? 1 : 0;
+            c = (op1 >= op2) ? 1 : 0;
             sword sop1 = op1, sop2 = op2, sres = res;
             v = ((sop1 > sres && sop2 <= 0) || (sop1 <= sres && sop2 > 0)) ? 1
                                                                            : 0;
@@ -245,13 +245,16 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
                                                                           : 0;
         }
         if (car) {
-            word old = res;
             res += cpu->cpsr.c;
+            dword dop1 = op1;
+            dword dop2 = op2;
             if (sub) {
                 res--;
-                c |= (old < res) ? 1 : 0;
+                dop2++;
+                c = (dop1 >= dop2) ? 1 : 0;
             } else {
-                c |= (old > res) ? 1 : 0;
+                dword dres = dop1 + dop2 + cpu->cpsr.c;
+                c = (dres > 0xffffffff) ? 1 : 0;
             }
         }
     }
