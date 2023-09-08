@@ -7,7 +7,12 @@
 
 void tick_cpu(Arm7TDMI* cpu) {
     if (cpu->cycles == 0) {
-        arm_exec_instr(cpu);
+        if (!cpu->cpsr.i && cpu->master->io.ime &&
+            (cpu->master->io.ie.h & cpu->master->io.ifl.h)) {
+            cpu_handle_interrupt(cpu, I_IRQ);
+        } else {
+            arm_exec_instr(cpu);
+        }
     }
     if (cpu->cycles > 0) cpu->cycles--;
 }
@@ -26,6 +31,7 @@ void cpu_fetch(Arm7TDMI* cpu) {
 
 void cpu_flush(Arm7TDMI* cpu) {
     if (cpu->cpsr.t) {
+        cpu->pc &= ~1;
         cpu->cur_instr =
             thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
         cpu->pc += 2;
@@ -33,6 +39,7 @@ void cpu_flush(Arm7TDMI* cpu) {
             thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
         cpu->pc += 2;
     } else {
+        cpu->pc &= ~0b11;
         cpu->cur_instr.w = cpu_read(cpu, cpu->pc);
         cpu->pc += 4;
         cpu->next_instr.w = cpu_read(cpu, cpu->pc);

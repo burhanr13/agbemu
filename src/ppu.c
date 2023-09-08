@@ -11,7 +11,7 @@ void draw_bg_line_m2(PPU* ppu) {}
 
 void draw_bg_line_m3(PPU* ppu) {
     word start_addr = GBA_SCREEN_W * ppu->ly;
-    for (int x = 0; x < GBA_SCREEN_W;x++){
+    for (int x = 0; x < GBA_SCREEN_W; x++) {
         ppu->screen[ppu->ly][x] = ppu->master->vram.h[start_addr + x];
     }
 }
@@ -54,18 +54,26 @@ void draw_bg_line(PPU* ppu) {
 void tick_ppu(PPU* ppu) {
     if (ppu->lx == 0) {
         ppu->master->io.dispstat.hblank = 0;
+        if (ppu->ly == ppu->master->io.dispstat.lyc) {
+            ppu->master->io.dispstat.vcounteq = 1;
+            if (ppu->master->io.dispstat.vcount_irq)
+                ppu->master->io.ifl.vcounteq = 1;
+        } else ppu->master->io.dispstat.vcounteq = 0;
         if (ppu->ly < GBA_SCREEN_H) {
 
             draw_bg_line(ppu);
 
         } else if (ppu->ly == GBA_SCREEN_H) {
             ppu->master->io.dispstat.vblank = 1;
+            if (ppu->master->io.dispstat.vblank_irq)
+                ppu->master->io.ifl.vblank = 1;
         } else if (ppu->ly == LINES_H - 1) {
             ppu->master->io.dispstat.vblank = 0;
             ppu->frame_complete = true;
         }
-    } else if (ppu->lx == GBA_SCREEN_W && ppu->ly < GBA_SCREEN_H) {
+    } else if (ppu->lx == GBA_SCREEN_W) {
         ppu->master->io.dispstat.hblank = 1;
+        if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
     }
 
     ppu->lx++;

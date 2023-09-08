@@ -1,16 +1,23 @@
 #include <SDL2/SDL.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "cartridge.h"
 #include "gba.h"
 
 int main(int argc, char** argv) {
-    if (argc < 2) return -1;
-    
+    if (argc < 2) {
+        printf("no rom file given\n");
+        return -1;
+    }
+
     GBA* gba = malloc(sizeof *gba);
     Cartridge* cart = create_cartridge(argv[1]);
-    if (!cart) return -1;
+    if (!cart) {
+        free(gba);
+        printf("invalid rom file\n");
+        return -1;
+    }
     init_gba(gba, cart);
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -31,11 +38,22 @@ int main(int argc, char** argv) {
     while (running) {
 
         SDL_Event e;
-        while(SDL_PollEvent(&e)) {
+        while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) running = false;
         }
+        const Uint8* keys = SDL_GetKeyboardState(NULL);
+        gba->io.keyinput.a = ~keys[SDL_SCANCODE_Z];
+        gba->io.keyinput.b = ~keys[SDL_SCANCODE_X];
+        gba->io.keyinput.start = ~keys[SDL_SCANCODE_RETURN];
+        gba->io.keyinput.select = ~keys[SDL_SCANCODE_RSHIFT];
+        gba->io.keyinput.left = ~keys[SDL_SCANCODE_LEFT];
+        gba->io.keyinput.right = ~keys[SDL_SCANCODE_RIGHT];
+        gba->io.keyinput.up = ~keys[SDL_SCANCODE_UP];
+        gba->io.keyinput.down = ~keys[SDL_SCANCODE_DOWN];
+        gba->io.keyinput.l = ~keys[SDL_SCANCODE_A];
+        gba->io.keyinput.r = ~keys[SDL_SCANCODE_S];
 
-        while(!gba->ppu.frame_complete) {
+        while (!gba->ppu.frame_complete) {
             tick_gba(gba);
         }
         gba->ppu.frame_complete = false;
@@ -47,7 +65,7 @@ int main(int argc, char** argv) {
         SDL_UnlockTexture(texture);
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
-        
+
         SDL_Delay(10);
     }
 
@@ -56,7 +74,7 @@ int main(int argc, char** argv) {
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    
+
     SDL_Quit();
 
     return 0;

@@ -452,6 +452,7 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
 
 void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
     word addr = cpu->r[instr.single_trans.rn];
+    if (instr.single_trans.rn == 15) addr &= ~0b10;
     word offset;
     if (instr.single_trans.i) {
         word rm = instr.single_trans.offset & 0b1111;
