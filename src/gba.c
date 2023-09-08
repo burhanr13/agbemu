@@ -16,7 +16,7 @@ void init_gba(GBA* gba, Cartridge* cart) {
     gba->cpu.cpsr.m = M_USER;
     gba->cpu.banked_sp[B_SVC] = 0x3007fe0;
     gba->cpu.banked_sp[B_IRQ] = 0x3007fa0;
-    gba->cpu.banked_sp[B_USER] = 0x3007f00;
+    gba->cpu.sp = 0x3007f00;
 }
 
 bool gba_load_bios(GBA* gba, char* filename) {
@@ -45,8 +45,8 @@ byte gba_readb(GBA* gba, word addr, int* cycles) {
             return gba->iwram.b[addr % IWRAM_SIZE];
             break;
         case R_IO:
-            if (addr < IO_SIZE) {
-                return io_readb(&gba->io, addr);
+            if (addr < IA_SIZE) {
+                return iA_readb(&gba->io, addr);
             }
             break;
         case R_CRAM:
@@ -96,8 +96,8 @@ hword gba_readh(GBA* gba, word addr, int* cycles) {
             return gba->iwram.h[addr % IWRAM_SIZE >> 1];
             break;
         case R_IO:
-            if (addr < IO_SIZE) {
-                return io_readh(&gba->io, addr & ~1);
+            if (addr < IA_SIZE) {
+                return iA_readh(&gba->io, addr & ~1);
             }
             break;
         case R_CRAM:
@@ -147,8 +147,8 @@ word gba_read(GBA* gba, word addr, int* cycles) {
             return gba->iwram.w[addr % IWRAM_SIZE >> 2];
             break;
         case R_IO:
-            if (addr < IO_SIZE) {
-                return io_readw(&gba->io, addr & ~0b11);
+            if (addr < IA_SIZE) {
+                return iA_readw(&gba->io, addr & ~0b11);
             }
             break;
         case R_CRAM:
@@ -194,8 +194,8 @@ void gba_writeb(GBA* gba, word addr, byte b, int* cycles) {
             gba->iwram.b[addr % IWRAM_SIZE] = b;
             break;
         case R_IO:
-            if (addr < IO_SIZE) {
-                io_writeb(&gba->io, addr, b);
+            if (addr < IA_SIZE) {
+                iA_writeb(&gba->io, addr, b);
             }
             break;
         case R_CRAM:
@@ -237,8 +237,8 @@ void gba_writeh(GBA* gba, word addr, hword h, int* cycles) {
             gba->iwram.h[addr % IWRAM_SIZE >> 1] = h;
             break;
         case R_IO:
-            if (addr < IO_SIZE) {
-                io_writeh(&gba->io, addr & ~1, h);
+            if (addr < IA_SIZE) {
+                iA_writeh(&gba->io, addr & ~1, h);
             }
             break;
         case R_CRAM:
@@ -280,8 +280,8 @@ void gba_write(GBA* gba, word addr, word w, int* cycles) {
             gba->iwram.w[addr % EWRAM_SIZE >> 2] = w;
             break;
         case R_IO:
-            if (addr < IO_SIZE) {
-                io_writew(&gba->io, addr & ~0b11, w);
+            if (addr < IA_SIZE) {
+                iA_writew(&gba->io, addr & ~0b11, w);
             }
             break;
         case R_CRAM:

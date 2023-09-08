@@ -1,9 +1,9 @@
-#ifndef IO_H
-#define IO_H
+#ifndef IA_H
+#define IA_H
 
 #include "types.h"
 
-#define IO_SIZE 0x400
+#define IA_SIZE 0x400
 
 enum {
     DISPCNT = 0x000,
@@ -12,9 +12,9 @@ enum {
 };
 
 typedef union {
-    byte b[IO_SIZE];
-    hword h[IO_SIZE >> 1];
-    word w[IO_SIZE >> 2];
+    byte b[IA_SIZE];
+    hword h[IA_SIZE >> 1];
+    word w[IA_SIZE >> 2];
     struct {
         union {
             hword h;
@@ -59,13 +59,13 @@ typedef union {
     };
 } IO;
 
-byte io_readb(IO* io, word addr);
-void io_writeb(IO* io, word addr, byte data);
+byte iA_readb(IO* io, word addr);
+void iA_writeb(IO* io, word addr, byte data);
 
-hword io_readh(IO* io, word addr);
-void io_writeh(IO* io, word addr, hword data);
+hword iA_readh(IO* io, word addr);
+void iA_writeh(IO* io, word addr, hword data);
 
-word io_readw(IO* io, word addr);
-void io_writew(IO* io, word addr, word data);
+word iA_readw(IO* io, word addr);
+void iA_writew(IO* io, word addr, word data);
 
 #endif

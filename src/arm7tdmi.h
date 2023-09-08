@@ -26,24 +26,6 @@ typedef enum {
     I_FIQ
 } CpuInterrupt;
 
-typedef enum {
-    C_EQ,
-    C_NE,
-    C_CS,
-    C_CC,
-    C_MI,
-    C_PL,
-    C_VS,
-    C_VC,
-    C_HI,
-    C_LS,
-    C_GE,
-    C_LT,
-    C_GT,
-    C_LE,
-    C_AL
-} ArmCond;
-
 typedef struct _GBA GBA;
 
 typedef struct _Arm7TDMI {
@@ -81,6 +63,8 @@ typedef struct _Arm7TDMI {
 
     ArmInstr cur_instr;
     ArmInstr next_instr;
+
+    bool thumb_bl;
 
     int cycles;
 

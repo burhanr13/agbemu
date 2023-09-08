@@ -3,6 +3,45 @@
 
 #include "types.h"
 
+enum {
+    C_EQ,
+    C_NE,
+    C_CS,
+    C_CC,
+    C_MI,
+    C_PL,
+    C_VS,
+    C_VC,
+    C_HI,
+    C_LS,
+    C_GE,
+    C_LT,
+    C_GT,
+    C_LE,
+    C_AL
+};
+
+enum {
+    A_AND,
+    A_EOR,
+    A_SUB,
+    A_RSB,
+    A_ADD,
+    A_ADC,
+    A_SBC,
+    A_RSC,
+    A_TST,
+    A_TEQ,
+    A_CMP,
+    A_CMN,
+    A_ORR,
+    A_MOV,
+    A_BIC,
+    A_MVN
+};
+
+enum { S_LSL, S_LSR, S_ASR, S_ROR };
+
 typedef struct _Arm7TDMI Arm7TDMI;
 
 typedef union {
@@ -74,7 +113,7 @@ typedef union {
         word p : 1;
         word c1 : 3; // 000
         word cond : 4;
-    } data_transh_reg;
+    } half_transr;
     struct {
         word offlo : 4;
         word c3 : 1; // 1
@@ -91,7 +130,7 @@ typedef union {
         word p : 1;
         word c1 : 3; // 000
         word cond : 4;
-    } data_transh_imm;
+    } half_transi;
     struct {
         word offset : 12;
         word rd : 4;
@@ -104,7 +143,7 @@ typedef union {
         word i : 1;
         word c1 : 2; // 01
         word cond : 4;
-    } data_trans;
+    } single_trans;
     struct {
         word u2 : 4;
         word c2 : 1; // 1
@@ -122,7 +161,7 @@ typedef union {
         word p : 1;
         word c1 : 3; // 100
         word cond : 4;
-    } data_trans_block;
+    } block_trans;
     struct {
         word offset : 24;
         word l : 1;
@@ -143,10 +182,10 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr);
-void exec_arm_data_transh(Arm7TDMI* cpu, ArmInstr instr);
-void exec_arm_data_trans(Arm7TDMI* cpu, ArmInstr instr);
+void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr);
+void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_undefined(Arm7TDMI* cpu, ArmInstr instr);
-void exec_arm_data_trans_block(Arm7TDMI* cpu, ArmInstr instr);
+void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_sw_intr(Arm7TDMI* cpu, ArmInstr instr);
 
