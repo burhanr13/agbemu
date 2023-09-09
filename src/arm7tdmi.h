@@ -57,6 +57,7 @@ typedef struct _Arm7TDMI {
     } cpsr;
     word spsr;
 
+    word banked_r8_12[2][5];
     word banked_sp[B_CT];
     word banked_lr[B_CT];
     word banked_spsr[B_CT];

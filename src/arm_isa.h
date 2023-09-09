@@ -84,6 +84,21 @@ typedef union {
         word cond : 4;
     } multiply_long;
     struct {
+        word op2 : 12;
+        word rd : 4;
+        word c : 1;
+        word x : 1;
+        word s : 1;
+        word f : 1;
+        word c3 : 1; // 0
+        word op : 1;
+        word p : 1;
+        word c2 : 2; // 10
+        word i : 1;
+        word c1 : 2; // 00
+        word cond : 4;
+    } psr_trans;
+    struct {
         word rm : 4;
         word c3 : 8; // 00001001
         word rd : 4;
@@ -180,6 +195,7 @@ void arm_exec_instr(Arm7TDMI* cpu);
 void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr);
+void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr);

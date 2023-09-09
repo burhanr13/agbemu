@@ -78,6 +78,18 @@ void cpu_update_mode(Arm7TDMI* cpu, CpuMode old) {
     cpu->sp = cpu->banked_sp[new_bank];
     cpu->lr = cpu->banked_lr[new_bank];
     cpu->spsr = cpu->banked_spsr[new_bank];
+    if (old == M_FIQ && cpu->cpsr.m != M_FIQ) {
+        for (int i = 0; i < 5; i++) {
+            cpu->banked_r8_12[1][i] = cpu->r[8 + i];
+            cpu->r[8 + i] = cpu->banked_r8_12[0][i];
+        }
+    }
+    if (old != M_FIQ && cpu->cpsr.m == M_FIQ) {
+        for (int i = 0; i < 5; i++) {
+            cpu->banked_r8_12[0][i] = cpu->r[8 + i];
+            cpu->r[8 + i] = cpu->banked_r8_12[1][i];
+        }
+    }
 }
 
 void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
