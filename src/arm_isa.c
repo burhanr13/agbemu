@@ -152,6 +152,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
         }
     }
     word op1 = cpu->r[instr.data_proc.rn];
+    if (instr.data_proc.rn == 15) op1 &= ~0b10;
     if (!shiftr) cpu_fetch(cpu);
 
     word res = 0;

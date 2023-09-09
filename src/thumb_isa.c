@@ -236,7 +236,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                 dec.data_proc.s = 0;
                 dec.data_proc.rd = 13;
                 dec.data_proc.rn = 13;
-                dec.data_proc.op2 = instr.add_sp.offset;
+                dec.data_proc.op2 = instr.add_sp.offset << 2;
             } else {
                 dec.block_trans.c1 = 0b100;
                 dec.block_trans.p = (instr.push_pop.l) ? 0 : 1;
