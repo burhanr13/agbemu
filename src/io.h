@@ -62,7 +62,7 @@ typedef union {
                 hword unused : 8;
             };
         } vcount;
-        byte gap[KEYINPUT - VCOUNT - 1];
+        byte gap[KEYINPUT - VCOUNT - 2];
         union {
             hword h;
             struct {
@@ -97,7 +97,7 @@ typedef union {
                 hword irq_cond : 1;
             };
         } keycnt;
-        byte unused_1xx[IE - KEYCNT - 1];
+        byte unused_1xx[IE - KEYCNT - 2];
         union {
             hword h;
             struct {
