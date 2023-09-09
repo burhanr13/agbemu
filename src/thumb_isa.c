@@ -189,7 +189,9 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
             dec.single_trans.l = instr.ldst_imm.l;
             dec.single_trans.rn = instr.ldst_imm.rb;
             dec.single_trans.rd = instr.ldst_imm.rd;
-            dec.single_trans.offset = instr.ldst_imm.offset;
+            dec.single_trans.offset = (instr.ldst_imm.b)
+                                          ? instr.ldst_imm.offset
+                                          : instr.ldst_imm.offset << 2;
             break;
         case 8:
             dec.half_transi.c1 = 0b000;
@@ -205,7 +207,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
             dec.half_transi.s = 0;
             dec.half_transi.h = 1;
             dec.half_transi.c3 = 1;
-            dec.half_transi.offlo = instr.ldst_h.offset;
+            dec.half_transi.offlo = instr.ldst_h.offset << 1;
             break;
         case 9:
             dec.single_trans.c1 = 0b01;
@@ -260,7 +262,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
             dec.block_trans.p = 0;
             dec.block_trans.u = 1;
             dec.block_trans.s = 0;
-            dec.block_trans.w = 0;
+            dec.block_trans.w = 1;
             dec.block_trans.l = instr.ldst_m.l;
             dec.block_trans.rn = instr.ldst_m.rb;
             dec.block_trans.rlist = instr.ldst_m.rlist;
