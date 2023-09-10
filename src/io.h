@@ -9,6 +9,34 @@ enum {
     DISPCNT = 0x000,
     DISPSTAT = 0x004,
     VCOUNT = 0x006,
+    BG0CNT = 0x008,
+    BG1CNT = 0x00a,
+    BG2CNT = 0x00c,
+    BG3CNT = 0x00e,
+    BG0HOFS = 0x010,
+    BG0VOFS = 0x012,
+    BG1HOFS = 0x014,
+    BG1VOFS = 0x016,
+    BG2HOFS = 0x018,
+    BG2VOFS = 0x01a,
+    BG3HOFS = 0x01c,
+    BG3VOFS = 0x01e,
+    BG2PA = 0x020,
+    BG2PB = 0x022,
+    BG2PC = 0x024,
+    BG2PD = 0x026,
+    BG2X_L = 0x028,
+    BG2X_H = 0x02a,
+    BG2Y_L = 0x02c,
+    BG2Y_H = 0x02e,
+    BG3PA = 0x030,
+    BG3PB = 0x032,
+    BG3PC = 0x034,
+    BG3PD = 0x036,
+    BG3X_L = 0x038,
+    BG3X_H = 0x03a,
+    BG3Y_L = 0x03c,
+    BG3Y_H = 0x03e,
     KEYINPUT = 0x130,
     KEYCNT = 0x132,
     IE = 0x200,
@@ -55,14 +83,33 @@ typedef union {
                 hword lyc : 8;
             };
         } dispstat;
-        union {
+        hword vcount;
+        union{
             hword h;
             struct {
-                hword ly : 8;
-                hword unused : 8;
+                hword priority : 2;
+                hword tile_base : 2;
+                hword unused : 2;
+                hword mosaic : 1;
+                hword palettes : 1;
+                hword tilemap_base : 5;
+                hword overflow : 1;
+                hword size : 2;
             };
-        } vcount;
-        byte gap[KEYINPUT - VCOUNT - 2];
+        } bgcnt[4];
+        struct {
+            hword hofs;
+            hword vofs;
+        } bgtext[4];
+        struct {
+            hword pa;
+            hword pb;
+            hword pc;
+            hword pd;
+            word x;
+            word y;
+        } bgrot[2];
+        byte gap[KEYINPUT - BG3Y_H - 2];
         union {
             hword h;
             struct {

@@ -20,10 +20,10 @@ void io_writeb(IO* io, word addr, byte data) {
 }
 
 hword io_readh(IO* io, word addr) {
-    switch (addr) {
-        default:
-            return io->h[addr >> 1];
+    if(BG0HOFS <= addr && addr <= BG3Y_H) {
+        return 0;
     }
+    return io->h[addr >> 1];
 }
 
 void io_writeh(IO* io, word addr, hword data) {

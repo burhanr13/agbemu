@@ -1,7 +1,13 @@
 #include "ppu.h"
 
+#include <string.h>
+
 #include "gba.h"
 #include "io.h"
+
+void draw_bg_line_text(PPU* ppu, int bg) {}
+
+void draw_bg_line_rot(PPU* ppu, int bg) {}
 
 void draw_bg_line_m0(PPU* ppu) {}
 
@@ -60,8 +66,14 @@ void tick_ppu(PPU* ppu) {
                 ppu->master->io.ifl.vcounteq = 1;
         } else ppu->master->io.dispstat.vcounteq = 0;
         if (ppu->ly < GBA_SCREEN_H) {
+            if(ppu->master->io.dispcnt.forced_blank) {
+                memset(ppu->screen + ppu->ly * GBA_SCREEN_W, 0xff,
+                       GBA_SCREEN_W * 2);
+            } else {
 
-            draw_bg_line(ppu);
+                draw_bg_line(ppu);
+                
+            }
 
         } else if (ppu->ly == GBA_SCREEN_H) {
             ppu->master->io.dispstat.vblank = 1;
@@ -83,6 +95,6 @@ void tick_ppu(PPU* ppu) {
         if (ppu->ly == LINES_H) {
             ppu->ly = 0;
         }
-        ppu->master->io.vcount.ly = ppu->ly;
+        ppu->master->io.vcount = ppu->ly;
     }
 }
