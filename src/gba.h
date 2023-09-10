@@ -13,12 +13,12 @@ enum {
     BIOS_SIZE = 0x4000,   // 16kb
     EWRAM_SIZE = 0x40000, // 256kb
     IWRAM_SIZE = 0x8000,  // 32kb
-    CRAM_SIZE = 0x400, // 1kb
-    VRAM_SIZE = 0x18000, // 96kb
-    OAM_SIZE = 0x400, // 1kb
+    CRAM_SIZE = 0x400,    // 1kb
+    VRAM_SIZE = 0x18000,  // 96kb
+    OAM_SIZE = 0x400,     // 1kb
 };
 
-enum { 
+enum {
     R_BIOS,
     R_UNUSED,
     R_EWRAM,
@@ -88,7 +88,7 @@ void init_gba(GBA* gba, Cartridge* cart);
 
 bool gba_load_bios(GBA* gba, char* filename);
 
-int get_waitstates(word addr, DataWidth d);
+int gba_get_waitstates(GBA* gba, word addr, DataWidth d);
 
 byte gba_readb(GBA* gba, word addr);
 hword gba_readh(GBA* gba, word addr);

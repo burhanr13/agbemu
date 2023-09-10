@@ -13,8 +13,6 @@ typedef struct {
 
     union {
         byte* b;
-        hword* h;
-        word* w;
     } ram;
     int ram_size;
 } Cartridge;

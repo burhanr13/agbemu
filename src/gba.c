@@ -11,7 +11,7 @@ void init_gba(GBA* gba, Cartridge* cart) {
     gba->cart = cart;
     gba->cpu.master = gba;
     gba->ppu.master = gba;
-    if(!gba_load_bios(gba, "bios.bin")) {
+    if (!gba_load_bios(gba, "bios.bin")) {
         printf("no bios file found\n");
     }
 
@@ -31,13 +31,62 @@ bool gba_load_bios(GBA* gba, char* filename) {
     return true;
 }
 
-int get_waitstates(word addr, DataWidth d) {
-    return 0;
+int gba_get_waitstates(GBA* gba, word addr, DataWidth d) {
+    word region = addr >> 24;
+    word cart_addr = addr % (1 << 25);
+    switch (region) {
+        case R_BIOS:
+            return 1;
+        case R_EWRAM:
+            switch (d) {
+                case D_BYTE:
+                case D_HWORD:
+                    return 3;
+                case D_WORD:
+                    return 6;
+            }
+        case R_IWRAM:
+            return 1;
+        case R_IO:
+            return 1;
+        case R_CRAM:
+        case R_VRAM:
+            switch (d) {
+                case D_BYTE:
+                case D_HWORD:
+                    return 1;
+                case D_WORD:
+                    return 2;
+            }
+        case R_OAM:
+            return 1;
+        case R_ROM0:
+        case R_ROM0EX:
+        case R_ROM1:
+        case R_ROM1EX:
+        case R_ROM2:
+        case R_ROM2EX:
+            if (cart_addr < gba->cart->rom_size) {
+                switch (d) {
+                    case D_BYTE:
+                    case D_HWORD:
+                        return 5;
+                    case D_WORD:
+                        return 8;
+                }
+            } else return 1;
+        case R_SRAM:
+            if (cart_addr < gba->cart->ram_size) {
+                return 5;
+            } else return 1;
+        default:
+            return 1;
+    }
 }
 
 byte gba_readb(GBA* gba, word addr) {
     word region = addr >> 24;
-    word rom_addr = addr % (1 << 25);
+    word cart_addr = addr % (1 << 25);
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
@@ -73,13 +122,13 @@ byte gba_readb(GBA* gba, word addr) {
         case R_ROM1EX:
         case R_ROM2:
         case R_ROM2EX:
-            if (rom_addr < gba->cart->rom_size) {
-                return gba->cart->rom.b[rom_addr];
+            if (cart_addr < gba->cart->rom_size) {
+                return gba->cart->rom.b[cart_addr];
             }
             break;
         case R_SRAM:
-            if (addr < gba->cart->ram_size) {
-                return gba->cart->ram.b[addr];
+            if (cart_addr < gba->cart->ram_size) {
+                return gba->cart->ram.b[cart_addr];
             }
             break;
     }
@@ -88,7 +137,7 @@ byte gba_readb(GBA* gba, word addr) {
 
 hword gba_readh(GBA* gba, word addr) {
     word region = addr >> 24;
-    word rom_addr = addr % (1 << 25);
+    word cart_addr = addr % (1 << 25);
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
@@ -124,13 +173,13 @@ hword gba_readh(GBA* gba, word addr) {
         case R_ROM1EX:
         case R_ROM2:
         case R_ROM2EX:
-            if (rom_addr < gba->cart->rom_size) {
-                return gba->cart->rom.h[rom_addr >> 1];
+            if (cart_addr < gba->cart->rom_size) {
+                return gba->cart->rom.h[cart_addr >> 1];
             }
             break;
         case R_SRAM:
-            if (addr < gba->cart->ram_size) {
-                return gba->cart->ram.h[addr >> 1];
+            if (cart_addr < gba->cart->ram_size) {
+                return gba->cart->ram.b[cart_addr] * 0x0101;
             }
             break;
     }
@@ -139,7 +188,7 @@ hword gba_readh(GBA* gba, word addr) {
 
 word gba_read(GBA* gba, word addr) {
     word region = addr >> 24;
-    word rom_addr = addr % (1 << 25);
+    word cart_addr = addr % (1 << 25);
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
@@ -175,13 +224,13 @@ word gba_read(GBA* gba, word addr) {
         case R_ROM1EX:
         case R_ROM2:
         case R_ROM2EX:
-            if (rom_addr < gba->cart->rom_size) {
-                return gba->cart->rom.w[rom_addr >> 2];
+            if (cart_addr < gba->cart->rom_size) {
+                return gba->cart->rom.w[cart_addr >> 2];
             }
             break;
         case R_SRAM:
-            if (addr < gba->cart->ram_size) {
-                return gba->cart->ram.w[addr >> 2];
+            if (cart_addr < gba->cart->ram_size) {
+                return gba->cart->ram.b[cart_addr] * 0x01010101;
             }
             break;
     }
@@ -206,15 +255,13 @@ void gba_writeb(GBA* gba, word addr, byte b) {
             }
             break;
         case R_CRAM:
-            gba->cram.b[addr % CRAM_SIZE] = b;
             break;
         case R_VRAM:
             addr %= 0x20000;
             if (addr > VRAM_SIZE) addr -= 0x8000;
-            gba->vram.b[addr] = b;
+            gba->vram.h[addr >> 1] = b * 0x0101;
             break;
         case R_OAM:
-            gba->oam.b[addr % OAM_SIZE] = b;
             break;
         case R_ROM0:
         case R_ROM0EX:
@@ -268,7 +315,7 @@ void gba_writeh(GBA* gba, word addr, hword h) {
             break;
         case R_SRAM:
             if (addr < gba->cart->ram_size) {
-                gba->cart->ram.h[addr >> 1] = h;
+                gba->cart->ram.b[addr] = h >> (8 * (addr & 1));
             }
             break;
     }
@@ -311,7 +358,7 @@ void gba_write(GBA* gba, word addr, word w) {
             break;
         case R_SRAM:
             if (addr < gba->cart->ram_size) {
-                gba->cart->ram.w[addr >> 2] = w;
+                gba->cart->ram.b[addr] = w >> (8 * (addr & 0b11));
             }
             break;
     }
@@ -324,7 +371,7 @@ void tick_gba(GBA* gba) {
 }
 
 void run_gba(GBA* gba, int cycles) {
-    for (int i = 0; i < cycles;i++){
+    for (int i = 0; i < cycles; i++) {
         tick_gba(gba);
     }
 }

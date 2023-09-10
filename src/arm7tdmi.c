@@ -124,32 +124,32 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
 }
 
 byte cpu_readb(Arm7TDMI* cpu, word addr) {
-    run_gba(cpu->master, 1 + get_waitstates(addr, D_BYTE));
+    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_BYTE));
     return gba_readb(cpu->master, addr);
 }
 
 hword cpu_readh(Arm7TDMI* cpu, word addr) {
-    run_gba(cpu->master, 1 + get_waitstates(addr, D_HWORD));
+    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_HWORD));
     return gba_readh(cpu->master, addr);
 }
 
 word cpu_read(Arm7TDMI* cpu, word addr) {
-    run_gba(cpu->master, 1 + get_waitstates(addr, D_WORD));
+    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_WORD));
     return gba_read(cpu->master, addr);
 }
 
 void cpu_writeb(Arm7TDMI* cpu, word addr, byte b) {
-    run_gba(cpu->master, 1 + get_waitstates(addr, D_BYTE));
+    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_BYTE));
     gba_writeb(cpu->master, addr, b);
 }
 
 void cpu_writeh(Arm7TDMI* cpu, word addr, hword h) {
-    run_gba(cpu->master, 1 + get_waitstates(addr, D_HWORD));
+    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_HWORD));
     gba_writeh(cpu->master, addr, h);
 }
 
 void cpu_write(Arm7TDMI* cpu, word addr, word w) {
-    run_gba(cpu->master, 1 + get_waitstates(addr, D_WORD));
+    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_WORD));
     gba_write(cpu->master, addr, w);
 }
 
