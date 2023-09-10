@@ -7,6 +7,8 @@
 #include "ppu.h"
 #include "types.h"
 
+typedef enum { D_BYTE, D_HWORD, D_WORD } DataWidth;
+
 enum {
     BIOS_SIZE = 0x4000,   // 16kb
     EWRAM_SIZE = 0x40000, // 256kb
@@ -86,13 +88,16 @@ void init_gba(GBA* gba, Cartridge* cart);
 
 bool gba_load_bios(GBA* gba, char* filename);
 
-byte gba_readb(GBA* gba, word addr, int* cycles);
-hword gba_readh(GBA* gba, word addr, int* cycles);
-word gba_read(GBA* gba, word addr, int* cycles);
-void gba_writeb(GBA* gba, word addr, byte b, int* cycles);
-void gba_writeh(GBA* gba, word addr, hword h, int* cycles);
-void gba_write(GBA* gba, word addr, word w, int* cycles);
+int get_waitstates(word addr, DataWidth d);
+
+byte gba_readb(GBA* gba, word addr);
+hword gba_readh(GBA* gba, word addr);
+word gba_read(GBA* gba, word addr);
+void gba_writeb(GBA* gba, word addr, byte b);
+void gba_writeh(GBA* gba, word addr, hword h);
+void gba_write(GBA* gba, word addr, word w);
 
 void tick_gba(GBA* gba);
+void run_gba(GBA* gba, int cycles);
 
 #endif

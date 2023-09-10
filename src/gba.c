@@ -31,7 +31,11 @@ bool gba_load_bios(GBA* gba, char* filename) {
     return true;
 }
 
-byte gba_readb(GBA* gba, word addr, int* cycles) {
+int get_waitstates(word addr, DataWidth d) {
+    return 0;
+}
+
+byte gba_readb(GBA* gba, word addr) {
     word region = addr >> 24;
     word rom_addr = addr % (1 << 25);
     addr %= 1 << 24;
@@ -82,7 +86,7 @@ byte gba_readb(GBA* gba, word addr, int* cycles) {
     return 0;
 }
 
-hword gba_readh(GBA* gba, word addr, int* cycles) {
+hword gba_readh(GBA* gba, word addr) {
     word region = addr >> 24;
     word rom_addr = addr % (1 << 25);
     addr %= 1 << 24;
@@ -133,7 +137,7 @@ hword gba_readh(GBA* gba, word addr, int* cycles) {
     return 0;
 }
 
-word gba_read(GBA* gba, word addr, int* cycles) {
+word gba_read(GBA* gba, word addr) {
     word region = addr >> 24;
     word rom_addr = addr % (1 << 25);
     addr %= 1 << 24;
@@ -184,7 +188,7 @@ word gba_read(GBA* gba, word addr, int* cycles) {
     return 0;
 }
 
-void gba_writeb(GBA* gba, word addr, byte b, int* cycles) {
+void gba_writeb(GBA* gba, word addr, byte b) {
     word region = addr >> 24;
     addr %= 1 << 24;
     switch (region) {
@@ -227,7 +231,7 @@ void gba_writeb(GBA* gba, word addr, byte b, int* cycles) {
     }
 }
 
-void gba_writeh(GBA* gba, word addr, hword h, int* cycles) {
+void gba_writeh(GBA* gba, word addr, hword h) {
     word region = addr >> 24;
     addr %= 1 << 24;
     switch (region) {
@@ -270,7 +274,7 @@ void gba_writeh(GBA* gba, word addr, hword h, int* cycles) {
     }
 }
 
-void gba_write(GBA* gba, word addr, word w, int* cycles) {
+void gba_write(GBA* gba, word addr, word w) {
     word region = addr >> 24;
     addr %= 1 << 24;
     switch (region) {
@@ -315,7 +319,12 @@ void gba_write(GBA* gba, word addr, word w, int* cycles) {
 
 void tick_gba(GBA* gba) {
     if (gba->cycles % 4 == 0) tick_ppu(&gba->ppu);
-    tick_cpu(&gba->cpu);
 
     gba->cycles++;
+}
+
+void run_gba(GBA* gba, int cycles) {
+    for (int i = 0; i < cycles;i++){
+        tick_gba(gba);
+    }
 }

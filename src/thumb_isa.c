@@ -291,10 +291,9 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
             dec.branch.l = 1;
             if(instr.branch_l.h) {
                 dec.branch.offset = instr.branch_l.offset;
+                dec.branch.offset |= 1 << 22;
             } else {
-                word offset = instr.branch_l.offset;
-                if (offset & (1 << 10)) offset |= 0xfffff800;
-                dec.branch.offset = offset << 11;
+                dec.branch.offset = instr.branch_l.offset << 11;
             }
             break;
     }

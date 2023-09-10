@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
         gba->io.keyinput.r = ~keys[SDL_SCANCODE_S];
 
         while (!gba->ppu.frame_complete) {
-            tick_gba(gba);
+            tick_cpu(&gba->cpu);
         }
         gba->ppu.frame_complete = false;
 

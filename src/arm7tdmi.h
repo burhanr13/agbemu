@@ -65,10 +65,6 @@ typedef struct _Arm7TDMI {
     ArmInstr cur_instr;
     ArmInstr next_instr;
 
-    bool thumb_bl;
-
-    int cycles;
-
 } Arm7TDMI;
 
 void tick_cpu(Arm7TDMI* cpu);

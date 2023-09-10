@@ -8,15 +8,12 @@
 #include "types.h"
 
 void tick_cpu(Arm7TDMI* cpu) {
-    if (cpu->cycles == 0) {
-        if (!cpu->cpsr.i && cpu->master->io.ime &&
-            (cpu->master->io.ie.h & cpu->master->io.ifl.h)) {
-            cpu_handle_interrupt(cpu, I_IRQ);
-        } else {
-            arm_exec_instr(cpu);
-        }
+    if (!cpu->cpsr.i && cpu->master->io.ime &&
+        (cpu->master->io.ie.h & cpu->master->io.ifl.h)) {
+        cpu_handle_interrupt(cpu, I_IRQ);
+    } else {
+        arm_exec_instr(cpu);
     }
-    if (cpu->cycles > 0) cpu->cycles--;
 }
 
 void cpu_fetch(Arm7TDMI* cpu) {
@@ -127,35 +124,35 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
 }
 
 byte cpu_readb(Arm7TDMI* cpu, word addr) {
-    cpu->cycles++;
-    return gba_readb(cpu->master, addr, &cpu->cycles);
+    run_gba(cpu->master, 1 + get_waitstates(addr, D_BYTE));
+    return gba_readb(cpu->master, addr);
 }
 
 hword cpu_readh(Arm7TDMI* cpu, word addr) {
-    cpu->cycles++;
-    return gba_readh(cpu->master, addr, &cpu->cycles);
+    run_gba(cpu->master, 1 + get_waitstates(addr, D_HWORD));
+    return gba_readh(cpu->master, addr);
 }
 
 word cpu_read(Arm7TDMI* cpu, word addr) {
-    cpu->cycles++;
-    return gba_read(cpu->master, addr, &cpu->cycles);
+    run_gba(cpu->master, 1 + get_waitstates(addr, D_WORD));
+    return gba_read(cpu->master, addr);
 }
 
 void cpu_writeb(Arm7TDMI* cpu, word addr, byte b) {
-    cpu->cycles++;
-    gba_writeb(cpu->master, addr, b, &cpu->cycles);
+    run_gba(cpu->master, 1 + get_waitstates(addr, D_BYTE));
+    gba_writeb(cpu->master, addr, b);
 }
 
 void cpu_writeh(Arm7TDMI* cpu, word addr, hword h) {
-    cpu->cycles++;
-    gba_writeh(cpu->master, addr, h, &cpu->cycles);
+    run_gba(cpu->master, 1 + get_waitstates(addr, D_HWORD));
+    gba_writeh(cpu->master, addr, h);
 }
 
 void cpu_write(Arm7TDMI* cpu, word addr, word w) {
-    cpu->cycles++;
-    gba_write(cpu->master, addr, w, &cpu->cycles);
+    run_gba(cpu->master, 1 + get_waitstates(addr, D_WORD));
+    gba_write(cpu->master, addr, w);
 }
 
 void cpu_internal_cycle(Arm7TDMI* cpu) {
-    cpu->cycles++;
+    run_gba(cpu->master, 1);
 }

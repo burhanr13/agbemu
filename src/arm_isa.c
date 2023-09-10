@@ -620,13 +620,13 @@ void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr) {
     word dest = cpu->pc + offset;
     if (instr.branch.l) {
         if (cpu->cpsr.t) {
-            if (cpu->thumb_bl) {
-                cpu->thumb_bl = false;
+            if (offset & (1<<23)) {
+                offset %= 1 << 23;
                 cpu->lr += offset;
                 dest = cpu->lr;
                 cpu->lr = (cpu->pc - 2) | 1;
             } else {
-                cpu->thumb_bl = true;
+                if (offset & (1 << 22)) dest += 0xff800000;
                 cpu->lr = dest;
                 cpu_fetch(cpu);
                 return;
