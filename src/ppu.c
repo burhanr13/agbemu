@@ -138,8 +138,7 @@ void tick_ppu(PPU* ppu) {
         } else ppu->master->io.dispstat.vcounteq = 0;
         if (ppu->ly < GBA_SCREEN_H) {
             if (ppu->master->io.dispcnt.forced_blank) {
-                memset(ppu->screen + ppu->ly * GBA_SCREEN_W, 0xff,
-                       GBA_SCREEN_W * 2);
+                memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
             } else {
                 for (int x = 0; x < GBA_SCREEN_W; x++) {
                     ppu->screen[ppu->ly][x] = ppu->master->cram.h[0];
