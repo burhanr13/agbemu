@@ -8,6 +8,16 @@
 #define DOTS_W 308
 #define LINES_H 228
 
+typedef union {
+    hword h;
+    struct {
+        hword num : 10;
+        hword hflip : 1;
+        hword vflip : 1;
+        hword palette : 4;
+    };
+} Tile;
+
 typedef struct _GBA GBA;
 
 typedef struct {

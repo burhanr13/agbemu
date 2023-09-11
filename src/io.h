@@ -59,13 +59,9 @@ typedef union {
                 hword hblank_free : 1;
                 hword obj_tilemap : 1;
                 hword forced_blank : 1;
-                hword bg0_enable : 1;
-                hword bg1_enable : 1;
-                hword bg2_enable : 1;
-                hword bg3_enable : 1;
+                hword bg_enable : 4;
                 hword obj_enable : 1;
-                hword win0_enable : 1;
-                hword win1_enable : 1;
+                hword win_enable : 2;
                 hword winobj_enable : 1;
             };
         } dispcnt;
@@ -91,7 +87,7 @@ typedef union {
                 hword tile_base : 2;
                 hword unused : 2;
                 hword mosaic : 1;
-                hword palettes : 1;
+                hword palette : 1;
                 hword tilemap_base : 5;
                 hword overflow : 1;
                 hword size : 2;
