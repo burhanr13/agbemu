@@ -115,8 +115,9 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
     cpu_update_mode(cpu, old);
     cpu->spsr = spsr;
     cpu->lr = cpu->pc;
-    if (cpu->cpsr.t) cpu->lr -= 2;
-    else cpu->lr -= 4;
+    if (cpu->cpsr.t) {
+        if (intr == I_SWI) cpu->lr -= 2;
+    } else cpu->lr -= 4;
     cpu_fetch(cpu);
     cpu->cpsr.t = 0;
     cpu->cpsr.i = 1;
