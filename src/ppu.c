@@ -6,7 +6,7 @@
 #include "io.h"
 
 const word sclayout[4][2][2] = {
-    {{0, 0}, {0, 0}}, {{0, 0}, {1, 1}}, {{0, 1}, {0, 1}}, {{0, 1}, {2, 3}}};
+    {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
 
 void draw_bg_line_text(PPU* ppu, int bg) {
     word map_start = ppu->master->io.bgcnt[bg].tilemap_base * 0x800;
@@ -135,6 +135,15 @@ void tick_ppu(PPU* ppu) {
             if (ppu->master->io.dispstat.vcount_irq)
                 ppu->master->io.ifl.vcounteq = 1;
         } else ppu->master->io.dispstat.vcounteq = 0;
+        if (ppu->ly == GBA_SCREEN_H) {
+            ppu->master->io.dispstat.vblank = 1;
+            if (ppu->master->io.dispstat.vblank_irq)
+                ppu->master->io.ifl.vblank = 1;
+        } else if (ppu->ly == LINES_H - 1) {
+            ppu->master->io.dispstat.vblank = 0;
+            ppu->frame_complete = true;
+        }
+    } else if (ppu->lx == GBA_SCREEN_W) {
         if (ppu->ly < GBA_SCREEN_H) {
             if (ppu->master->io.dispcnt.forced_blank) {
                 memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
@@ -144,16 +153,7 @@ void tick_ppu(PPU* ppu) {
                 }
                 draw_bg_line(ppu);
             }
-
-        } else if (ppu->ly == GBA_SCREEN_H) {
-            ppu->master->io.dispstat.vblank = 1;
-            if (ppu->master->io.dispstat.vblank_irq)
-                ppu->master->io.ifl.vblank = 1;
-        } else if (ppu->ly == LINES_H - 1) {
-            ppu->master->io.dispstat.vblank = 0;
-            ppu->frame_complete = true;
         }
-    } else if (ppu->lx == GBA_SCREEN_W) {
         ppu->master->io.dispstat.hblank = 1;
         if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
     }
