@@ -40,9 +40,9 @@ void draw_bg_line_text(PPU* ppu, int bg) {
             } else {
                 col_ind &= 0b1111;
             }
-            col_ind |= tile.palette << 4;
+            if (col_ind) col_ind |= tile.palette << 4;
         }
-        ppu->screen[ppu->ly][x] = ppu->master->cram.h[col_ind];
+        if (col_ind) ppu->screen[ppu->ly][x] = ppu->master->cram.h[col_ind];
     }
 }
 
@@ -97,8 +97,7 @@ void draw_bg_line_m4(PPU* ppu) {
         start_addr += GBA_SCREEN_W * ppu->ly;
         for (int x = 0; x < GBA_SCREEN_W; x++) {
             byte col_ind = ppu->master->vram.b[start_addr + x];
-            hword col = ppu->master->cram.h[col_ind];
-            ppu->screen[ppu->ly][x] = col;
+            if (col_ind) ppu->screen[ppu->ly][x] = ppu->master->cram.h[col_ind];
         }
     }
 }
