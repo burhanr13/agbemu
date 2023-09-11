@@ -79,6 +79,8 @@ void arm_exec_instr(Arm7TDMI* cpu) {
         exec_arm_psr_trans(cpu, instr);
     } else if (instr.data_proc.c1 == 0b00) {
         exec_arm_data_proc(cpu, instr);
+    } else {
+        cpu_fetch(cpu);
     }
 }
 
