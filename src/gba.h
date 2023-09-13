@@ -82,6 +82,9 @@ typedef struct _GBA {
         word w[OAM_SIZE >> 2];
     } oam;
 
+    bool halt;
+    bool stop;
+
 } GBA;
 
 void init_gba(GBA* gba, Cartridge* cart);

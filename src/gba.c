@@ -11,6 +11,7 @@ void init_gba(GBA* gba, Cartridge* cart) {
     gba->cart = cart;
     gba->cpu.master = gba;
     gba->ppu.master = gba;
+    gba->io.master = gba;
     if (!gba_load_bios(gba, "bios.bin")) {
         printf("no bios file found\n");
     }

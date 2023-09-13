@@ -80,6 +80,7 @@ void arm_exec_instr(Arm7TDMI* cpu) {
     } else if (instr.data_proc.c1 == 0b00) {
         exec_arm_data_proc(cpu, instr);
     } else {
+        printf("illegal instruction\n");
         cpu_fetch(cpu);
     }
 }
@@ -250,11 +251,6 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
     z = (res == 0) ? 1 : 0;
     n = (res >> 31) & 1;
 
-    if (save) {
-        cpu->r[instr.data_proc.rd] = res;
-        if (instr.data_proc.rd == 15) cpu_flush(cpu);
-    }
-
     if (instr.data_proc.s) {
         if (instr.data_proc.rd == 15) {
             CpuMode mode = cpu->cpsr.m;
@@ -268,6 +264,11 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
             cpu->cpsr.c = c;
             cpu->cpsr.v = v;
         }
+    }
+
+    if (save) {
+        cpu->r[instr.data_proc.rd] = res;
+        if (instr.data_proc.rd == 15) cpu_flush(cpu);
     }
 }
 
@@ -582,12 +583,26 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr) {
         if (instr.block_trans.w) cpu->r[instr.block_trans.rn] = wback;
     }
 
+    bool user_untrans = false;
+
     for (int i = 0; i < rcount; i++, addr += 4) {
         word data;
         if (instr.block_trans.l) {
             data = cpu_read(cpu, addr);
             cpu->r[rlist[i]] = data;
             if (rlist[i] == 15) {
+                if (user_trans) {
+                    cpu->cpsr.m = mode;
+                    cpu_update_mode(cpu, M_USER);
+                    user_untrans = true;
+                }
+                if (instr.block_trans.s) {
+                    CpuMode mode = cpu->cpsr.m;
+                    if (!(mode == M_USER || mode == M_SYSTEM)) {
+                        cpu->cpsr.w = cpu->spsr;
+                        cpu_update_mode(cpu, mode);
+                    }
+                }
                 cpu_flush(cpu);
             }
         } else {
@@ -598,19 +613,9 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr) {
         }
     }
 
-    if (user_trans) {
+    if (user_trans && !user_untrans) {
         cpu->cpsr.m = mode;
         cpu_update_mode(cpu, M_USER);
-    }
-
-    if ((instr.block_trans.rlist & (1 << 15)) && instr.block_trans.l) {
-        if (instr.block_trans.s) {
-            CpuMode mode = cpu->cpsr.m;
-            if (!(mode == M_USER || mode == M_SYSTEM)) {
-                cpu->cpsr.w = cpu->spsr;
-                cpu_update_mode(cpu, mode);
-            }
-        }
     }
 }
 

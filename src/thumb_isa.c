@@ -117,7 +117,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                     dec.data_proc.rd = instr.hi_ops.rd | (instr.hi_ops.h1 << 3);
                     dec.data_proc.op2 =
                         instr.hi_ops.rs | (instr.hi_ops.h2 << 3);
-                    switch(instr.hi_ops.op) {
+                    switch (instr.hi_ops.op) {
                         case 0:
                             dec.data_proc.opcode = A_ADD;
                             break;
@@ -248,10 +248,10 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                 dec.block_trans.l = instr.push_pop.l;
                 dec.block_trans.rn = 13;
                 dec.block_trans.rlist = instr.push_pop.rlist;
-                if(instr.push_pop.r) {
-                    if(instr.push_pop.l) {
+                if (instr.push_pop.r) {
+                    if (instr.push_pop.l) {
                         dec.block_trans.rlist |= (1 << 15);
-                    }else {
+                    } else {
                         dec.block_trans.rlist |= (1 << 14);
                     }
                 }
@@ -277,6 +277,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                 dec.branch.offset = offset;
             } else {
                 dec.sw_intr.c1 = 0b1111;
+                dec.sw_intr.arg = instr.swi.arg;
             }
             break;
         case 14:
@@ -289,7 +290,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
         case 15:
             dec.branch.c1 = 0b101;
             dec.branch.l = 1;
-            if(instr.branch_l.h) {
+            if (instr.branch_l.h) {
                 dec.branch.offset = instr.branch_l.offset;
                 dec.branch.offset |= 1 << 22;
             } else {

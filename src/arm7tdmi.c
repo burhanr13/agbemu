@@ -8,6 +8,16 @@
 #include "types.h"
 
 void tick_cpu(Arm7TDMI* cpu) {
+    if(cpu->master->halt) {
+        if(cpu->master->io.ie.h & cpu->master->io.ifl.h) {
+            cpu->master->halt = false;
+            printf("unhalted\n");
+            cpu_handle_interrupt(cpu, I_IRQ);
+        } else {
+            tick_gba(cpu->master);
+        }
+        return;
+    }
     if (!cpu->cpsr.i && cpu->master->io.ime &&
         (cpu->master->io.ie.h & cpu->master->io.ifl.h)) {
         cpu_handle_interrupt(cpu, I_IRQ);
@@ -90,6 +100,7 @@ void cpu_update_mode(Arm7TDMI* cpu, CpuMode old) {
 }
 
 void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
+    // printf("interrupt %d\n", intr);
     CpuMode old = cpu->cpsr.m;
     word spsr = cpu->cpsr.w;
     switch (intr) {

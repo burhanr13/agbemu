@@ -42,150 +42,160 @@ enum {
     IE = 0x200,
     IF = 0x202,
     WAITCNT = 0x204,
-    IME = 0x208
+    IME = 0x208,
+    POSTFLG = 0x300,
+    HALTCNT = 0x301
 };
 
-typedef union {
-    byte b[IO_SIZE];
-    hword h[IO_SIZE >> 1];
-    word w[IO_SIZE >> 2];
-    struct {
-        union {
-            hword h;
-            struct {
-                hword bg_mode : 3;
-                hword reserved : 1;
-                hword frame_sel : 1;
-                hword hblank_free : 1;
-                hword obj_tilemap : 1;
-                hword forced_blank : 1;
-                hword bg_enable : 4;
-                hword obj_enable : 1;
-                hword win_enable : 2;
-                hword winobj_enable : 1;
-            };
-        } dispcnt;
-        hword unused_002;
-        union {
-            hword h;
-            struct {
-                hword vblank : 1;
-                hword hblank : 1;
-                hword vcounteq : 1;
-                hword vblank_irq : 1;
-                hword hblank_irq : 1;
-                hword vcount_irq : 1;
-                hword unused : 2;
-                hword lyc : 8;
-            };
-        } dispstat;
-        hword vcount;
-        union{
-            hword h;
-            struct {
-                hword priority : 2;
-                hword tile_base : 2;
-                hword unused : 2;
-                hword mosaic : 1;
-                hword palette : 1;
-                hword tilemap_base : 5;
-                hword overflow : 1;
-                hword size : 2;
-            };
-        } bgcnt[4];
+typedef struct _GBA GBA;
+
+typedef struct {
+    GBA* master;
+    union {
+        byte b[IO_SIZE];
+        hword h[IO_SIZE >> 1];
+        word w[IO_SIZE >> 2];
         struct {
-            hword hofs;
-            hword vofs;
-        } bgtext[4];
-        struct {
-            hword pa;
-            hword pb;
-            hword pc;
-            hword pd;
-            word x;
-            word y;
-        } bgrot[2];
-        byte gap[KEYINPUT - BG3Y_H - 2];
-        union {
-            hword h;
+            union {
+                hword h;
+                struct {
+                    hword bg_mode : 3;
+                    hword reserved : 1;
+                    hword frame_sel : 1;
+                    hword hblank_free : 1;
+                    hword obj_tilemap : 1;
+                    hword forced_blank : 1;
+                    hword bg_enable : 4;
+                    hword obj_enable : 1;
+                    hword win_enable : 2;
+                    hword winobj_enable : 1;
+                };
+            } dispcnt;
+            hword unused_002;
+            union {
+                hword h;
+                struct {
+                    hword vblank : 1;
+                    hword hblank : 1;
+                    hword vcounteq : 1;
+                    hword vblank_irq : 1;
+                    hword hblank_irq : 1;
+                    hword vcount_irq : 1;
+                    hword unused : 2;
+                    hword lyc : 8;
+                };
+            } dispstat;
+            hword vcount;
+            union {
+                hword h;
+                struct {
+                    hword priority : 2;
+                    hword tile_base : 2;
+                    hword unused : 2;
+                    hword mosaic : 1;
+                    hword palette : 1;
+                    hword tilemap_base : 5;
+                    hword overflow : 1;
+                    hword size : 2;
+                };
+            } bgcnt[4];
             struct {
-                hword a : 1;
-                hword b : 1;
-                hword select : 1;
-                hword start : 1;
-                hword right : 1;
-                hword left : 1;
-                hword up : 1;
-                hword down : 1;
-                hword r : 1;
-                hword l : 1;
-                hword unused : 6;
-            };
-        } keyinput;
-        union {
-            hword h;
+                hword hofs;
+                hword vofs;
+            } bgtext[4];
             struct {
-                hword a : 1;
-                hword b : 1;
-                hword select : 1;
-                hword start : 1;
-                hword right : 1;
-                hword left : 1;
-                hword up : 1;
-                hword down : 1;
-                hword r : 1;
-                hword l : 1;
-                hword unused : 4;
-                hword irq_enable : 1;
-                hword irq_cond : 1;
-            };
-        } keycnt;
-        byte unused_1xx[IE - KEYCNT - 2];
-        union {
-            hword h;
-            struct {
-                hword vblank : 1;
-                hword hblank : 1;
-                hword vcounteq : 1;
-                hword timer0 : 1;
-                hword timer1 : 1;
-                hword timer2 : 1;
-                hword timer3 : 1;
-                hword serial : 1;
-                hword dma0 : 1;
-                hword dma1 : 1;
-                hword dma2 : 1;
-                hword dma3 : 1;
-                hword keypad : 1;
-                hword gamepak : 1;
-                hword unused : 2;
-            };
-        } ie;
-        union {
-            hword h;
-            struct {
-                hword vblank : 1;
-                hword hblank : 1;
-                hword vcounteq : 1;
-                hword timer0 : 1;
-                hword timer1 : 1;
-                hword timer2 : 1;
-                hword timer3 : 1;
-                hword serial : 1;
-                hword dma0 : 1;
-                hword dma1 : 1;
-                hword dma2 : 1;
-                hword dma3 : 1;
-                hword keypad : 1;
-                hword gamepak : 1;
-                hword unused : 2;
-            };
-        } ifl;
-        union {
-            word w;
-            struct {};
-        } waitcnt;
-        word ime;
+                hword pa;
+                hword pb;
+                hword pc;
+                hword pd;
+                word x;
+                word y;
+            } bgrot[2];
+            byte gap[KEYINPUT - BG3Y_H - 2];
+            union {
+                hword h;
+                struct {
+                    hword a : 1;
+                    hword b : 1;
+                    hword select : 1;
+                    hword start : 1;
+                    hword right : 1;
+                    hword left : 1;
+                    hword up : 1;
+                    hword down : 1;
+                    hword r : 1;
+                    hword l : 1;
+                    hword unused : 6;
+                };
+            } keyinput;
+            union {
+                hword h;
+                struct {
+                    hword a : 1;
+                    hword b : 1;
+                    hword select : 1;
+                    hword start : 1;
+                    hword right : 1;
+                    hword left : 1;
+                    hword up : 1;
+                    hword down : 1;
+                    hword r : 1;
+                    hword l : 1;
+                    hword unused : 4;
+                    hword irq_enable : 1;
+                    hword irq_cond : 1;
+                };
+            } keycnt;
+            byte unused_1xx[IE - KEYCNT - 2];
+            union {
+                hword h;
+                struct {
+                    hword vblank : 1;
+                    hword hblank : 1;
+                    hword vcounteq : 1;
+                    hword timer0 : 1;
+                    hword timer1 : 1;
+                    hword timer2 : 1;
+                    hword timer3 : 1;
+                    hword serial : 1;
+                    hword dma0 : 1;
+                    hword dma1 : 1;
+                    hword dma2 : 1;
+                    hword dma3 : 1;
+                    hword keypad : 1;
+                    hword gamepak : 1;
+                    hword unused : 2;
+                };
+            } ie;
+            union {
+                hword h;
+                struct {
+                    hword vblank : 1;
+                    hword hblank : 1;
+                    hword vcounteq : 1;
+                    hword timer0 : 1;
+                    hword timer1 : 1;
+                    hword timer2 : 1;
+                    hword timer3 : 1;
+                    hword serial : 1;
+                    hword dma0 : 1;
+                    hword dma1 : 1;
+                    hword dma2 : 1;
+                    hword dma3 : 1;
+                    hword keypad : 1;
+                    hword gamepak : 1;
+                    hword unused : 2;
+                };
+            } ifl;
+            union {
+                word w;
+                struct {};
+            } waitcnt;
+            word ime;
+            byte unused_2xx[POSTFLG - IME - 4];
+            byte postflg;
+            byte haltcnt;
+        };
     };
 } IO;
 

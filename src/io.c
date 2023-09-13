@@ -1,5 +1,9 @@
 #include "io.h"
 
+#include <stdio.h>
+
+#include "gba.h"
+
 byte io_readb(IO* io, word addr) {
     hword h = io_readh(io, addr & ~1);
     if (addr & 1) {
@@ -8,32 +12,46 @@ byte io_readb(IO* io, word addr) {
 }
 
 void io_writeb(IO* io, word addr, byte data) {
-    hword h;
-    if(addr & 1) {
-        h = data << 8;
-        h |= io->b[addr & ~1];
+    if (addr == POSTFLG) {
+        io->postflg = data;
+    } else if (addr == HALTCNT) {
+        if (data) {
+            io->master->stop = true;
+        } else {
+            io->master->halt = true;
+            printf("halted\n");
+        }
     } else {
-        h = data;
-        h |= io->b[addr | 1] << 8;
+        hword h;
+        if (addr & 1) {
+            h = data << 8;
+            h |= io->b[addr & ~1];
+        } else {
+            h = data;
+            h |= io->b[addr | 1] << 8;
+        }
+        io_writeh(io, addr & ~1, h);
     }
-    io_writeh(io, addr & ~1, h);
 }
 
 hword io_readh(IO* io, word addr) {
-    if(BG0HOFS <= addr && addr <= BG3Y_H) {
+    if (BG0HOFS <= addr && addr <= BG3Y_H) {
         return 0;
     }
     return io->h[addr >> 1];
 }
 
 void io_writeh(IO* io, word addr, hword data) {
-    switch(addr) {
+    switch (addr) {
         case DISPSTAT:
             io->dispstat.h &= 0b111;
             io->dispstat.h |= data & ~0b111;
             break;
         case KEYINPUT:
             break;
+        case POSTFLG:
+            io_writeb(io, addr, data);
+            io_writeb(io, addr | 1, data >> 8);
         default:
             io->h[addr >> 1] = data;
     }
