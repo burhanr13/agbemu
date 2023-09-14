@@ -70,7 +70,7 @@ typedef union {
         hword offset : 8;
         hword rd : 3;
         hword c1 : 5; // 01001
-    } ldst_pc;
+    } ld_pc;
     struct {
         hword rd : 3;
         hword rb : 3;
@@ -115,7 +115,7 @@ typedef union {
         hword rd : 3;
         hword sp : 1;
         hword c1 : 4; // 1010
-    } ldst_addr;
+    } ld_addr;
     struct {
         hword offset : 7;
         hword s : 1;

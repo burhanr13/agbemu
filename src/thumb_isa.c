@@ -145,8 +145,8 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                     dec.single_trans.b = 0;
                     dec.single_trans.l = 1;
                     dec.single_trans.rn = 15;
-                    dec.single_trans.rd = instr.ldst_pc.rd;
-                    dec.single_trans.offset = instr.ldst_pc.offset << 2;
+                    dec.single_trans.rd = instr.ld_pc.rd;
+                    dec.single_trans.offset = instr.ld_pc.offset << 2;
                     break;
             }
             break;
@@ -226,9 +226,9 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
             dec.data_proc.i = 1;
             dec.data_proc.opcode = A_ADD;
             dec.data_proc.s = 0;
-            dec.data_proc.rd = instr.ldst_addr.rd;
-            dec.data_proc.rn = (instr.ldst_addr.sp) ? 13 : 15;
-            dec.data_proc.op2 = instr.ldst_addr.offset << 2;
+            dec.data_proc.rd = instr.ld_addr.rd;
+            dec.data_proc.rn = (instr.ld_addr.sp) ? 13 : 15;
+            dec.data_proc.op2 = instr.ld_addr.offset << 2;
             break;
         case 11:
             if (instr.add_sp.c1 == 0b10110000) {
