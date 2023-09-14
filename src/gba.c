@@ -184,6 +184,7 @@ hword gba_readh(GBA* gba, word addr) {
             }
             break;
     }
+    log_error(gba, "invalid memory read", (region << 24) | addr);
     return 0;
 }
 
@@ -235,6 +236,7 @@ word gba_read(GBA* gba, word addr) {
             }
             break;
     }
+    log_error(gba, "invalid memory read", (region << 24) | addr);
     return 0;
 }
 
@@ -243,6 +245,8 @@ void gba_writeb(GBA* gba, word addr, byte b) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
+            log_error(gba, "invalid memory write to bios",
+                      (region << 24) | addr);
             break;
         case R_EWRAM:
             gba->ewram.b[addr % EWRAM_SIZE] = b;
@@ -276,6 +280,8 @@ void gba_writeb(GBA* gba, word addr, byte b) {
                 gba->cart->ram.b[addr] = b;
             }
             break;
+        default:
+            log_error(gba, "invalid memory write", (region << 24) | addr);
     }
 }
 
@@ -284,6 +290,8 @@ void gba_writeh(GBA* gba, word addr, hword h) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
+            log_error(gba, "invalid memory write to bios",
+                      (region << 24) | addr);
             break;
         case R_EWRAM:
             gba->ewram.h[addr % EWRAM_SIZE >> 1] = h;
@@ -319,6 +327,8 @@ void gba_writeh(GBA* gba, word addr, hword h) {
                 gba->cart->ram.b[addr] = h >> (8 * (addr & 1));
             }
             break;
+        default:
+            log_error(gba, "invalid memory write", (region << 24) | addr);
     }
 }
 
@@ -327,6 +337,8 @@ void gba_write(GBA* gba, word addr, word w) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
+            log_error(gba, "invalid memory write to bios",
+                      (region << 24) | addr);
             break;
         case R_EWRAM:
             gba->ewram.w[addr % EWRAM_SIZE >> 2] = w;
@@ -362,6 +374,8 @@ void gba_write(GBA* gba, word addr, word w) {
                 gba->cart->ram.b[addr] = w >> (8 * (addr & 0b11));
             }
             break;
+        default:
+            log_error(gba, "invalid memory write", (region << 24) | addr);
     }
 }
 
@@ -375,4 +389,9 @@ void run_gba(GBA* gba, int cycles) {
     for (int i = 0; i < cycles; i++) {
         tick_gba(gba);
     }
+}
+
+void log_error(GBA* gba, char* mess, word addr) {
+    printf("Error: %s, addr=0x%08x at pc=0x%08x, thumb=%d\n", mess, addr,
+           gba->cpu.pc, gba->cpu.cpsr.t);
 }

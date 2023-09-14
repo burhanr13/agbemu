@@ -103,4 +103,6 @@ void gba_write(GBA* gba, word addr, word w);
 void tick_gba(GBA* gba);
 void run_gba(GBA* gba, int cycles);
 
+void log_error(GBA* gba, char* mess, word addr);
+
 #endif

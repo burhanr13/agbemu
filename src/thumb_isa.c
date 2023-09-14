@@ -211,7 +211,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
             break;
         case 9:
             dec.single_trans.c1 = 0b01;
-            dec.single_trans.i = 1;
+            dec.single_trans.i = 0;
             dec.single_trans.p = 1;
             dec.single_trans.u = 1;
             dec.single_trans.w = 0;

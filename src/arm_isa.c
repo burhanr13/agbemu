@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "arm7tdmi.h"
+#include "gba.h"
 
 bool eval_cond(Arm7TDMI* cpu, ArmInstr instr) {
     switch (instr.cond) {
@@ -55,6 +56,7 @@ void arm_exec_instr(Arm7TDMI* cpu) {
     } else if (instr.block_trans.c1 == 0b100) {
         exec_arm_block_trans(cpu, instr);
     } else if (instr.undefined.c1 == 0b011 && instr.undefined.c2 == 1) {
+        log_error(cpu->master, "undefined instruction", 0);
         exec_arm_undefined(cpu, instr);
     } else if (instr.single_trans.c1 == 0b01) {
         exec_arm_single_trans(cpu, instr);
@@ -80,7 +82,7 @@ void arm_exec_instr(Arm7TDMI* cpu) {
     } else if (instr.data_proc.c1 == 0b00) {
         exec_arm_data_proc(cpu, instr);
     } else {
-        printf("illegal instruction\n");
+        log_error(cpu->master, "illegal instruction", 0);
         cpu_fetch(cpu);
     }
 }
