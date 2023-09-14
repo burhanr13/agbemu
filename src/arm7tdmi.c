@@ -8,16 +8,6 @@
 #include "types.h"
 
 void tick_cpu(Arm7TDMI* cpu) {
-    if(cpu->master->halt) {
-        if(cpu->master->io.ie.h & cpu->master->io.ifl.h) {
-            cpu->master->halt = false;
-            printf("unhalted\n");
-            cpu_handle_interrupt(cpu, I_IRQ);
-        } else {
-            tick_gba(cpu->master);
-        }
-        return;
-    }
     if (!cpu->cpsr.i && cpu->master->io.ime &&
         (cpu->master->io.ie.h & cpu->master->io.ifl.h)) {
         cpu_handle_interrupt(cpu, I_IRQ);

@@ -19,7 +19,6 @@ void io_writeb(IO* io, word addr, byte data) {
             io->master->stop = true;
         } else {
             io->master->halt = true;
-            printf("halted\n");
         }
     } else {
         hword h;
