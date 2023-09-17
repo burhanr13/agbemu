@@ -136,7 +136,7 @@ byte gba_readb(GBA* gba, word addr) {
             }
             break;
     }
-    if (lg) log_error(gba, "invalid byte read", (region << 24) | addr);
+    log_error(gba, "invalid byte read", (region << 24) | addr);
     return 0;
 }
 
@@ -188,7 +188,7 @@ hword gba_readh(GBA* gba, word addr) {
             }
             break;
     }
-    if (lg) log_error(gba, "invalid hword read", (region << 24) | addr);
+    log_error(gba, "invalid hword read", (region << 24) | addr);
     return 0;
 }
 
@@ -240,7 +240,7 @@ word gba_read(GBA* gba, word addr) {
             }
             break;
     }
-    if (lg) log_error(gba, "invalid word read", (region << 24) | addr);
+    log_error(gba, "invalid word read", (region << 24) | addr);
     return 0;
 }
 
@@ -249,8 +249,7 @@ void gba_writeb(GBA* gba, word addr, byte b) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            log_error(gba, "invalid byte write to bios",
-                      (region << 24) | addr);
+            log_error(gba, "invalid byte write to bios", (region << 24) | addr);
             break;
         case R_EWRAM:
             gba->ewram.b[addr % EWRAM_SIZE] = b;
@@ -285,7 +284,7 @@ void gba_writeb(GBA* gba, word addr, byte b) {
             }
             break;
         default:
-            if (lg) log_error(gba, "invalid byte write", (region << 24) | addr);
+            log_error(gba, "invalid byte write", (region << 24) | addr);
     }
 }
 
@@ -332,8 +331,7 @@ void gba_writeh(GBA* gba, word addr, hword h) {
             }
             break;
         default:
-            if (lg)
-                log_error(gba, "invalid halfword write", (region << 24) | addr);
+            log_error(gba, "invalid halfword write", (region << 24) | addr);
     }
 }
 
@@ -342,8 +340,7 @@ void gba_write(GBA* gba, word addr, word w) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            log_error(gba, "invalid word write to bios",
-                      (region << 24) | addr);
+            log_error(gba, "invalid word write to bios", (region << 24) | addr);
             break;
         case R_EWRAM:
             gba->ewram.w[addr % EWRAM_SIZE >> 2] = w;
@@ -380,8 +377,7 @@ void gba_write(GBA* gba, word addr, word w) {
             }
             break;
         default:
-            if (lg)
-                log_error(gba, "invalid word write", (region << 24) | addr);
+            log_error(gba, "invalid word write", (region << 24) | addr);
     }
 }
 
@@ -398,7 +394,9 @@ void run_gba(GBA* gba, int cycles) {
 }
 
 void log_error(GBA* gba, char* mess, word addr) {
-    printf("Error: %s, addr=0x%08x\n", mess, addr);
-    print_cpu_state(&gba->cpu);
-    if (dbg) raise(SIGINT);
+    if (lg) {
+        printf("Error: %s, addr=0x%08x\n", mess, addr);
+        print_cpu_state(&gba->cpu);
+        if (dbg) raise(SIGINT);
+    }
 }
