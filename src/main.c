@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
 
-        SDL_Delay(16);
+        SDL_Delay(10);
     }
 
     destroy_cartridge(cart);

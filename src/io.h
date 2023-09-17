@@ -110,7 +110,7 @@ typedef struct {
                 hword pd;
                 word x;
                 word y;
-            } bgrot[2];
+            } bgaff[2];
             byte gap[KEYINPUT - BG3Y_H - 2];
             union {
                 hword h;

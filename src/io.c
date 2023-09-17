@@ -15,10 +15,11 @@ void io_writeb(IO* io, word addr, byte data) {
     if (addr == POSTFLG) {
         io->postflg = data;
     } else if (addr == HALTCNT) {
-        if (data) {
+        if (data & (1 << 7)) {
             io->master->stop = true;
         } else {
             io->master->halt = true;
+            printf("Entered halt with IE=%04x\n", io->ie.h);
         }
     } else {
         hword h;
@@ -47,6 +48,9 @@ void io_writeh(IO* io, word addr, hword data) {
             io->dispstat.h |= data & ~0b111;
             break;
         case KEYINPUT:
+            break;
+        case IF:
+            io->ifl.h &= ~data;
             break;
         case POSTFLG:
             io_writeb(io, addr, data);
