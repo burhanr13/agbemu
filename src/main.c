@@ -7,18 +7,64 @@
 #include "types.h"
 
 word bkpt;
+bool lg, dbg;
+char* romfile;
+
+void read_args(int argc, char** argv) {
+    for (int i = 0; i < argc; i++) {
+        if (argv[i][0] == '-') {
+            for (char* f = &argv[i][1]; *f; f++) {
+                switch (*f) {
+                    case 'l':
+                        lg = true;
+                        break;
+                    case 'd':
+                        lg = true;
+                        dbg = true;
+                        break;
+                    case 'b':
+                        if (*(f + 1) || i + 1 == argc ||
+                            sscanf(argv[i + 1], "0x%x", &bkpt) < 1) {
+                            printf("Provide valid hex address with -b\n");
+                        }
+                        break;
+                    default:
+                        printf("Invalid flag\n");
+                }
+            }
+        } else {
+            romfile = argv[i];
+        }
+    }
+}
+
+void update_input(GBA* gba) {
+    const Uint8* keys = SDL_GetKeyboardState(NULL);
+    gba->io.keyinput.a = ~keys[SDL_SCANCODE_Z];
+    gba->io.keyinput.b = ~keys[SDL_SCANCODE_X];
+    gba->io.keyinput.start = ~keys[SDL_SCANCODE_RETURN];
+    gba->io.keyinput.select = ~keys[SDL_SCANCODE_RSHIFT];
+    gba->io.keyinput.left = ~keys[SDL_SCANCODE_LEFT];
+    gba->io.keyinput.right = ~keys[SDL_SCANCODE_RIGHT];
+    gba->io.keyinput.up = ~keys[SDL_SCANCODE_UP];
+    gba->io.keyinput.down = ~keys[SDL_SCANCODE_DOWN];
+    gba->io.keyinput.l = ~keys[SDL_SCANCODE_A];
+    gba->io.keyinput.r = ~keys[SDL_SCANCODE_S];
+}
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
-        printf("no rom file given\n");
-        return -1;
+
+    read_args(argc, argv);
+    if (!romfile) {
+        printf("Usage: agbemu [-dl] [-b <bkpt>] <romfile>\n");
+        return 0;
     }
 
     GBA* gba = malloc(sizeof *gba);
-    Cartridge* cart = create_cartridge(argv[1]);
+    Cartridge* cart = create_cartridge(romfile);
     if (!cart) {
         free(gba);
-        printf("invalid rom file\n");
+        printf("Invalid rom file\n");
         return -1;
     }
     init_gba(gba, cart);
@@ -44,17 +90,7 @@ int main(int argc, char** argv) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) running = false;
         }
-        const Uint8* keys = SDL_GetKeyboardState(NULL);
-        gba->io.keyinput.a = ~keys[SDL_SCANCODE_Z];
-        gba->io.keyinput.b = ~keys[SDL_SCANCODE_X];
-        gba->io.keyinput.start = ~keys[SDL_SCANCODE_RETURN];
-        gba->io.keyinput.select = ~keys[SDL_SCANCODE_RSHIFT];
-        gba->io.keyinput.left = ~keys[SDL_SCANCODE_LEFT];
-        gba->io.keyinput.right = ~keys[SDL_SCANCODE_RIGHT];
-        gba->io.keyinput.up = ~keys[SDL_SCANCODE_UP];
-        gba->io.keyinput.down = ~keys[SDL_SCANCODE_DOWN];
-        gba->io.keyinput.l = ~keys[SDL_SCANCODE_A];
-        gba->io.keyinput.r = ~keys[SDL_SCANCODE_S];
+        update_input(gba);
 
         while (!gba->ppu.frame_complete) {
             tick_cpu(&gba->cpu);

@@ -9,6 +9,7 @@
 #include "types.h"
 
 extern word bkpt;
+extern bool lg, dbg;
 
 void tick_cpu(Arm7TDMI* cpu) {
     if (cpu->master->halt) {
@@ -20,11 +21,13 @@ void tick_cpu(Arm7TDMI* cpu) {
         }
         return;
     }
-    word cur_addr = (cpu->cpsr.t) ? (cpu->pc - 4) : (cpu->pc - 8);
-    if (cur_addr == bkpt) {
-        printf("Breakpoint at %08x hit\n", bkpt);
-        print_cpu_state(cpu);
-        // raise(SIGINT);
+    if (lg) {
+        word cur_addr = (cpu->cpsr.t) ? (cpu->pc - 4) : (cpu->pc - 8);
+        if (cur_addr == bkpt) {
+            printf("Breakpoint at %08x hit\n", bkpt);
+            print_cpu_state(cpu);
+            if (dbg) raise(SIGINT);
+        }
     }
     if (!cpu->cpsr.i && (cpu->master->io.ime & 1) &&
         (cpu->master->io.ie.h & cpu->master->io.ifl.h)) {
@@ -200,12 +203,15 @@ char* mode_name(CpuMode m) {
 }
 
 void print_cpu_state(Arm7TDMI* cpu) {
-    printf("r:[");
-    for (int i = 0; i < 15; i++) {
-        printf("r%d=%08x, ", i, cpu->r[i]);
+    for (int i = 0; i < 2; i++) {
+        if (i == 0) printf("CPU ");
+        else printf("    ");
+        for (int j = 0; j < 8; j++) {
+            printf("r%-2d=0x%08x ", 8 * i + j, cpu->r[8 * i + j]);
+        }
+        printf("\n");
     }
-    printf("pc=%08x]\n", cpu->pc);
-    printf("cpsr:%08x(n=%d,z=%d,c=%d,v=%d,i=%d,f=%d,t=%d,m=%s)\n", cpu->cpsr.w,
-           cpu->cpsr.n, cpu->cpsr.z, cpu->cpsr.c, cpu->cpsr.v, cpu->cpsr.i,
-           cpu->cpsr.v, cpu->cpsr.t,mode_name(cpu->cpsr.m));
+    printf("    cpsr=%08x (n=%d,z=%d,c=%d,v=%d,i=%d,f=%d,t=%d,m=%s)\n",
+           cpu->cpsr.w, cpu->cpsr.n, cpu->cpsr.z, cpu->cpsr.c, cpu->cpsr.v,
+           cpu->cpsr.i, cpu->cpsr.v, cpu->cpsr.t, mode_name(cpu->cpsr.m));
 }

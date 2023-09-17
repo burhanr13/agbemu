@@ -7,6 +7,8 @@
 #include "arm7tdmi.h"
 #include "io.h"
 
+extern bool lg, dbg;
+
 void init_gba(GBA* gba, Cartridge* cart) {
     memset(gba, 0, sizeof *gba);
     gba->cart = cart;
@@ -134,7 +136,7 @@ byte gba_readb(GBA* gba, word addr) {
             }
             break;
     }
-    log_error(gba, "invalid 8bit read", (region << 24) | addr);
+    if (lg) log_error(gba, "invalid byte read", (region << 24) | addr);
     return 0;
 }
 
@@ -186,7 +188,7 @@ hword gba_readh(GBA* gba, word addr) {
             }
             break;
     }
-    log_error(gba, "invalid 16bit read", (region << 24) | addr);
+    if (lg) log_error(gba, "invalid hword read", (region << 24) | addr);
     return 0;
 }
 
@@ -238,7 +240,7 @@ word gba_read(GBA* gba, word addr) {
             }
             break;
     }
-    log_error(gba, "invalid 32bit read", (region << 24) | addr);
+    if (lg) log_error(gba, "invalid word read", (region << 24) | addr);
     return 0;
 }
 
@@ -247,7 +249,7 @@ void gba_writeb(GBA* gba, word addr, byte b) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            log_error(gba, "invalid memory write to bios",
+            log_error(gba, "invalid byte write to bios",
                       (region << 24) | addr);
             break;
         case R_EWRAM:
@@ -283,7 +285,7 @@ void gba_writeb(GBA* gba, word addr, byte b) {
             }
             break;
         default:
-            log_error(gba, "invalid 8bit write", (region << 24) | addr);
+            if (lg) log_error(gba, "invalid byte write", (region << 24) | addr);
     }
 }
 
@@ -292,7 +294,7 @@ void gba_writeh(GBA* gba, word addr, hword h) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            log_error(gba, "invalid memory write to bios",
+            log_error(gba, "invalid halfword write to bios",
                       (region << 24) | addr);
             break;
         case R_EWRAM:
@@ -330,7 +332,8 @@ void gba_writeh(GBA* gba, word addr, hword h) {
             }
             break;
         default:
-            log_error(gba, "invalid 16bit write", (region << 24) | addr);
+            if (lg)
+                log_error(gba, "invalid halfword write", (region << 24) | addr);
     }
 }
 
@@ -339,7 +342,7 @@ void gba_write(GBA* gba, word addr, word w) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            log_error(gba, "invalid memory write to bios",
+            log_error(gba, "invalid word write to bios",
                       (region << 24) | addr);
             break;
         case R_EWRAM:
@@ -377,7 +380,8 @@ void gba_write(GBA* gba, word addr, word w) {
             }
             break;
         default:
-            log_error(gba, "invalid 32bit write", (region << 24) | addr);
+            if (lg)
+                log_error(gba, "invalid word write", (region << 24) | addr);
     }
 }
 
@@ -394,7 +398,7 @@ void run_gba(GBA* gba, int cycles) {
 }
 
 void log_error(GBA* gba, char* mess, word addr) {
-    // printf("Error: %s, addr=0x%08x\n", mess, addr);
-    // print_cpu_state(&gba->cpu);
-    // raise(SIGINT);
+    printf("Error: %s, addr=0x%08x\n", mess, addr);
+    print_cpu_state(&gba->cpu);
+    if (dbg) raise(SIGINT);
 }
