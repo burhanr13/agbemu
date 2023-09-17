@@ -4,6 +4,9 @@
 
 #include "cartridge.h"
 #include "gba.h"
+#include "types.h"
+
+word bkpt;
 
 int main(int argc, char** argv) {
     if (argc < 2) {

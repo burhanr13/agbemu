@@ -202,7 +202,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
             dec.half_transi.l = instr.ldst_h.l;
             dec.half_transi.rn = instr.ldst_h.rb;
             dec.half_transi.rd = instr.ldst_h.rd;
-            dec.half_transi.offhi = instr.ldst_h.offset >> 4;
+            dec.half_transi.offhi = instr.ldst_h.offset >> 3;
             dec.half_transi.c2 = 1;
             dec.half_transi.s = 0;
             dec.half_transi.h = 1;

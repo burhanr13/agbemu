@@ -1,5 +1,6 @@
 #include "gba.h"
 
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -133,6 +134,7 @@ byte gba_readb(GBA* gba, word addr) {
             }
             break;
     }
+    log_error(gba, "invalid 8bit read", (region << 24) | addr);
     return 0;
 }
 
@@ -184,7 +186,7 @@ hword gba_readh(GBA* gba, word addr) {
             }
             break;
     }
-    log_error(gba, "invalid memory read", (region << 24) | addr);
+    log_error(gba, "invalid 16bit read", (region << 24) | addr);
     return 0;
 }
 
@@ -236,7 +238,7 @@ word gba_read(GBA* gba, word addr) {
             }
             break;
     }
-    log_error(gba, "invalid memory read", (region << 24) | addr);
+    log_error(gba, "invalid 32bit read", (region << 24) | addr);
     return 0;
 }
 
@@ -281,7 +283,7 @@ void gba_writeb(GBA* gba, word addr, byte b) {
             }
             break;
         default:
-            log_error(gba, "invalid memory write", (region << 24) | addr);
+            log_error(gba, "invalid 8bit write", (region << 24) | addr);
     }
 }
 
@@ -328,7 +330,7 @@ void gba_writeh(GBA* gba, word addr, hword h) {
             }
             break;
         default:
-            log_error(gba, "invalid memory write", (region << 24) | addr);
+            log_error(gba, "invalid 16bit write", (region << 24) | addr);
     }
 }
 
@@ -375,7 +377,7 @@ void gba_write(GBA* gba, word addr, word w) {
             }
             break;
         default:
-            log_error(gba, "invalid memory write", (region << 24) | addr);
+            log_error(gba, "invalid 32bit write", (region << 24) | addr);
     }
 }
 
@@ -392,6 +394,7 @@ void run_gba(GBA* gba, int cycles) {
 }
 
 void log_error(GBA* gba, char* mess, word addr) {
-    printf("Error: %s, addr=0x%08x at pc=0x%08x, thumb=%d\n", mess, addr,
-           gba->cpu.pc, gba->cpu.cpsr.t);
+    // printf("Error: %s, addr=0x%08x\n", mess, addr);
+    // print_cpu_state(&gba->cpu);
+    // raise(SIGINT);
 }

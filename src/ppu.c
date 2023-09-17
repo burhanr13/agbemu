@@ -50,8 +50,8 @@ void draw_bg_line_aff(PPU* ppu, int bg) {
 }
 
 void draw_bg_line_m0(PPU* ppu) {
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
+    for (int i = 3; i >= 0; i--) {
+        for (int j = 3; j >= 0; j--) {
             if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
                 ppu->master->io.bgcnt[j].priority == i) {
                 draw_bg_line_text(ppu, j);
@@ -61,8 +61,8 @@ void draw_bg_line_m0(PPU* ppu) {
 }
 
 void draw_bg_line_m1(PPU* ppu) {
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 3; j++) {
+    for (int i = 3; i >= 0; i--) {
+        for (int j = 3; j >= 0; j--) {
             if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
                 ppu->master->io.bgcnt[j].priority == i) {
                 if (j < 2) draw_bg_line_text(ppu, j);
@@ -73,8 +73,8 @@ void draw_bg_line_m1(PPU* ppu) {
 }
 
 void draw_bg_line_m2(PPU* ppu) {
-    for (int i = 0; i < 4; i++) {
-        for (int j = 2; j < 4; j++) {
+    for (int i = 3; i >= 0; i--) {
+        for (int j = 3; j >= 2; j--) {
             if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
                 ppu->master->io.bgcnt[j].priority == i) {
                 draw_bg_line_aff(ppu, j);

@@ -84,4 +84,6 @@ void cpu_write(Arm7TDMI* cpu, word addr, word w);
 
 void cpu_internal_cycle(Arm7TDMI* cpu);
 
+void print_cpu_state(Arm7TDMI* cpu);
+
 #endif
