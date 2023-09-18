@@ -26,6 +26,12 @@ typedef struct {
     hword screen[GBA_SCREEN_H][GBA_SCREEN_W];
     int lx;
     int ly;
+
+    struct {
+        word x;
+        word y;
+    } bgaffintr[2];
+
     bool frame_complete;
 } PPU;
 

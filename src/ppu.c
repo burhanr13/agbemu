@@ -1,5 +1,6 @@
 #include "ppu.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "gba.h"
@@ -51,8 +52,8 @@ void draw_bg_line_aff(PPU* ppu, int bg, int mode) {
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
     word bm_start = (ppu->master->io.dispcnt.frame_sel) ? 0xa000 : 0x0000;
 
-    sword x0 = ppu->master->io.bgaff[bg - 2].x;
-    sword y0 = ppu->master->io.bgaff[bg - 2].y;
+    sword x0 = ppu->bgaffintr[bg - 2].x;
+    sword y0 = ppu->bgaffintr[bg - 2].y;
 
     hword size = 1 << (7 + ppu->master->io.bgcnt[bg].size);
 
@@ -193,6 +194,11 @@ void tick_ppu(PPU* ppu) {
             ppu->master->io.dispstat.vblank = 1;
             if (ppu->master->io.dispstat.vblank_irq)
                 ppu->master->io.ifl.vblank = 1;
+
+            ppu->bgaffintr[0].x = ppu->master->io.bgaff[0].x;
+            ppu->bgaffintr[0].y = ppu->master->io.bgaff[0].y;
+            ppu->bgaffintr[1].x = ppu->master->io.bgaff[1].x;
+            ppu->bgaffintr[1].y = ppu->master->io.bgaff[1].y;
         } else if (ppu->ly == LINES_H - 1) {
             ppu->master->io.dispstat.vblank = 0;
             ppu->frame_complete = true;
@@ -207,10 +213,10 @@ void tick_ppu(PPU* ppu) {
                 }
                 draw_bg_line(ppu);
             }
-            ppu->master->io.bgaff[0].x += ppu->master->io.bgaff[0].pb;
-            ppu->master->io.bgaff[0].y += ppu->master->io.bgaff[0].pd;
-            ppu->master->io.bgaff[1].x += ppu->master->io.bgaff[1].pb;
-            ppu->master->io.bgaff[1].y += ppu->master->io.bgaff[1].pd;
+            ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
+            ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
+            ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
+            ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
         }
         ppu->master->io.dispstat.hblank = 1;
         if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;

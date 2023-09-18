@@ -46,6 +46,25 @@ void io_writeh(IO* io, word addr, hword data) {
             io->dispstat.h &= 0b111;
             io->dispstat.h |= data & ~0b111;
             break;
+        case BG2X_L:
+        case BG2X_H:
+        case BG2Y_L:
+        case BG2Y_H:
+        case BG3X_L:
+        case BG3X_H:
+        case BG3Y_L:
+        case BG3Y_H: {
+            word w;
+            if (addr & 0b10) {
+                w = data << 16;
+                w |= io->h[(addr>>1) & ~1];
+            } else {
+                w = data;
+                w |= io->h[(addr >> 1) | 1];
+            }
+            io_writew(io, addr & ~0b11, w);
+            break;
+        }
         case KEYINPUT:
             break;
         case IF:
@@ -64,6 +83,25 @@ word io_readw(IO* io, word addr) {
 }
 
 void io_writew(IO* io, word addr, word data) {
-    io_writeh(io, addr, data);
-    io_writeh(io, addr | 2, data >> 16);
+    switch (addr) {
+        case BG2X_L:
+            io->bgaff[0].x = data;
+            io->master->ppu.bgaffintr[0].x = data;
+            break;
+        case BG2Y_L:
+            io->bgaff[0].y = data;
+            io->master->ppu.bgaffintr[0].y = data;
+            break;
+        case BG3X_L:
+            io->bgaff[1].x = data;
+            io->master->ppu.bgaffintr[1].x = data;
+            break;
+        case BG3Y_L:
+            io->bgaff[1].y = data;
+            io->master->ppu.bgaffintr[1].y = data;
+            break;
+        default:
+            io_writeh(io, addr, data);
+            io_writeh(io, addr | 2, data >> 16);
+    }
 }
