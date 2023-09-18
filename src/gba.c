@@ -25,10 +25,10 @@ void init_gba(GBA* gba, Cartridge* cart) {
     gba->cpu.banked_sp[B_IRQ] = 0x3007fa0;
     gba->cpu.sp = 0x3007f00;
 
-    gba->io.bgaff[0].pa.intg = 1;
-    gba->io.bgaff[0].pd.intg = 1;
-    gba->io.bgaff[1].pa.intg = 1;
-    gba->io.bgaff[1].pd.intg = 1;
+    gba->io.bgaff[0].pa = 256;
+    gba->io.bgaff[0].pd = 256;
+    gba->io.bgaff[1].pa = 256;
+    gba->io.bgaff[1].pd = 256;
 }
 
 bool gba_load_bios(GBA* gba, char* filename) {

@@ -8,18 +8,6 @@
 const word sclayout[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
 
-float fix16tofloat(fix16 f) {
-    float r = f.intg + (float) f.frac / 256;
-    if (f.sign) r = -r;
-    return r;
-}
-
-float fix32tofloat(fix32 f) {
-    float r = f.intg + (float) f.frac / 256;
-    if (f.sign) r = -r;
-    return r;
-}
-
 void draw_bg_line_text(PPU* ppu, int bg) {
     word map_start = ppu->master->io.bgcnt[bg].tilemap_base * 0x800;
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
@@ -63,20 +51,16 @@ void draw_bg_line_aff(PPU* ppu, int bg, int mode) {
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
     word bm_start = (ppu->master->io.dispcnt.frame_sel) ? 0xa000 : 0x0000;
 
-    float pa = fix16tofloat(ppu->master->io.bgaff[bg - 2].pa);
-    float pb = fix16tofloat(ppu->master->io.bgaff[bg - 2].pb);
-    float pc = fix16tofloat(ppu->master->io.bgaff[bg - 2].pc);
-    float pd = fix16tofloat(ppu->master->io.bgaff[bg - 2].pd);
-    float x0 = fix32tofloat(ppu->master->io.bgaff[bg - 2].x);
-    float y0 = fix32tofloat(ppu->master->io.bgaff[bg - 2].y);
+    sword x0 = ppu->master->io.bgaff[bg - 2].x;
+    sword y0 = ppu->master->io.bgaff[bg - 2].y;
 
     hword size = 1 << (7 + ppu->master->io.bgcnt[bg].size);
 
-    for (int x = 0; x < GBA_SCREEN_W; x++) {
-        float x1 = pa * x + pb * ppu->ly + x0;
-        float y1 = pc * x + pd * ppu->ly + y0;
-        hword sx = (int) x1;
-        hword sy = (int) y1;
+    for (int x = 0; x < GBA_SCREEN_W; x++,
+             x0 += ppu->master->io.bgaff[bg - 2].pa,
+             y0 += ppu->master->io.bgaff[bg - 2].pc) {
+        word sx = x0 >> 8;
+        word sy = y0 >> 8;
         if (((mode < 3) && (sx >= size || sy >= size) &&
              !ppu->master->io.bgcnt[bg].overflow) ||
             ((mode == 3 || mode == 4) &&
@@ -97,7 +81,7 @@ void draw_bg_line_aff(PPU* ppu, int bg, int mode) {
                 hword finey = sy & 0b111;
                 byte tile =
                     ppu->master->vram
-                        .b[(map_start + tiley * size + tilex) % 0x10000];
+                        .b[(map_start + tiley * (size >> 3) + tilex) % 0x10000];
                 col_ind = ppu->master->vram
                               .b[(tile_start + 64 * tile + finey * 8 + finex) %
                                  0x10000];
@@ -223,6 +207,10 @@ void tick_ppu(PPU* ppu) {
                 }
                 draw_bg_line(ppu);
             }
+            ppu->master->io.bgaff[0].x += ppu->master->io.bgaff[0].pb;
+            ppu->master->io.bgaff[0].y += ppu->master->io.bgaff[0].pd;
+            ppu->master->io.bgaff[1].x += ppu->master->io.bgaff[1].pb;
+            ppu->master->io.bgaff[1].y += ppu->master->io.bgaff[1].pd;
         }
         ppu->master->io.dispstat.hblank = 1;
         if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;

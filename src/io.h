@@ -1,7 +1,6 @@
 #ifndef IO_H
 #define IO_H
 
-#include "ppu.h"
 #include "types.h"
 
 #define IO_SIZE 0x400
@@ -105,12 +104,12 @@ typedef struct {
                 hword vofs;
             } bgtext[4];
             struct {
-                fix16 pa;
-                fix16 pb;
-                fix16 pc;
-                fix16 pd;
-                fix32 x;
-                fix32 y;
+                shword pa;
+                shword pb;
+                shword pc;
+                shword pd;
+                sword x;
+                sword y;
             } bgaff[2];
             byte gap0[KEYINPUT - BG3Y_H - 2];
             union {
