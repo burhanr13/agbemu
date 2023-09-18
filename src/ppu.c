@@ -21,19 +21,19 @@ void draw_bg_line_text(PPU* ppu, int bg) {
             0x800 * sclayout[ppu->master->io.bgcnt[bg].size][sy >> 8][sx >> 8];
         hword finex = sx & 0b111;
         hword tilex = (sx >> 3) & 0b11111;
-        hword tile_off = 32 * tiley + tilex;
+        word tile_off = 32 * tiley + tilex;
         map_addr += tile_off << 1;
         map_addr %= 0x10000;
         Tile tile = {ppu->master->vram.h[map_addr >> 1]};
         if (tile.hflip) finex = 7 - finex;
         if (tile.vflip) finey = 7 - finey;
-        hword pixel_off = 8 * finey + finex;
+        word pixel_off = 8 * finey + finex;
         byte col_ind;
         if (ppu->master->io.bgcnt[bg].palette) {
-            hword tile_addr = tile_start + 64 * tile.num + pixel_off;
+            word tile_addr = tile_start + 64 * tile.num + pixel_off;
             col_ind = ppu->master->vram.b[tile_addr % 0x10000];
         } else {
-            hword tile_addr = tile_start + 32 * tile.num + (pixel_off >> 1);
+            word tile_addr = tile_start + 32 * tile.num + (pixel_off >> 1);
             col_ind = ppu->master->vram.b[tile_addr % 0x10000];
             if (pixel_off & 1) {
                 col_ind >>= 4;
