@@ -8,6 +8,18 @@
 const word sclayout[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
 
+float fix16tofloat(fix16 f) {
+    float r = f.intg + (float) f.frac / 256;
+    if (f.sign) r = -r;
+    return r;
+}
+
+float fix32tofloat(fix32 f) {
+    float r = f.intg + (float) f.frac / 256;
+    if (f.sign) r = -r;
+    return r;
+}
+
 void draw_bg_line_text(PPU* ppu, int bg) {
     word map_start = ppu->master->io.bgcnt[bg].tilemap_base * 0x800;
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
@@ -46,7 +58,68 @@ void draw_bg_line_text(PPU* ppu, int bg) {
     }
 }
 
-void draw_bg_line_aff(PPU* ppu, int bg) {
+void draw_bg_line_aff(PPU* ppu, int bg, int mode) {
+    word map_start = ppu->master->io.bgcnt[bg].tilemap_base * 0x800;
+    word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
+    word bm_start = (ppu->master->io.dispcnt.frame_sel) ? 0xa000 : 0x0000;
+
+    float pa = fix16tofloat(ppu->master->io.bgaff[bg - 2].pa);
+    float pb = fix16tofloat(ppu->master->io.bgaff[bg - 2].pb);
+    float pc = fix16tofloat(ppu->master->io.bgaff[bg - 2].pc);
+    float pd = fix16tofloat(ppu->master->io.bgaff[bg - 2].pd);
+    float x0 = fix32tofloat(ppu->master->io.bgaff[bg - 2].x);
+    float y0 = fix32tofloat(ppu->master->io.bgaff[bg - 2].y);
+
+    hword size = 1 << (7 + ppu->master->io.bgcnt[bg].size);
+
+    for (int x = 0; x < GBA_SCREEN_W; x++) {
+        float x1 = pa * x + pb * ppu->ly + x0;
+        float y1 = pc * x + pd * ppu->ly + y0;
+        hword sx = (int) x1;
+        hword sy = (int) y1;
+        if (((mode < 3) && (sx >= size || sy >= size) &&
+             !ppu->master->io.bgcnt[bg].overflow) ||
+            ((mode == 3 || mode == 4) &&
+             (sx >= GBA_SCREEN_W || sy >= GBA_SCREEN_H)) ||
+            ((mode == 5) && (sx >= 160 || sy >= 128)))
+            continue;
+
+        byte col_ind = 0;
+        bool pal = true;
+        switch (mode) {
+            case 1:
+            case 2:
+                sx &= size - 1;
+                sy &= size - 1;
+                hword tilex = sx >> 3;
+                hword tiley = sy >> 3;
+                hword finex = sx & 0b111;
+                hword finey = sy & 0b111;
+                byte tile =
+                    ppu->master->vram
+                        .b[(map_start + tiley * size + tilex) % 0x10000];
+                col_ind = ppu->master->vram
+                              .b[(tile_start + 64 * tile + finey * 8 + finex) %
+                                 0x10000];
+                break;
+            case 3:
+                pal = false;
+                ppu->screen[ppu->ly][x] =
+                    ppu->master->vram.h[sy * GBA_SCREEN_W + sx];
+                break;
+            case 4:
+                col_ind =
+                    ppu->master->vram.b[bm_start + sy * GBA_SCREEN_W + sx];
+                break;
+            case 5:
+                pal = false;
+                ppu->screen[ppu->ly][x] =
+                    ppu->master->vram.h[(bm_start >> 1) + sy * 160 + sx];
+                break;
+        }
+        if (col_ind && pal)
+            ppu->screen[ppu->ly][x] = ppu->master->cram.h[col_ind];
+    }
 }
 
 void draw_bg_line_m0(PPU* ppu) {
@@ -66,7 +139,7 @@ void draw_bg_line_m1(PPU* ppu) {
             if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
                 ppu->master->io.bgcnt[j].priority == i) {
                 if (j < 2) draw_bg_line_text(ppu, j);
-                else draw_bg_line_aff(ppu, j);
+                else draw_bg_line_aff(ppu, j, 1);
             }
         }
     }
@@ -77,7 +150,7 @@ void draw_bg_line_m2(PPU* ppu) {
         for (int j = 3; j >= 2; j--) {
             if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
                 ppu->master->io.bgcnt[j].priority == i) {
-                draw_bg_line_aff(ppu, j);
+                draw_bg_line_aff(ppu, j, 2);
             }
         }
     }
@@ -85,25 +158,21 @@ void draw_bg_line_m2(PPU* ppu) {
 
 void draw_bg_line_m3(PPU* ppu) {
     if (ppu->master->io.dispcnt.bg_enable & (1 << 2)) {
-        word start_addr = GBA_SCREEN_W * ppu->ly;
-        for (int x = 0; x < GBA_SCREEN_W; x++) {
-            ppu->screen[ppu->ly][x] = ppu->master->vram.h[start_addr + x];
-        }
+        draw_bg_line_aff(ppu, 2, 3);
     }
 }
 
 void draw_bg_line_m4(PPU* ppu) {
     if (ppu->master->io.dispcnt.bg_enable & (1 << 2)) {
-        word start_addr = (ppu->master->io.dispcnt.frame_sel) ? 0xa000 : 0x0000;
-        start_addr += GBA_SCREEN_W * ppu->ly;
-        for (int x = 0; x < GBA_SCREEN_W; x++) {
-            byte col_ind = ppu->master->vram.b[start_addr + x];
-            if (col_ind) ppu->screen[ppu->ly][x] = ppu->master->cram.h[col_ind];
-        }
+        draw_bg_line_aff(ppu, 2, 4);
     }
 }
 
-void draw_bg_line_m5(PPU* ppu) {}
+void draw_bg_line_m5(PPU* ppu) {
+    if (ppu->master->io.dispcnt.bg_enable & (1 << 2)) {
+        draw_bg_line_aff(ppu, 2, 5);
+    }
+}
 
 void draw_bg_line(PPU* ppu) {
     switch (ppu->master->io.dispcnt.bg_mode) {

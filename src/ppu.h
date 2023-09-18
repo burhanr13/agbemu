@@ -18,6 +18,25 @@ typedef union {
     };
 } Tile;
 
+typedef union {
+    hword h;
+    struct {
+        hword frac : 8;
+        hword intg : 7;
+        hword sign : 1;
+    };
+} fix16;
+
+typedef union {
+    word w;
+    struct {
+        word frac : 8;
+        word intg : 19;
+        word sign : 1;
+        word unused : 4;
+    };
+} fix32;
+
 typedef struct _GBA GBA;
 
 typedef struct {
@@ -32,5 +51,8 @@ typedef struct {
 void tick_ppu(PPU* ppu);
 
 void draw_bg_line(PPU* ppu);
+
+float fix16tofloat(fix16 f);
+float fix32tofloat(fix32 f);
 
 #endif

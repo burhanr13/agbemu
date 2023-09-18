@@ -1,6 +1,7 @@
-#ifndef IA_H
-#define IA_H
+#ifndef IO_H
+#define IO_H
 
+#include "ppu.h"
 #include "types.h"
 
 #define IO_SIZE 0x400
@@ -104,14 +105,14 @@ typedef struct {
                 hword vofs;
             } bgtext[4];
             struct {
-                hword pa;
-                hword pb;
-                hword pc;
-                hword pd;
-                word x;
-                word y;
+                fix16 pa;
+                fix16 pb;
+                fix16 pc;
+                fix16 pd;
+                fix32 x;
+                fix32 y;
             } bgaff[2];
-            byte gap[KEYINPUT - BG3Y_H - 2];
+            byte gap0[KEYINPUT - BG3Y_H - 2];
             union {
                 hword h;
                 struct {
@@ -146,7 +147,7 @@ typedef struct {
                     hword irq_cond : 1;
                 };
             } keycnt;
-            byte unused_1xx[IE - KEYCNT - 2];
+            byte gap1[IE - KEYCNT - 2];
             union {
                 hword h;
                 struct {
