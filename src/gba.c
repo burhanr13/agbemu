@@ -2,6 +2,7 @@
 
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "arm7tdmi.h"
@@ -9,15 +10,14 @@
 
 extern bool lg, dbg;
 
-void init_gba(GBA* gba, Cartridge* cart) {
+void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     memset(gba, 0, sizeof *gba);
     gba->cart = cart;
     gba->cpu.master = gba;
     gba->ppu.master = gba;
     gba->io.master = gba;
-    if (!gba_load_bios(gba, "bios.bin")) {
-        printf("no bios file found\n");
-    }
+
+    gba->bios.b = bios;
 
     gba->cpu.pc = 0x08000000;
     gba->cpu.cpsr.m = M_SYSTEM;
@@ -31,13 +31,14 @@ void init_gba(GBA* gba, Cartridge* cart) {
     gba->io.bgaff[1].pd = 1 << 8;
 }
 
-bool gba_load_bios(GBA* gba, char* filename) {
+byte *load_bios(char* filename) {
     FILE* fp = fopen(filename, "rb");
-    if (!fp) return false;
+    if (!fp) return NULL;
+    byte* bios = malloc(BIOS_SIZE);
 
-    fread(gba->bios.b, 1, BIOS_SIZE, fp);
+    fread(bios, 1, BIOS_SIZE, fp);
     fclose(fp);
-    return true;
+    return bios;
 }
 
 int gba_get_waitstates(GBA* gba, word addr, DataWidth d) {

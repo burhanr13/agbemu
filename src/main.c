@@ -11,7 +11,7 @@ bool lg, dbg;
 char* romfile;
 bool uncap;
 
-char wintitle[100];
+char wintitle[200];
 
 void read_args(int argc, char** argv) {
     for (int i = 1; i < argc; i++) {
@@ -73,7 +73,17 @@ int main(int argc, char** argv) {
         printf("Invalid rom file\n");
         return -1;
     }
-    init_gba(gba, cart);
+    byte* bios = load_bios("bios.bin");
+    if (!bios) {
+        free(gba);
+        destroy_cartridge(cart);
+        printf("No bios found. Make sure 'bios.bin' in current directory.\n");
+        return -1;
+    }
+    init_gba(gba, cart, bios);
+
+    char* romfilenodir = romfile + strlen(romfile);
+    while (romfilenodir > romfile && *(romfilenodir - 1) != '/') romfilenodir--;
 
     SDL_Init(SDL_INIT_VIDEO);
 
@@ -125,7 +135,7 @@ int main(int argc, char** argv) {
         }
         double fps = (double) SDL_GetPerformanceFrequency() / diff;
         if (frame % 60 == 0) {
-            snprintf(wintitle, 99, "agbemu (FPS: %.2lf)", fps);
+            snprintf(wintitle, 199, "agbemu | %s | FPS: %.2lf", romfilenodir, fps);
             SDL_SetWindowTitle(window, wintitle);
         }
         prev_time = cur_time;

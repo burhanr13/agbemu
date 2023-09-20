@@ -45,9 +45,9 @@ typedef struct _GBA {
     dword cycles;
 
     union {
-        byte b[BIOS_SIZE];
-        hword h[BIOS_SIZE >> 1];
-        word w[BIOS_SIZE >> 2];
+        byte* b;
+        hword* h;
+        word* w;
     } bios;
 
     union {
@@ -87,9 +87,9 @@ typedef struct _GBA {
 
 } GBA;
 
-void init_gba(GBA* gba, Cartridge* cart);
+void init_gba(GBA* gba, Cartridge* cart, byte* bios);
 
-bool gba_load_bios(GBA* gba, char* filename);
+byte* load_bios(char* filename);
 
 int gba_get_waitstates(GBA* gba, word addr, DataWidth d);
 
