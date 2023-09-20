@@ -3,9 +3,8 @@
 #include "arm7tdmi.h"
 
 ArmInstr thumb_decode_instr(ThumbInstr instr) {
-    ArmInstr dec;
+    ArmInstr dec = {0};
     dec.cond = C_AL;
-    dec.instr = 0;
 
     switch (instr.n3) {
         case 0:

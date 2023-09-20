@@ -98,8 +98,10 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
             op2 = instr.data_proc.op2 & 0xff;
             word shift_amt = instr.data_proc.op2 >> 8;
             shift_amt *= 2;
-            c = (op2 >> (shift_amt - 1)) & 1;
-            op2 = (op2 >> shift_amt) | (op2 << (32 - shift_amt));
+            if (shift_amt) {
+                c = (op2 >> (shift_amt - 1)) & 1;
+                op2 = (op2 >> shift_amt) | (op2 << (32 - shift_amt));
+            }
         }
     } else {
         word shift = instr.data_proc.op2 >> 4;

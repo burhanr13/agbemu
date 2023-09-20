@@ -9,9 +9,12 @@
 word bkpt;
 bool lg, dbg;
 char* romfile;
+bool uncap;
+
+char wintitle[100];
 
 void read_args(int argc, char** argv) {
-    for (int i = 0; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
             for (char* f = &argv[i][1]; *f; f++) {
                 switch (*f) {
@@ -27,6 +30,9 @@ void read_args(int argc, char** argv) {
                             sscanf(argv[i + 1], "0x%x", &bkpt) < 1) {
                             printf("Provide valid hex address with -b\n");
                         }
+                        break;
+                    case 'u':
+                        uncap = true;
                         break;
                     default:
                         printf("Invalid flag\n");
@@ -56,7 +62,7 @@ int main(int argc, char** argv) {
 
     read_args(argc, argv);
     if (!romfile) {
-        printf("Usage: agbemu [-dl] [-b <bkpt>] <romfile>\n");
+        printf("Usage: agbemu [-dlu] [-b <bkpt>] <romfile>\n");
         return 0;
     }
 
@@ -83,6 +89,8 @@ int main(int argc, char** argv) {
                                              SDL_TEXTUREACCESS_STREAMING,
                                              GBA_SCREEN_W, GBA_SCREEN_H);
 
+    Uint64 prev_time = SDL_GetPerformanceCounter();
+    Uint64 frame = 0;
     bool running = true;
     while (running) {
 
@@ -105,7 +113,22 @@ int main(int argc, char** argv) {
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
 
-        SDL_Delay(10);
+        frame++;
+        Uint64 cur_time = SDL_GetPerformanceCounter();
+        Uint64 diff = cur_time - prev_time;
+        double diffsec = (double) diff / SDL_GetPerformanceFrequency();
+        int wait = 1000 * (1.0 / 60 - diffsec);
+        if (wait > 0 && !uncap) {
+            SDL_Delay(wait);
+            cur_time = SDL_GetPerformanceCounter();
+            diff = cur_time - prev_time;
+        }
+        double fps = (double) SDL_GetPerformanceFrequency() / diff;
+        if (frame % 60 == 0) {
+            snprintf(wintitle, 99, "agbemu (FPS: %.2lf)", fps);
+            SDL_SetWindowTitle(window, wintitle);
+        }
+        prev_time = cur_time;
     }
 
     destroy_cartridge(cart);
