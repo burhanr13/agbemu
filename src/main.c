@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
         update_input(gba);
 
         while (!gba->ppu.frame_complete) {
-            tick_cpu(&gba->cpu);
+            gba_step(gba);
         }
         gba->ppu.frame_complete = false;
 

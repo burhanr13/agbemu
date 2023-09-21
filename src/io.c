@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "dma.h"
 #include "gba.h"
 
 byte io_readb(IO* io, word addr) {
@@ -34,35 +35,51 @@ void io_writeb(IO* io, word addr, byte data) {
 }
 
 hword io_readh(IO* io, word addr) {
-    if (BG0HOFS <= addr && addr <= BG3Y_H) {
+    if ((BG0HOFS <= addr && addr <= BG3Y + 2)) {
         return 0;
+    }
+    if (DMA0SAD <= addr && addr <= DMA3CNT_H) {
+        switch (addr) {
+            case DMA0CNT_H:
+            case DMA1CNT_H:
+            case DMA2CNT_H:
+            case DMA3CNT_H:
+                return io->h[addr >> 1];
+            default:
+                return 0;
+        }
     }
     return io->h[addr >> 1];
 }
 
 void io_writeh(IO* io, word addr, hword data) {
+    if ((addr & ~0b11) == BG2X || (addr & ~0b11) == BG2Y ||
+        (addr & ~0b11) == BG3X || (addr & ~0b11) == BG3Y) {
+        word w;
+        if (addr & 0b10) {
+            w = data << 16;
+            w |= io->h[(addr >> 1) & ~1];
+        } else {
+            w = data;
+            w |= io->h[(addr >> 1) | 1];
+        }
+        io_writew(io, addr & ~0b11, w);
+        return;
+    }
     switch (addr) {
         case DISPSTAT:
             io->dispstat.h &= 0b111;
             io->dispstat.h |= data & ~0b111;
             break;
-        case BG2X_L:
-        case BG2X_H:
-        case BG2Y_L:
-        case BG2Y_H:
-        case BG3X_L:
-        case BG3X_H:
-        case BG3Y_L:
-        case BG3Y_H: {
-            word w;
-            if (addr & 0b10) {
-                w = data << 16;
-                w |= io->h[(addr>>1) & ~1];
-            } else {
-                w = data;
-                w |= io->h[(addr >> 1) | 1];
-            }
-            io_writew(io, addr & ~0b11, w);
+        case DMA0CNT_H:
+        case DMA1CNT_H:
+        case DMA2CNT_H:
+        case DMA3CNT_H: {
+            int i = (addr - DMA0CNT_H) / (DMA1CNT_H - DMA0CNT_H);
+            bool prev_ena = io->dma[i].cnt.enable;
+            io->dma[i].cnt.h = data;
+            if(!prev_ena && io->dma[i].cnt.enable)
+                dma_enable(&io->master->dmac, i);
             break;
         }
         case KEYINPUT:
@@ -84,19 +101,19 @@ word io_readw(IO* io, word addr) {
 
 void io_writew(IO* io, word addr, word data) {
     switch (addr) {
-        case BG2X_L:
+        case BG2X:
             io->bgaff[0].x = data;
             io->master->ppu.bgaffintr[0].x = data;
             break;
-        case BG2Y_L:
+        case BG2Y:
             io->bgaff[0].y = data;
             io->master->ppu.bgaffintr[0].y = data;
             break;
-        case BG3X_L:
+        case BG3X:
             io->bgaff[1].x = data;
             io->master->ppu.bgaffintr[1].x = data;
             break;
-        case BG3Y_L:
+        case BG3Y:
             io->bgaff[1].y = data;
             io->master->ppu.bgaffintr[1].y = data;
             break;

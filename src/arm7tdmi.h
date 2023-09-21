@@ -67,7 +67,7 @@ typedef struct _Arm7TDMI {
 
 } Arm7TDMI;
 
-void tick_cpu(Arm7TDMI* cpu);
+void cpu_step(Arm7TDMI* cpu);
 
 void cpu_fetch(Arm7TDMI* cpu);
 void cpu_flush(Arm7TDMI* cpu);
@@ -77,10 +77,10 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr);
 
 byte cpu_readb(Arm7TDMI* cpu, word addr);
 hword cpu_readh(Arm7TDMI* cpu, word addr);
-word cpu_read(Arm7TDMI* cpu, word addr);
+word cpu_readw(Arm7TDMI* cpu, word addr);
 void cpu_writeb(Arm7TDMI* cpu, word addr, byte b);
 void cpu_writeh(Arm7TDMI* cpu, word addr, hword h);
-void cpu_write(Arm7TDMI* cpu, word addr, word w);
+void cpu_writew(Arm7TDMI* cpu, word addr, word w);
 
 void cpu_internal_cycle(Arm7TDMI* cpu);
 

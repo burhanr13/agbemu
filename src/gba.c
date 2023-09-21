@@ -15,12 +15,14 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     gba->cart = cart;
     gba->cpu.master = gba;
     gba->ppu.master = gba;
+    gba->dmac.master = gba;
     gba->io.master = gba;
 
     gba->bios.b = bios;
 
-    gba->cpu.pc = 0x08000000;
     gba->cpu.cpsr.m = M_SYSTEM;
+
+    gba->cpu.pc = 0x08000000;
     gba->cpu.banked_sp[B_SVC] = 0x3007fe0;
     gba->cpu.banked_sp[B_IRQ] = 0x3007fa0;
     gba->cpu.sp = 0x3007f00;
@@ -41,7 +43,7 @@ byte *load_bios(char* filename) {
     return bios;
 }
 
-int gba_get_waitstates(GBA* gba, word addr, DataWidth d) {
+int get_waitstates(GBA* gba, word addr, DataWidth d) {
     word region = addr >> 24;
     word cart_addr = addr % (1 << 25);
     switch (region) {
@@ -94,7 +96,7 @@ int gba_get_waitstates(GBA* gba, word addr, DataWidth d) {
     }
 }
 
-byte gba_readb(GBA* gba, word addr) {
+byte bus_readb(GBA* gba, word addr) {
     word region = addr >> 24;
     word cart_addr = addr % (1 << 25);
     addr %= 1 << 24;
@@ -146,7 +148,7 @@ byte gba_readb(GBA* gba, word addr) {
     return 0;
 }
 
-hword gba_readh(GBA* gba, word addr) {
+hword bus_readh(GBA* gba, word addr) {
     word region = addr >> 24;
     word cart_addr = addr % (1 << 25);
     addr %= 1 << 24;
@@ -198,7 +200,7 @@ hword gba_readh(GBA* gba, word addr) {
     return 0;
 }
 
-word gba_read(GBA* gba, word addr) {
+word bus_readw(GBA* gba, word addr) {
     word region = addr >> 24;
     word cart_addr = addr % (1 << 25);
     addr %= 1 << 24;
@@ -250,7 +252,7 @@ word gba_read(GBA* gba, word addr) {
     return 0;
 }
 
-void gba_writeb(GBA* gba, word addr, byte b) {
+void bus_writeb(GBA* gba, word addr, byte b) {
     word region = addr >> 24;
     addr %= 1 << 24;
     switch (region) {
@@ -294,7 +296,7 @@ void gba_writeb(GBA* gba, word addr, byte b) {
     }
 }
 
-void gba_writeh(GBA* gba, word addr, hword h) {
+void bus_writeh(GBA* gba, word addr, hword h) {
     word region = addr >> 24;
     addr %= 1 << 24;
     switch (region) {
@@ -341,7 +343,7 @@ void gba_writeh(GBA* gba, word addr, hword h) {
     }
 }
 
-void gba_write(GBA* gba, word addr, word w) {
+void bus_writew(GBA* gba, word addr, word w) {
     word region = addr >> 24;
     addr %= 1 << 24;
     switch (region) {
@@ -387,16 +389,36 @@ void gba_write(GBA* gba, word addr, word w) {
     }
 }
 
-void tick_gba(GBA* gba) {
-    if (gba->cycles % 4 == 0) tick_ppu(&gba->ppu);
+void tick_components(GBA* gba, int cycles) {
+    for (int i = 0; i < cycles; i++) {
+        if (gba->cycles % 4 == 0) tick_ppu(&gba->ppu);
 
-    gba->cycles++;
+        gba->cycles++;
+    }
 }
 
-void run_gba(GBA* gba, int cycles) {
-    for (int i = 0; i < cycles; i++) {
-        tick_gba(gba);
+void gba_step(GBA* gba) {
+    for (int i = 0; i < 4;i++){
+        if(gba->io.dma[i].cnt.enable && gba->dmac.dma[i].active){
+            dma_step(&gba->dmac, i);
+            return;
+        }
+        if(gba->io.dma[i].cnt.start == DMA_ST_IMM) {
+            dma_activate(&gba->dmac, i);
+        }
     }
+    if(gba->io.ie.h & gba->io.ifl.h) {
+        if(gba->halt || ((gba->io.ime & 1)&&!gba->cpu.cpsr.i)) {
+            gba->halt = false;
+            cpu_handle_interrupt(&gba->cpu, I_IRQ);
+            return;
+        }
+    }
+    if(!gba->halt) {
+        cpu_step(&gba->cpu);
+        return;
+    }
+    tick_components(gba, 1);
 }
 
 void log_error(GBA* gba, char* mess, word addr) {

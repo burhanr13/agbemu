@@ -11,16 +11,7 @@
 extern word bkpt;
 extern bool lg, dbg;
 
-void tick_cpu(Arm7TDMI* cpu) {
-    if (cpu->master->halt) {
-        if (cpu->master->io.ie.h & cpu->master->io.ifl.h) {
-            cpu->master->halt = false;
-            cpu_handle_interrupt(cpu, I_IRQ);
-        } else {
-            tick_gba(cpu->master);
-        }
-        return;
-    }
+void cpu_step(Arm7TDMI* cpu) {
     if (lg) {
         word cur_addr = (cpu->cpsr.t) ? (cpu->pc - 4) : (cpu->pc - 8);
         if (cur_addr == bkpt) {
@@ -29,12 +20,7 @@ void tick_cpu(Arm7TDMI* cpu) {
             if (dbg) raise(SIGINT);
         }
     }
-    if (!cpu->cpsr.i && (cpu->master->io.ime & 1) &&
-        (cpu->master->io.ie.h & cpu->master->io.ifl.h)) {
-        cpu_handle_interrupt(cpu, I_IRQ);
-    } else {
-        arm_exec_instr(cpu);
-    }
+    arm_exec_instr(cpu);
 }
 
 void cpu_fetch(Arm7TDMI* cpu) {
@@ -44,7 +30,7 @@ void cpu_fetch(Arm7TDMI* cpu) {
             thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
         cpu->pc += 2;
     } else {
-        cpu->next_instr.w = cpu_read(cpu, cpu->pc);
+        cpu->next_instr.w = cpu_readw(cpu, cpu->pc);
         cpu->pc += 4;
     }
 }
@@ -60,9 +46,9 @@ void cpu_flush(Arm7TDMI* cpu) {
         cpu->pc += 2;
     } else {
         cpu->pc &= ~0b11;
-        cpu->cur_instr.w = cpu_read(cpu, cpu->pc);
+        cpu->cur_instr.w = cpu_readw(cpu, cpu->pc);
         cpu->pc += 4;
-        cpu->next_instr.w = cpu_read(cpu, cpu->pc);
+        cpu->next_instr.w = cpu_readw(cpu, cpu->pc);
         cpu->pc += 4;
     }
 }
@@ -111,7 +97,6 @@ void cpu_update_mode(Arm7TDMI* cpu, CpuMode old) {
 }
 
 void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
-    // printf("interrupt %d\n", intr);
     CpuMode old = cpu->cpsr.m;
     word spsr = cpu->cpsr.w;
     switch (intr) {
@@ -148,37 +133,37 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
 }
 
 byte cpu_readb(Arm7TDMI* cpu, word addr) {
-    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_BYTE));
-    return gba_readb(cpu->master, addr);
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, D_BYTE));
+    return bus_readb(cpu->master, addr);
 }
 
 hword cpu_readh(Arm7TDMI* cpu, word addr) {
-    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_HWORD));
-    return gba_readh(cpu->master, addr);
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, D_HWORD));
+    return bus_readh(cpu->master, addr);
 }
 
-word cpu_read(Arm7TDMI* cpu, word addr) {
-    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_WORD));
-    return gba_read(cpu->master, addr);
+word cpu_readw(Arm7TDMI* cpu, word addr) {
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, D_WORD));
+    return bus_readw(cpu->master, addr);
 }
 
 void cpu_writeb(Arm7TDMI* cpu, word addr, byte b) {
-    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_BYTE));
-    gba_writeb(cpu->master, addr, b);
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, D_BYTE));
+    bus_writeb(cpu->master, addr, b);
 }
 
 void cpu_writeh(Arm7TDMI* cpu, word addr, hword h) {
-    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_HWORD));
-    gba_writeh(cpu->master, addr, h);
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, D_HWORD));
+    bus_writeh(cpu->master, addr, h);
 }
 
-void cpu_write(Arm7TDMI* cpu, word addr, word w) {
-    run_gba(cpu->master, gba_get_waitstates(cpu->master, addr, D_WORD));
-    gba_write(cpu->master, addr, w);
+void cpu_writew(Arm7TDMI* cpu, word addr, word w) {
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, D_WORD));
+    bus_writew(cpu->master, addr, w);
 }
 
 void cpu_internal_cycle(Arm7TDMI* cpu) {
-    run_gba(cpu->master, 1);
+    tick_components(cpu->master, 1);
 }
 
 char* mode_name(CpuMode m) {

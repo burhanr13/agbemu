@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "dma.h"
 #include "gba.h"
 #include "io.h"
 
@@ -185,20 +186,16 @@ void draw_bg_line(PPU* ppu) {
 void tick_ppu(PPU* ppu) {
     if (ppu->lx == 0) {
         ppu->master->io.dispstat.hblank = 0;
+        
         if (ppu->ly == ppu->master->io.dispstat.lyc) {
             ppu->master->io.dispstat.vcounteq = 1;
             if (ppu->master->io.dispstat.vcount_irq)
                 ppu->master->io.ifl.vcounteq = 1;
         } else ppu->master->io.dispstat.vcounteq = 0;
+
         if (ppu->ly == GBA_SCREEN_H) {
             ppu->master->io.dispstat.vblank = 1;
-            if (ppu->master->io.dispstat.vblank_irq)
-                ppu->master->io.ifl.vblank = 1;
-
-            ppu->bgaffintr[0].x = ppu->master->io.bgaff[0].x;
-            ppu->bgaffintr[0].y = ppu->master->io.bgaff[0].y;
-            ppu->bgaffintr[1].x = ppu->master->io.bgaff[1].x;
-            ppu->bgaffintr[1].y = ppu->master->io.bgaff[1].y;
+            on_vblank(ppu);
         } else if (ppu->ly == LINES_H - 1) {
             ppu->master->io.dispstat.vblank = 0;
             ppu->frame_complete = true;
@@ -219,7 +216,7 @@ void tick_ppu(PPU* ppu) {
             ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
         }
         ppu->master->io.dispstat.hblank = 1;
-        if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
+        on_hblank(ppu);
     }
 
     ppu->lx++;
@@ -230,5 +227,28 @@ void tick_ppu(PPU* ppu) {
             ppu->ly = 0;
         }
         ppu->master->io.vcount = ppu->ly;
+    }
+}
+
+void on_vblank(PPU* ppu) {
+    if (ppu->master->io.dispstat.vblank_irq) ppu->master->io.ifl.vblank = 1;
+
+    ppu->bgaffintr[0].x = ppu->master->io.bgaff[0].x;
+    ppu->bgaffintr[0].y = ppu->master->io.bgaff[0].y;
+    ppu->bgaffintr[1].x = ppu->master->io.bgaff[1].x;
+    ppu->bgaffintr[1].y = ppu->master->io.bgaff[1].y;
+
+    for (int i = 0; i < 4;i++){
+        if(ppu->master->io.dma[i].cnt.start == DMA_ST_VBLANK)
+            dma_activate(&ppu->master->dmac, i);
+    }
+}
+
+void on_hblank(PPU* ppu) {
+    if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
+
+    for (int i = 0; i < 4; i++) {
+        if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK)
+            dma_activate(&ppu->master->dmac, i);
     }
 }

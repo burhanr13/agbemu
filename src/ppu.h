@@ -39,4 +39,7 @@ void tick_ppu(PPU* ppu);
 
 void draw_bg_line(PPU* ppu);
 
+void on_vblank(PPU* ppu);
+void on_hblank(PPU* ppu);
+
 #endif

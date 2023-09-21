@@ -3,6 +3,7 @@
 
 #include "arm7tdmi.h"
 #include "cartridge.h"
+#include "dma.h"
 #include "io.h"
 #include "ppu.h"
 #include "types.h"
@@ -39,6 +40,8 @@ enum {
 typedef struct _GBA {
     Arm7TDMI cpu;
     PPU ppu;
+
+    DMAController dmac;
 
     Cartridge* cart;
 
@@ -91,17 +94,18 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios);
 
 byte* load_bios(char* filename);
 
-int gba_get_waitstates(GBA* gba, word addr, DataWidth d);
+int get_waitstates(GBA* gba, word addr, DataWidth d);
 
-byte gba_readb(GBA* gba, word addr);
-hword gba_readh(GBA* gba, word addr);
-word gba_read(GBA* gba, word addr);
-void gba_writeb(GBA* gba, word addr, byte b);
-void gba_writeh(GBA* gba, word addr, hword h);
-void gba_write(GBA* gba, word addr, word w);
+byte bus_readb(GBA* gba, word addr);
+hword bus_readh(GBA* gba, word addr);
+word bus_readw(GBA* gba, word addr);
+void bus_writeb(GBA* gba, word addr, byte b);
+void bus_writeh(GBA* gba, word addr, hword h);
+void bus_writew(GBA* gba, word addr, word w);
 
-void tick_gba(GBA* gba);
-void run_gba(GBA* gba, int cycles);
+void tick_components(GBA* gba, int cycles);
+
+void gba_step(GBA* gba);
 
 void log_error(GBA* gba, char* mess, word addr);
 

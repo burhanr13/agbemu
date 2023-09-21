@@ -6,9 +6,11 @@
 #define IO_SIZE 0x400
 
 enum {
+    // display control
     DISPCNT = 0x000,
     DISPSTAT = 0x004,
     VCOUNT = 0x006,
+    // bg control
     BG0CNT = 0x008,
     BG1CNT = 0x00a,
     BG2CNT = 0x00c,
@@ -25,20 +27,48 @@ enum {
     BG2PB = 0x022,
     BG2PC = 0x024,
     BG2PD = 0x026,
-    BG2X_L = 0x028,
-    BG2X_H = 0x02a,
-    BG2Y_L = 0x02c,
-    BG2Y_H = 0x02e,
+    BG2X = 0x028,
+    BG2Y = 0x02c,
     BG3PA = 0x030,
     BG3PB = 0x032,
     BG3PC = 0x034,
     BG3PD = 0x036,
-    BG3X_L = 0x038,
-    BG3X_H = 0x03a,
-    BG3Y_L = 0x03c,
-    BG3Y_H = 0x03e,
+    BG3X = 0x038,
+    BG3Y = 0x03c,
+
+    // dma control
+    DMA0SAD = 0x0b0,
+    DMA0DAD = 0x0b4,
+    DMA0CNT_L = 0x0b8,
+    DMA0CNT_H = 0x0ba,
+    DMA1SAD = 0x0bc,
+    DMA1DAD = 0x0c0,
+    DMA1CNT_L = 0x0c4,
+    DMA1CNT_H = 0x0c6,
+    DMA2SAD = 0x0c8,
+    DMA2DAD = 0x0cc,
+    DMA2CNT_L = 0x0d0,
+    DMA2CNT_H = 0x0d2,
+    DMA3SAD = 0x0d4,
+    DMA3DAD = 0x0d8,
+    DMA3CNT_L = 0x0dc,
+    DMA3CNT_H = 0x0de,
+
+    // timer control
+    TM0CNT_L = 0x100,
+    TM0CNT_H = 0x102,
+    TM1CNT_L = 0x104,
+    TM1CNT_H = 0x106,
+    TM2CNT_L = 0x108,
+    TM2CNT_H = 0x10a,
+    TM3CNT_L = 0x10c,
+    TM3CNT_H = 0x10e,
+
+    // key control
     KEYINPUT = 0x130,
     KEYCNT = 0x132,
+
+    // system/interrupt control
     IE = 0x200,
     IF = 0x202,
     WAITCNT = 0x204,
@@ -111,7 +141,27 @@ typedef struct {
                 sword x;
                 sword y;
             } bgaff[2];
-            byte gap0[KEYINPUT - BG3Y_H - 2];
+            byte gap0xx[DMA0SAD - BG3Y - 4];
+            struct {
+                word sad;
+                word dad;
+                hword ct;
+                union {
+                    hword h;
+                    struct {
+                        hword unused : 5;
+                        hword dadcnt : 2;
+                        hword sadcnt : 2;
+                        hword repeat : 1;
+                        hword wsize : 1;
+                        hword drq : 1;
+                        hword start : 2;
+                        hword irq : 1;
+                        hword enable : 1;
+                    };
+                } cnt;
+            } dma[4];
+            byte gap1xx[KEYINPUT - DMA3CNT_H - 2];
             union {
                 hword h;
                 struct {
@@ -146,7 +196,7 @@ typedef struct {
                     hword irq_cond : 1;
                 };
             } keycnt;
-            byte gap1[IE - KEYCNT - 2];
+            byte gap2xx[IE - KEYCNT - 2];
             union {
                 hword h;
                 struct {
@@ -177,7 +227,6 @@ typedef struct {
             } ifl;
             union {
                 word w;
-                struct {};
             } waitcnt;
             word ime;
             byte unused_2xx[POSTFLG - IME - 4];
