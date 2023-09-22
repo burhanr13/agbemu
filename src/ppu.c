@@ -7,7 +7,7 @@
 #include "gba.h"
 #include "io.h"
 
-const word sclayout[4][2][2] = {
+const int sclayout[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
 
 void draw_bg_line_text(PPU* ppu, int bg) {
@@ -28,8 +28,9 @@ void draw_bg_line_text(PPU* ppu, int bg) {
         map_addr %= 0x10000;
         Tile tile = {ppu->master->vram.h[map_addr >> 1]};
         if (tile.hflip) finex = 7 - finex;
-        if (tile.vflip) finey = 7 - finey;
-        word pixel_off = 8 * finey + finex;
+        hword tmpfiney = finey;
+        if (tile.vflip) tmpfiney = 7 - finey;
+        word pixel_off = 8 * tmpfiney + finex;
         byte col_ind;
         if (ppu->master->io.bgcnt[bg].palette) {
             word tile_addr = tile_start + 64 * tile.num + pixel_off;
