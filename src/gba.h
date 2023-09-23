@@ -85,6 +85,7 @@ typedef struct _GBA {
         byte b[OAM_SIZE];
         hword h[OAM_SIZE >> 1];
         word w[OAM_SIZE >> 2];
+        ObjAttr objs[128];
     } oam;
 
     bool halt;

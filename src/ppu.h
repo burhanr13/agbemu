@@ -18,6 +18,47 @@ typedef union {
     };
 } Tile;
 
+enum { OBJ_NORMAL, OBJ_SEMITRANS, OBJ_OBJWIN };
+
+typedef struct {
+    union {
+        hword attr0;
+        struct {
+            hword y : 8;
+            hword aff : 1;
+            hword disable_double : 1;
+            hword mode : 2;
+            hword mosaic : 1;
+            hword palmode : 1;
+            hword shape : 2;
+        };
+    };
+    union {
+        hword attr1;
+        struct {
+            hword x : 9;
+            hword unused : 3;
+            hword hflip : 1;
+            hword vflip : 1;
+            hword size : 2;
+        };
+        struct {
+            hword _x : 9;
+            hword affparamind : 5;
+            hword _size : 2;
+        };
+    };
+    union {
+        hword attr2;
+        struct {
+            hword tilenum : 10;
+            hword priority : 2;
+            hword palnum : 4;
+        };
+    };
+    hword affparam;
+} ObjAttr;
+
 typedef struct _GBA GBA;
 
 typedef struct {
