@@ -35,6 +35,13 @@ enum {
     BG3PD = 0x036,
     BG3X = 0x038,
     BG3Y = 0x03c,
+    // window control
+    WIN0H = 0x040,
+    WIN1H = 0x042,
+    WIN0V = 0x044,
+    WIN1V = 0x046,
+    WININ = 0x048,
+    WINOUT = 0x04a,
 
     // dma control
     DMA0SAD = 0x0b0,
@@ -161,7 +168,22 @@ typedef struct {
                     };
                 } cnt;
             } dma[4];
-            byte gap1xx[KEYINPUT - DMA3CNT_H - 2];
+            byte unused_0xx[TM0CNT_L - DMA3CNT_H - 2];
+            struct {
+                hword reload;
+                union {
+                    hword h;
+                    struct {
+                        hword rate : 2;
+                        hword countup : 1;
+                        hword unused : 3;
+                        hword irq : 1;
+                        hword enable : 1;
+                        hword unused1 : 8;
+                    };
+                } cnt;
+            } tm[4];
+            byte gap1xx[KEYINPUT - TM3CNT_H - 2];
             union {
                 hword h;
                 struct {

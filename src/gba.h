@@ -6,6 +6,7 @@
 #include "dma.h"
 #include "io.h"
 #include "ppu.h"
+#include "timer.h"
 #include "types.h"
 
 typedef enum { D_BYTE, D_HWORD, D_WORD } DataWidth;
@@ -42,6 +43,7 @@ typedef struct _GBA {
     PPU ppu;
 
     DMAController dmac;
+    TimerController tmc;
 
     Cartridge* cart;
 

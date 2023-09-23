@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
         }
         double fps = (double) SDL_GetPerformanceFrequency() / diff;
         if (frame % 60 == 0) {
-            snprintf(wintitle, 199, "agbemu | %s | FPS: %.2lf", romfilenodir, fps);
+            snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", romfilenodir, fps);
             SDL_SetWindowTitle(window, wintitle);
         }
         prev_time = cur_time;

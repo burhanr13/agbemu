@@ -6,7 +6,10 @@
 #include <string.h>
 
 #include "arm7tdmi.h"
+#include "dma.h"
 #include "io.h"
+#include "ppu.h"
+#include "timer.h"
 
 extern bool lg, dbg;
 
@@ -16,6 +19,7 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     gba->cpu.master = gba;
     gba->ppu.master = gba;
     gba->dmac.master = gba;
+    gba->tmc.master = gba;
     gba->io.master = gba;
 
     gba->bios.b = bios;
@@ -392,6 +396,7 @@ void bus_writew(GBA* gba, word addr, word w) {
 void tick_components(GBA* gba, int cycles) {
     for (int i = 0; i < cycles; i++) {
         if (gba->cycles % 4 == 0) tick_ppu(&gba->ppu);
+        tick_timers(&gba->tmc);
 
         gba->cycles++;
     }
