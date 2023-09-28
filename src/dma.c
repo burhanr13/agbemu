@@ -38,10 +38,10 @@ void update_addr(word* addr, int adcnt, int wsize) {
 }
 
 void dma_step(DMAController* dmac, int i) {
-    if (i < 3) {
-        dmac->dma[i].sptr %= 1 << 27;
-        dmac->dma[i].dptr %= 1 << 27;
-    }
+    if (i > 0) dmac->dma[i].sptr %= 1 << 28;
+    else dmac->dma[i].sptr %= 1 << 27;
+    if (i < 3) dmac->dma[i].dptr %= 1 << 27;
+    else dmac->dma[i].dptr %= 1 << 28;
 
     if (dmac->master->io.dma[i].cnt.wsize) {
         dma_transw(dmac, dmac->dma[i].dptr, dmac->dma[i].sptr);
@@ -59,12 +59,14 @@ void dma_step(DMAController* dmac, int i) {
             dmac->master->io.dma[i].cnt.enable = 0;
         if (dmac->master->io.dma[i].cnt.irq)
             dmac->master->io.ifl.dma |= (1 << i);
+
+        tick_components(dmac->master, 2);
+        if ((dmac->dma[i].sptr & (1 << 27)) && (dmac->dma[i].dptr & (1 << 27)))
+            tick_components(dmac->master, 2);
     }
 }
 
 void dma_transh(DMAController* dmac, word daddr, word saddr) {
-    if (daddr >> 24 == R_SRAM || saddr >> 24 == R_SRAM) return;
-
     tick_components(dmac->master, get_waitstates(dmac->master, saddr, D_HWORD));
     hword data = bus_readh(dmac->master, saddr);
     tick_components(dmac->master, get_waitstates(dmac->master, daddr, D_HWORD));
@@ -72,8 +74,6 @@ void dma_transh(DMAController* dmac, word daddr, word saddr) {
 }
 
 void dma_transw(DMAController* dmac, word daddr, word saddr) {
-    if (daddr >> 24 == R_SRAM || saddr >> 24 == R_SRAM) return;
-
     tick_components(dmac->master, get_waitstates(dmac->master, saddr, D_WORD));
     word data = bus_readw(dmac->master, saddr);
     tick_components(dmac->master, get_waitstates(dmac->master, daddr, D_WORD));

@@ -45,7 +45,7 @@ void draw_bg_line_text(PPU* ppu, int bg) {
             }
             if (col_ind) col_ind |= tile.palette << 4;
         }
-        if (col_ind) ppu->screen[ppu->ly][x] = ppu->master->cram.h[col_ind];
+        if (col_ind) ppu->screen[ppu->ly][x] = ppu->master->pram.h[col_ind];
     }
 }
 
@@ -105,7 +105,7 @@ void draw_bg_line_aff(PPU* ppu, int bg, int mode) {
                 break;
         }
         if (col_ind && pal)
-            ppu->screen[ppu->ly][x] = ppu->master->cram.h[col_ind];
+            ppu->screen[ppu->ly][x] = ppu->master->pram.h[col_ind];
     }
 }
 
@@ -187,7 +187,7 @@ void draw_bg_line(PPU* ppu) {
 void tick_ppu(PPU* ppu) {
     if (ppu->lx == 0) {
         ppu->master->io.dispstat.hblank = 0;
-        
+
         if (ppu->ly == ppu->master->io.dispstat.lyc) {
             ppu->master->io.dispstat.vcounteq = 1;
             if (ppu->master->io.dispstat.vcount_irq)
@@ -207,7 +207,7 @@ void tick_ppu(PPU* ppu) {
                 memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
             } else {
                 for (int x = 0; x < GBA_SCREEN_W; x++) {
-                    ppu->screen[ppu->ly][x] = ppu->master->cram.h[0];
+                    ppu->screen[ppu->ly][x] = ppu->master->pram.h[0];
                 }
                 draw_bg_line(ppu);
             }
@@ -239,8 +239,8 @@ void on_vblank(PPU* ppu) {
     ppu->bgaffintr[1].x = ppu->master->io.bgaff[1].x;
     ppu->bgaffintr[1].y = ppu->master->io.bgaff[1].y;
 
-    for (int i = 0; i < 4;i++){
-        if(ppu->master->io.dma[i].cnt.start == DMA_ST_VBLANK)
+    for (int i = 0; i < 4; i++) {
+        if (ppu->master->io.dma[i].cnt.start == DMA_ST_VBLANK)
             dma_activate(&ppu->master->dmac, i);
     }
 }

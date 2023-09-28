@@ -15,7 +15,7 @@ enum {
     BIOS_SIZE = 0x4000,   // 16kb
     EWRAM_SIZE = 0x40000, // 256kb
     IWRAM_SIZE = 0x8000,  // 32kb
-    CRAM_SIZE = 0x400,    // 1kb
+    PRAM_SIZE = 0x400,    // 1kb
     VRAM_SIZE = 0x18000,  // 96kb
     OAM_SIZE = 0x400,     // 1kb
 };
@@ -26,7 +26,7 @@ enum {
     R_EWRAM,
     R_IWRAM,
     R_IO,
-    R_CRAM,
+    R_PRAM,
     R_VRAM,
     R_OAM,
     R_ROM0,
@@ -70,10 +70,10 @@ typedef struct _GBA {
     IO io;
 
     union {
-        byte b[CRAM_SIZE];
-        hword h[CRAM_SIZE >> 1];
-        word w[CRAM_SIZE >> 2];
-    } cram;
+        byte b[PRAM_SIZE];
+        hword h[PRAM_SIZE >> 1];
+        word w[PRAM_SIZE >> 2];
+    } pram;
 
     union {
         byte b[VRAM_SIZE];

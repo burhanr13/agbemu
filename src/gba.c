@@ -37,7 +37,7 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     gba->io.bgaff[1].pd = 1 << 8;
 }
 
-byte *load_bios(char* filename) {
+byte* load_bios(char* filename) {
     FILE* fp = fopen(filename, "rb");
     if (!fp) return NULL;
     byte* bios = malloc(BIOS_SIZE);
@@ -65,7 +65,7 @@ int get_waitstates(GBA* gba, word addr, DataWidth d) {
             return 1;
         case R_IO:
             return 1;
-        case R_CRAM:
+        case R_PRAM:
         case R_VRAM:
             switch (d) {
                 case D_BYTE:
@@ -121,8 +121,8 @@ byte bus_readb(GBA* gba, word addr) {
                 return io_readb(&gba->io, addr);
             }
             break;
-        case R_CRAM:
-            return gba->cram.b[addr % CRAM_SIZE];
+        case R_PRAM:
+            return gba->pram.b[addr % PRAM_SIZE];
             break;
         case R_VRAM:
             addr %= 0x20000;
@@ -173,8 +173,8 @@ hword bus_readh(GBA* gba, word addr) {
                 return io_readh(&gba->io, addr & ~1);
             }
             break;
-        case R_CRAM:
-            return gba->cram.h[addr % CRAM_SIZE >> 1];
+        case R_PRAM:
+            return gba->pram.h[addr % PRAM_SIZE >> 1];
             break;
         case R_VRAM:
             addr %= 0x20000;
@@ -225,8 +225,8 @@ word bus_readw(GBA* gba, word addr) {
                 return io_readw(&gba->io, addr & ~0b11);
             }
             break;
-        case R_CRAM:
-            return gba->cram.w[addr % CRAM_SIZE >> 2];
+        case R_PRAM:
+            return gba->pram.w[addr % PRAM_SIZE >> 2];
             break;
         case R_VRAM:
             addr %= 0x20000;
@@ -274,12 +274,15 @@ void bus_writeb(GBA* gba, word addr, byte b) {
                 io_writeb(&gba->io, addr, b);
             }
             break;
-        case R_CRAM:
+        case R_PRAM:
+            gba->pram.h[addr % PRAM_SIZE >> 1] = b * 0x0101;
             break;
         case R_VRAM:
             addr %= 0x20000;
             if (addr > VRAM_SIZE) addr -= 0x8000;
-            gba->vram.h[addr >> 1] = b * 0x0101;
+            if (addr < 0x10000 ||
+                (addr < 0x14000 && gba->io.dispcnt.bg_mode >= 3))
+                gba->vram.h[addr >> 1] = b * 0x0101;
             break;
         case R_OAM:
             break;
@@ -319,8 +322,8 @@ void bus_writeh(GBA* gba, word addr, hword h) {
                 io_writeh(&gba->io, addr & ~1, h);
             }
             break;
-        case R_CRAM:
-            gba->cram.h[addr % CRAM_SIZE >> 1] = h;
+        case R_PRAM:
+            gba->pram.h[addr % PRAM_SIZE >> 1] = h;
             break;
         case R_VRAM:
             addr %= 0x20000;
@@ -365,8 +368,8 @@ void bus_writew(GBA* gba, word addr, word w) {
                 io_writew(&gba->io, addr & ~0b11, w);
             }
             break;
-        case R_CRAM:
-            gba->cram.w[addr % CRAM_SIZE >> 2] = w;
+        case R_PRAM:
+            gba->pram.w[addr % PRAM_SIZE >> 2] = w;
             break;
         case R_VRAM:
             addr %= 0x20000;
@@ -403,23 +406,23 @@ void tick_components(GBA* gba, int cycles) {
 }
 
 void gba_step(GBA* gba) {
-    for (int i = 0; i < 4;i++){
-        if(gba->io.dma[i].cnt.enable && gba->dmac.dma[i].active){
+    for (int i = 0; i < 4; i++) {
+        if (gba->io.dma[i].cnt.start == DMA_ST_IMM) {
+            dma_activate(&gba->dmac, i);
+        }
+        if (gba->io.dma[i].cnt.enable && gba->dmac.dma[i].active) {
             dma_step(&gba->dmac, i);
             return;
         }
-        if(gba->io.dma[i].cnt.start == DMA_ST_IMM) {
-            dma_activate(&gba->dmac, i);
-        }
     }
-    if(gba->io.ie.h & gba->io.ifl.h) {
-        if(gba->halt || ((gba->io.ime & 1)&&!gba->cpu.cpsr.i)) {
+    if (gba->io.ie.h & gba->io.ifl.h) {
+        if (gba->halt || ((gba->io.ime & 1) && !gba->cpu.cpsr.i)) {
             gba->halt = false;
             cpu_handle_interrupt(&gba->cpu, I_IRQ);
             return;
         }
     }
-    if(!gba->halt) {
+    if (!gba->halt) {
         cpu_step(&gba->cpu);
         return;
     }
