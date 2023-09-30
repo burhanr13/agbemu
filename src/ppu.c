@@ -153,16 +153,25 @@ void render_bg_lines(PPU* ppu) {
     }
 }
 
-void render_obj_line(PPU* ppu, int i) {}
+void render_obj_line(PPU* ppu, int i) {
+    
+}
 
 void render_obj_lines(PPU* ppu) {
     if (!ppu->master->io.dispcnt.obj_enable) return;
+
+    ppu->obj_cycles = ppu->master->io.dispcnt.hblank_free ? 954 : 1210;
 
     for (int i = 0; i < GBA_SCREEN_W; i++) {
         ppu->objline[0][i] = 1 << 15;
         ppu->objline[1][i] = 1 << 15;
         ppu->objline[2][i] = 1 << 15;
         ppu->objline[3][i] = 1 << 15;
+    }
+
+    for (int i = 0; i < 128;i++){
+        render_obj_line(ppu, i);
+        if (ppu->obj_cycles <= 0) break;
     }
 }
 
