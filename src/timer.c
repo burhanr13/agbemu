@@ -5,13 +5,13 @@
 #include "gba.h"
 #include "io.h"
 
-const int rates[4] = {0, 63, 255, 1023};
+const int RATES[4] = {0, 63, 255, 1023};
 
 void tick_timers(TimerController* tmc) {
     for (int i = 0; i < 4; i++) {
         if (tmc->master->io.tm[i].cnt.enable &&
             !tmc->master->io.tm[i].cnt.countup &&
-            (tmc->master->cycles & rates[tmc->master->io.tm[i].cnt.rate]) ==
+            (tmc->master->cycles & RATES[tmc->master->io.tm[i].cnt.rate]) ==
                 0) {
             tmc->counter[i]++;
             if (tmc->counter[i] == 0) reload_timer(tmc, i);

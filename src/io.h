@@ -130,7 +130,7 @@ typedef struct {
                     hword tile_base : 2;
                     hword unused : 2;
                     hword mosaic : 1;
-                    hword palette : 1;
+                    hword palmode : 1;
                     hword tilemap_base : 5;
                     hword overflow : 1;
                     hword size : 2;

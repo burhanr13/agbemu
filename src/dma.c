@@ -11,6 +11,10 @@ void dma_enable(DMAController* dmac, int i) {
         dmac->dma[i].ct %= 0x4000;
         if (dmac->dma[i].ct == 0) dmac->dma[i].ct = 0x4000;
     }
+
+    if (dmac->master->io.dma[i].cnt.start == DMA_ST_IMM) {
+        dmac->dma[i].active = true;
+    }
 }
 
 void dma_activate(DMAController* dmac, int i) {
@@ -63,6 +67,10 @@ void dma_step(DMAController* dmac, int i) {
         tick_components(dmac->master, 2);
         if ((dmac->dma[i].sptr & (1 << 27)) && (dmac->dma[i].dptr & (1 << 27)))
             tick_components(dmac->master, 2);
+
+        if (dmac->master->io.dma[i].cnt.start == DMA_ST_IMM) {
+            dmac->dma[i].active = true;
+        }
     }
 }
 

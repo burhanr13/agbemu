@@ -6,6 +6,7 @@
 #include "dma.h"
 #include "gba.h"
 #include "io.h"
+#include "scheduler.h"
 
 const int SCLAYOUT[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
@@ -16,6 +17,7 @@ const int OBJLAYOUT[4][3] = {
 
 void render_bg_line_text(PPU* ppu, int bg) {
     if (!(ppu->master->io.dispcnt.bg_enable & (1 << bg))) return;
+    ppu->draw_bg[bg] = true;
 
     word map_start = ppu->master->io.bgcnt[bg].tilemap_base * 0x800;
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
@@ -38,7 +40,7 @@ void render_bg_line_text(PPU* ppu, int bg) {
         if (tile.vflip) tmpfiney = 7 - finey;
         word pixel_off = 8 * tmpfiney + finex;
         byte col_ind;
-        if (ppu->master->io.bgcnt[bg].palette) {
+        if (ppu->master->io.bgcnt[bg].palmode) {
             word tile_addr = tile_start + 64 * tile.num + pixel_off;
             col_ind = ppu->master->vram.b[tile_addr % 0x10000];
         } else {
@@ -59,6 +61,7 @@ void render_bg_line_text(PPU* ppu, int bg) {
 
 void render_bg_line_aff(PPU* ppu, int bg, int mode) {
     if (!(ppu->master->io.dispcnt.bg_enable & (1 << bg))) return;
+    ppu->draw_bg[bg] = true;
 
     word map_start = ppu->master->io.bgcnt[bg].tilemap_base * 0x800;
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
@@ -153,9 +156,7 @@ void render_bg_lines(PPU* ppu) {
     }
 }
 
-void render_obj_line(PPU* ppu, int i) {
-    
-}
+void render_obj_line(PPU* ppu, int i) {}
 
 void render_obj_lines(PPU* ppu) {
     if (!ppu->master->io.dispcnt.obj_enable) return;
@@ -169,7 +170,7 @@ void render_obj_lines(PPU* ppu) {
         ppu->objline[3][i] = 1 << 15;
     }
 
-    for (int i = 0; i < 128;i++){
+    for (int i = 0; i < 128; i++) {
         render_obj_line(ppu, i);
         if (ppu->obj_cycles <= 0) break;
     }
@@ -188,63 +189,53 @@ void draw_line(PPU* ppu) {
         ppu->screen[ppu->ly][x] = ppu->master->pram.h[0];
     }
 
+    ppu->draw_bg[0] = false;
+    ppu->draw_bg[1] = false;
+    ppu->draw_bg[2] = false;
+    ppu->draw_bg[3] = false;
+    ppu->draw_obj[0] = false;
+    ppu->draw_obj[1] = false;
+    ppu->draw_obj[2] = false;
+    ppu->draw_obj[3] = false;
+
     render_bg_lines(ppu);
     render_obj_lines(ppu);
 
-    for (int i = 3; i >= 0; i--) {
-        for (int j = 3; j >= 0; j--) {
-            if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
-                ppu->master->io.bgcnt[j].priority == i) {
-                compose_line(ppu, ppu->bgline[j]);
+    for (int pri = 3; pri >= 0; pri--) {
+        for (int bg = 3; bg >= 0; bg--) {
+            if (ppu->draw_bg[bg] && ppu->master->io.bgcnt[bg].priority == pri) {
+                compose_line(ppu, ppu->bgline[bg]);
             }
-            if (ppu->master->io.dispcnt.obj_enable)
-                compose_line(ppu, ppu->objline[i]);
+            if (ppu->draw_obj[pri]) compose_line(ppu, ppu->objline[pri]);
         }
     }
 }
 
-void tick_ppu(PPU* ppu) {
-    if (ppu->lx == 0) {
-        ppu->master->io.dispstat.hblank = 0;
+void on_hdraw(PPU* ppu) {
+    ppu->ly++;
+    if (ppu->ly == LINES_H) {
+        ppu->ly = 0;
+    }
+    ppu->master->io.vcount = ppu->ly;
 
-        if (ppu->ly == ppu->master->io.dispstat.lyc) {
-            ppu->master->io.dispstat.vcounteq = 1;
-            if (ppu->master->io.dispstat.vcount_irq)
-                ppu->master->io.ifl.vcounteq = 1;
-        } else ppu->master->io.dispstat.vcounteq = 0;
+    ppu->master->io.dispstat.hblank = 0;
 
-        if (ppu->ly == GBA_SCREEN_H) {
-            ppu->master->io.dispstat.vblank = 1;
-            on_vblank(ppu);
-        } else if (ppu->ly == LINES_H - 1) {
-            ppu->master->io.dispstat.vblank = 0;
-            ppu->frame_complete = true;
-        }
-    } else if (ppu->lx == GBA_SCREEN_W) {
-        if (ppu->ly < GBA_SCREEN_H) {
-            if (ppu->master->io.dispcnt.forced_blank) {
-                memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
-            } else {
-                draw_line(ppu);
-            }
-            ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
-            ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
-            ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
-            ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
-        }
-        ppu->master->io.dispstat.hblank = 1;
-        on_hblank(ppu);
+    if (ppu->ly == ppu->master->io.dispstat.lyc) {
+        ppu->master->io.dispstat.vcounteq = 1;
+        if (ppu->master->io.dispstat.vcount_irq)
+            ppu->master->io.ifl.vcounteq = 1;
+    } else ppu->master->io.dispstat.vcounteq = 0;
+
+    if (ppu->ly == GBA_SCREEN_H) {
+        ppu->master->io.dispstat.vblank = 1;
+        on_vblank(ppu);
+    } else if (ppu->ly == LINES_H - 1) {
+        ppu->master->io.dispstat.vblank = 0;
+        ppu->frame_complete = true;
     }
 
-    ppu->lx++;
-    if (ppu->lx == DOTS_W) {
-        ppu->lx = 0;
-        ppu->ly++;
-        if (ppu->ly == LINES_H) {
-            ppu->ly = 0;
-        }
-        ppu->master->io.vcount = ppu->ly;
-    }
+    ppu->master->sched.ppu_next.time += 4 * GBA_SCREEN_W;
+    ppu->master->sched.ppu_next.callback = PPU_CLBK_HBLANK;
 }
 
 void on_vblank(PPU* ppu) {
@@ -262,10 +253,26 @@ void on_vblank(PPU* ppu) {
 }
 
 void on_hblank(PPU* ppu) {
+    if (ppu->ly < GBA_SCREEN_H) {
+        if (ppu->master->io.dispcnt.forced_blank) {
+            memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
+        } else {
+            draw_line(ppu);
+        }
+        ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
+        ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
+        ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
+        ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
+    }
+    ppu->master->io.dispstat.hblank = 1;
+
     if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
 
     for (int i = 0; i < 4; i++) {
         if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK)
             dma_activate(&ppu->master->dmac, i);
     }
+
+    ppu->master->sched.ppu_next.time += 4 * (DOTS_W - GBA_SCREEN_W);
+    ppu->master->sched.ppu_next.callback = PPU_CLBK_HDRAW;
 }

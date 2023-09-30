@@ -6,3 +6,5 @@ build
 
 agbemu
 agbemu-dbg
+
+perf*

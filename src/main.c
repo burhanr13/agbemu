@@ -142,6 +142,7 @@ int main(int argc, char** argv) {
     }
 
     destroy_cartridge(cart);
+    free(bios);
     free(gba);
 
     SDL_DestroyRenderer(renderer);

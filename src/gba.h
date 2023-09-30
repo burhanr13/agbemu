@@ -6,6 +6,7 @@
 #include "dma.h"
 #include "io.h"
 #include "ppu.h"
+#include "scheduler.h"
 #include "timer.h"
 #include "types.h"
 
@@ -44,6 +45,8 @@ typedef struct _GBA {
 
     DMAController dmac;
     TimerController tmc;
+
+    Scheduler sched;
 
     Cartridge* cart;
 

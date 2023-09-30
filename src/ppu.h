@@ -18,7 +18,7 @@ typedef union {
     };
 } Tile;
 
-enum { OBJ_NORMAL, OBJ_SEMITRANS, OBJ_OBJWIN };
+enum { OBJ_MODE_NORMAL, OBJ_MODE_SEMITRANS, OBJ_MODE_WINOBJ };
 
 typedef struct {
     union {
@@ -65,7 +65,6 @@ typedef struct {
     GBA* master;
 
     hword screen[GBA_SCREEN_H][GBA_SCREEN_W];
-    int lx;
     int ly;
 
     hword bgline[4][GBA_SCREEN_W];
@@ -78,18 +77,20 @@ typedef struct {
         word y;
     } bgaffintr[2];
 
+    bool draw_bg[4];
+    bool draw_obj[4];
+
     int obj_cycles;
 
     bool frame_complete;
 } PPU;
-
-void tick_ppu(PPU* ppu);
 
 void render_bg_lines(PPU* ppu);
 void render_obj_lines(PPU* ppu);
 
 void draw_line(PPU* ppu);
 
+void on_hdraw(PPU* ppu);
 void on_vblank(PPU* ppu);
 void on_hblank(PPU* ppu);
 

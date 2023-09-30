@@ -9,7 +9,9 @@
 #include "dma.h"
 #include "io.h"
 #include "ppu.h"
+#include "scheduler.h"
 #include "timer.h"
+#include "types.h"
 
 extern bool lg, dbg;
 
@@ -21,6 +23,7 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     gba->dmac.master = gba;
     gba->tmc.master = gba;
     gba->io.master = gba;
+    gba->sched.master = gba;
 
     gba->bios.b = bios;
 
@@ -35,6 +38,10 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     gba->io.bgaff[0].pd = 1 << 8;
     gba->io.bgaff[1].pa = 1 << 8;
     gba->io.bgaff[1].pd = 1 << 8;
+
+    gba->sched.ppu_next.time = 0;
+    gba->sched.ppu_next.callback = PPU_CLBK_HDRAW;
+    gba->ppu.ly = -1;
 }
 
 byte* load_bios(char* filename) {
@@ -398,7 +405,7 @@ void bus_writew(GBA* gba, word addr, word w) {
 
 void tick_components(GBA* gba, int cycles) {
     for (int i = 0; i < cycles; i++) {
-        if (gba->cycles % 4 == 0) tick_ppu(&gba->ppu);
+        tick_scheduler(&gba->sched);
         tick_timers(&gba->tmc);
 
         gba->cycles++;
@@ -407,9 +414,6 @@ void tick_components(GBA* gba, int cycles) {
 
 void gba_step(GBA* gba) {
     for (int i = 0; i < 4; i++) {
-        if (gba->io.dma[i].cnt.start == DMA_ST_IMM) {
-            dma_activate(&gba->dmac, i);
-        }
         if (gba->io.dma[i].cnt.enable && gba->dmac.dma[i].active) {
             dma_step(&gba->dmac, i);
             return;
