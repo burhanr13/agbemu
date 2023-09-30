@@ -7,10 +7,16 @@
 #include "gba.h"
 #include "io.h"
 
-const int sclayout[4][2][2] = {
+const int SCLAYOUT[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
 
-void draw_bg_line_text(PPU* ppu, int bg) {
+// shape: sqr, short, long
+const int OBJLAYOUT[4][3] = {
+    {8, 8, 16}, {16, 8, 32}, {32, 16, 32}, {64, 32, 64}};
+
+void render_bg_line_text(PPU* ppu, int bg) {
+    if (!(ppu->master->io.dispcnt.bg_enable & (1 << bg))) return;
+
     word map_start = ppu->master->io.bgcnt[bg].tilemap_base * 0x800;
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
     hword sy = (ppu->ly + ppu->master->io.bgtext[bg].vofs) % 512;
@@ -20,7 +26,7 @@ void draw_bg_line_text(PPU* ppu, int bg) {
         hword sx = (x + ppu->master->io.bgtext[bg].hofs) % 512;
         word map_addr =
             map_start +
-            0x800 * sclayout[ppu->master->io.bgcnt[bg].size][sy >> 8][sx >> 8];
+            0x800 * SCLAYOUT[ppu->master->io.bgcnt[bg].size][sy >> 8][sx >> 8];
         hword finex = sx & 0b111;
         hword tilex = (sx >> 3) & 0b11111;
         word tile_off = 32 * tiley + tilex;
@@ -45,11 +51,15 @@ void draw_bg_line_text(PPU* ppu, int bg) {
             }
             if (col_ind) col_ind |= tile.palette << 4;
         }
-        if (col_ind) ppu->screen[ppu->ly][x] = ppu->master->pram.h[col_ind];
+        if (col_ind)
+            ppu->bgline[bg][x] = ppu->master->pram.h[col_ind] & ~(1 << 15);
+        else ppu->bgline[bg][x] = 1 << 15;
     }
 }
 
-void draw_bg_line_aff(PPU* ppu, int bg, int mode) {
+void render_bg_line_aff(PPU* ppu, int bg, int mode) {
+    if (!(ppu->master->io.dispcnt.bg_enable & (1 << bg))) return;
+
     word map_start = ppu->master->io.bgcnt[bg].tilemap_base * 0x800;
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
     word bm_start = (ppu->master->io.dispcnt.frame_sel) ? 0xa000 : 0x0000;
@@ -68,8 +78,10 @@ void draw_bg_line_aff(PPU* ppu, int bg, int mode) {
              !ppu->master->io.bgcnt[bg].overflow) ||
             ((mode == 3 || mode == 4) &&
              (sx >= GBA_SCREEN_W || sy >= GBA_SCREEN_H)) ||
-            ((mode == 5) && (sx >= 160 || sy >= 128)))
+            ((mode == 5) && (sx >= 160 || sy >= 128))) {
+            ppu->bgline[bg][x] = 1 << 15;
             continue;
+        }
 
         byte col_ind = 0;
         bool pal = true;
@@ -91,7 +103,7 @@ void draw_bg_line_aff(PPU* ppu, int bg, int mode) {
                 break;
             case 3:
                 pal = false;
-                ppu->screen[ppu->ly][x] =
+                ppu->bgline[bg][x] =
                     ppu->master->vram.h[sy * GBA_SCREEN_W + sx];
                 break;
             case 4:
@@ -100,87 +112,85 @@ void draw_bg_line_aff(PPU* ppu, int bg, int mode) {
                 break;
             case 5:
                 pal = false;
-                ppu->screen[ppu->ly][x] =
+                ppu->bgline[bg][x] =
                     ppu->master->vram.h[(bm_start >> 1) + sy * 160 + sx];
                 break;
         }
-        if (col_ind && pal)
-            ppu->screen[ppu->ly][x] = ppu->master->pram.h[col_ind];
-    }
-}
-
-void draw_bg_line_m0(PPU* ppu) {
-    for (int i = 3; i >= 0; i--) {
-        for (int j = 3; j >= 0; j--) {
-            if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
-                ppu->master->io.bgcnt[j].priority == i) {
-                draw_bg_line_text(ppu, j);
-            }
+        if (pal) {
+            if (col_ind)
+                ppu->bgline[bg][x] = ppu->master->pram.h[col_ind] & ~(1 << 15);
+            else ppu->bgline[bg][x] = 1 << 15;
         }
     }
 }
 
-void draw_bg_line_m1(PPU* ppu) {
-    for (int i = 3; i >= 0; i--) {
-        for (int j = 3; j >= 0; j--) {
-            if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
-                ppu->master->io.bgcnt[j].priority == i) {
-                if (j < 2) draw_bg_line_text(ppu, j);
-                else draw_bg_line_aff(ppu, j, 1);
-            }
-        }
-    }
-}
-
-void draw_bg_line_m2(PPU* ppu) {
-    for (int i = 3; i >= 0; i--) {
-        for (int j = 3; j >= 2; j--) {
-            if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
-                ppu->master->io.bgcnt[j].priority == i) {
-                draw_bg_line_aff(ppu, j, 2);
-            }
-        }
-    }
-}
-
-void draw_bg_line_m3(PPU* ppu) {
-    if (ppu->master->io.dispcnt.bg_enable & (1 << 2)) {
-        draw_bg_line_aff(ppu, 2, 3);
-    }
-}
-
-void draw_bg_line_m4(PPU* ppu) {
-    if (ppu->master->io.dispcnt.bg_enable & (1 << 2)) {
-        draw_bg_line_aff(ppu, 2, 4);
-    }
-}
-
-void draw_bg_line_m5(PPU* ppu) {
-    if (ppu->master->io.dispcnt.bg_enable & (1 << 2)) {
-        draw_bg_line_aff(ppu, 2, 5);
-    }
-}
-
-void draw_bg_line(PPU* ppu) {
+void render_bg_lines(PPU* ppu) {
     switch (ppu->master->io.dispcnt.bg_mode) {
         case 0:
-            draw_bg_line_m0(ppu);
+            render_bg_line_text(ppu, 0);
+            render_bg_line_text(ppu, 1);
+            render_bg_line_text(ppu, 2);
+            render_bg_line_text(ppu, 3);
             break;
         case 1:
-            draw_bg_line_m1(ppu);
+            render_bg_line_text(ppu, 0);
+            render_bg_line_text(ppu, 1);
+            render_bg_line_aff(ppu, 2, 1);
             break;
         case 2:
-            draw_bg_line_m2(ppu);
+            render_bg_line_aff(ppu, 2, 2);
+            render_bg_line_aff(ppu, 3, 2);
             break;
         case 3:
-            draw_bg_line_m3(ppu);
+            render_bg_line_aff(ppu, 2, 3);
             break;
         case 4:
-            draw_bg_line_m4(ppu);
+            render_bg_line_aff(ppu, 2, 4);
             break;
         case 5:
-            draw_bg_line_m5(ppu);
+            render_bg_line_aff(ppu, 2, 5);
             break;
+    }
+}
+
+void render_obj_line(PPU* ppu, int i) {}
+
+void render_obj_lines(PPU* ppu) {
+    if (!ppu->master->io.dispcnt.obj_enable) return;
+
+    for (int i = 0; i < GBA_SCREEN_W; i++) {
+        ppu->objline[0][i] = 1 << 15;
+        ppu->objline[1][i] = 1 << 15;
+        ppu->objline[2][i] = 1 << 15;
+        ppu->objline[3][i] = 1 << 15;
+    }
+}
+
+void compose_line(PPU* ppu, hword* line) {
+    for (int x = 0; x < GBA_SCREEN_W; x++) {
+        if (line[x] & (1 << 15)) continue;
+
+        ppu->screen[ppu->ly][x] = line[x];
+    }
+}
+
+void draw_line(PPU* ppu) {
+    for (int x = 0; x < GBA_SCREEN_W; x++) {
+        ppu->screen[ppu->ly][x] = ppu->master->pram.h[0];
+    }
+
+    render_bg_lines(ppu);
+    render_obj_lines(ppu);
+
+    for (int i = 3; i >= 0; i--) {
+        for (int j = 3; j >= 0; j--) {
+            if ((ppu->master->io.dispcnt.bg_enable & (1 << j)) &&
+                ppu->master->io.bgcnt[j].priority == i) {
+                compose_line(ppu, ppu->bgline[j]);
+            }
+            if (ppu->master->io.dispcnt.obj_enable)
+                compose_line(ppu, ppu->objline[i]);
+        }
     }
 }
 
@@ -206,10 +216,7 @@ void tick_ppu(PPU* ppu) {
             if (ppu->master->io.dispcnt.forced_blank) {
                 memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
             } else {
-                for (int x = 0; x < GBA_SCREEN_W; x++) {
-                    ppu->screen[ppu->ly][x] = ppu->master->pram.h[0];
-                }
-                draw_bg_line(ppu);
+                draw_line(ppu);
             }
             ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
             ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;

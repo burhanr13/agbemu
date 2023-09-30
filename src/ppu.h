@@ -68,17 +68,27 @@ typedef struct {
     int lx;
     int ly;
 
+    hword bgline[4][GBA_SCREEN_W];
+    hword objline[4][GBA_SCREEN_W];
+    byte slayer[GBA_SCREEN_W];
+    byte wlayer[GBA_SCREEN_W];
+
     struct {
         word x;
         word y;
     } bgaffintr[2];
+
+    int obj_cycles;
 
     bool frame_complete;
 } PPU;
 
 void tick_ppu(PPU* ppu);
 
-void draw_bg_line(PPU* ppu);
+void render_bg_lines(PPU* ppu);
+void render_obj_lines(PPU* ppu);
+
+void draw_line(PPU* ppu);
 
 void on_vblank(PPU* ppu);
 void on_hblank(PPU* ppu);
