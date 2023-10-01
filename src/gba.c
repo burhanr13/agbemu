@@ -407,7 +407,7 @@ void tick_components(GBA* gba, int cycles) {
 
 void gba_step(GBA* gba) {
     for (int i = 0; i < 4; i++) {
-        if (gba->io.dma[i].cnt.enable && gba->dmac.dma[i].active) {
+        if (gba->dmac.dma[i].active) {
             dma_step(&gba->dmac, i);
             return;
         }

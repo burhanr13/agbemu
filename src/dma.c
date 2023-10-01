@@ -2,6 +2,10 @@
 
 #include "gba.h"
 
+#include <stdio.h>
+
+extern bool lg;
+
 void dma_enable(DMAController* dmac, int i) {
     dmac->dma[i].active = false;
     dmac->dma[i].sptr = dmac->master->io.dma[i].sad;
@@ -18,7 +22,7 @@ void dma_enable(DMAController* dmac, int i) {
 }
 
 void dma_activate(DMAController* dmac, int i) {
-    if (dmac->dma[i].active) return;
+    if (!dmac->master->io.dma[i].cnt.enable || dmac->dma[i].active) return;
     dmac->dma[i].active = true;
     if (dmac->master->io.dma[i].cnt.dadcnt == DMA_ADCNT_INR)
         dmac->dma[i].dptr = dmac->master->io.dma[i].dad;
@@ -59,8 +63,13 @@ void dma_step(DMAController* dmac, int i) {
     dmac->dma[i].ct--;
     if (dmac->dma[i].ct == 0) {
         dmac->dma[i].active = false;
-        if (!dmac->master->io.dma[i].cnt.repeat)
+        if (!dmac->master->io.dma[i].cnt.repeat) {
             dmac->master->io.dma[i].cnt.enable = 0;
+        } else if (dmac->master->io.dma[i].cnt.start == DMA_ST_IMM) {
+            dmac->dma[i].active = true;
+            if (lg) printf("Warning: Infinite DMA\n");
+        }
+
         if (dmac->master->io.dma[i].cnt.irq)
             dmac->master->io.ifl.dma |= (1 << i);
 
@@ -68,9 +77,6 @@ void dma_step(DMAController* dmac, int i) {
         if ((dmac->dma[i].sptr & (1 << 27)) && (dmac->dma[i].dptr & (1 << 27)))
             tick_components(dmac->master, 2);
 
-        if (dmac->master->io.dma[i].cnt.start == DMA_ST_IMM) {
-            dmac->dma[i].active = true;
-        }
     }
 }
 

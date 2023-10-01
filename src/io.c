@@ -88,8 +88,10 @@ void io_writeh(IO* io, word addr, hword data) {
             int i = (addr - DMA0CNT_H) / (DMA1CNT_H - DMA0CNT_H);
             bool prev_ena = io->dma[i].cnt.enable;
             io->dma[i].cnt.h = data;
-            if (!prev_ena && io->dma[i].cnt.enable)
+            if (!prev_ena && io->dma[i].cnt.enable) {
                 dma_enable(&io->master->dmac, i);
+            }
+            if (!io->dma[i].cnt.enable) io->master->dmac.dma[i].active = false;
             break;
         }
         case TM0CNT_H:
