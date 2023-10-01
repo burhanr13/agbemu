@@ -406,10 +406,12 @@ void tick_components(GBA* gba, int cycles) {
 }
 
 void gba_step(GBA* gba) {
-    for (int i = 0; i < 4; i++) {
-        if (gba->dmac.dma[i].active) {
-            dma_step(&gba->dmac, i);
-            return;
+    if (gba->dmac.any_active) {
+        for (int i = 0; i < 4; i++) {
+            if (gba->dmac.dma[i].active) {
+                dma_step(&gba->dmac, i);
+                return;
+            }
         }
     }
     if (gba->io.ie.h & gba->io.ifl.h) {

@@ -17,6 +17,7 @@ typedef struct {
         hword ct;
         bool active;
     } dma[4];
+    bool any_active;
 } DMAController;
 
 void dma_enable(DMAController* dmac, int i);
@@ -26,5 +27,7 @@ void dma_step(DMAController* dmac, int i);
 
 void dma_transh(DMAController* dmac, word daddr, word saddr);
 void dma_transw(DMAController* dmac, word daddr, word saddr);
+
+void dma_update_active(DMAController* dmac);
 
 #endif

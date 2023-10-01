@@ -8,6 +8,7 @@ extern bool lg;
 
 void dma_enable(DMAController* dmac, int i) {
     dmac->dma[i].active = false;
+    dma_update_active(dmac);
     dmac->dma[i].sptr = dmac->master->io.dma[i].sad;
     dmac->dma[i].dptr = dmac->master->io.dma[i].dad;
     dmac->dma[i].ct = dmac->master->io.dma[i].ct;
@@ -18,12 +19,14 @@ void dma_enable(DMAController* dmac, int i) {
 
     if (dmac->master->io.dma[i].cnt.start == DMA_ST_IMM) {
         dmac->dma[i].active = true;
+        dma_update_active(dmac);
     }
 }
 
 void dma_activate(DMAController* dmac, int i) {
     if (!dmac->master->io.dma[i].cnt.enable || dmac->dma[i].active) return;
     dmac->dma[i].active = true;
+    dma_update_active(dmac);
     if (dmac->master->io.dma[i].cnt.dadcnt == DMA_ADCNT_INR)
         dmac->dma[i].dptr = dmac->master->io.dma[i].dad;
     dmac->dma[i].ct = dmac->master->io.dma[i].ct;
@@ -63,10 +66,12 @@ void dma_step(DMAController* dmac, int i) {
     dmac->dma[i].ct--;
     if (dmac->dma[i].ct == 0) {
         dmac->dma[i].active = false;
+        dma_update_active(dmac);
         if (!dmac->master->io.dma[i].cnt.repeat) {
             dmac->master->io.dma[i].cnt.enable = 0;
         } else if (dmac->master->io.dma[i].cnt.start == DMA_ST_IMM) {
             dmac->dma[i].active = true;
+            dma_update_active(dmac);
             if (lg) printf("Warning: Infinite DMA\n");
         }
 
@@ -92,4 +97,9 @@ void dma_transw(DMAController* dmac, word daddr, word saddr) {
     word data = bus_readw(dmac->master, saddr);
     tick_components(dmac->master, get_waitstates(dmac->master, daddr, D_WORD));
     bus_writew(dmac->master, daddr, data);
+}
+
+void dma_update_active(DMAController* dmac) {
+    dmac->any_active = dmac->dma[0].active || dmac->dma[1].active ||
+                       dmac->dma[2].active || dmac->dma[3].active;
 }
