@@ -4,6 +4,7 @@
 
 #include "cartridge.h"
 #include "gba.h"
+#include "thumb_isa.h"
 #include "types.h"
 
 word bkpt;
@@ -80,6 +81,8 @@ int main(int argc, char** argv) {
         printf("No bios found. Make sure 'bios.bin' in current directory.\n");
         return -1;
     }
+
+    thumb_generate_lookup();
     init_gba(gba, cart, bios);
 
     char* romfilenodir = romfile + strlen(romfile);

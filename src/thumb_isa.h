@@ -154,6 +154,10 @@ typedef union {
     } branch_l;
 } ThumbInstr;
 
+extern ArmInstr thumb_lookup[1 << 16];
+
+void thumb_generate_lookup();
+
 ArmInstr thumb_decode_instr(ThumbInstr instr);
 
 #endif

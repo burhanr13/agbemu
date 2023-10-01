@@ -26,8 +26,7 @@ void cpu_step(Arm7TDMI* cpu) {
 void cpu_fetch(Arm7TDMI* cpu) {
     cpu->cur_instr = cpu->next_instr;
     if (cpu->cpsr.t) {
-        cpu->next_instr =
-            thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
+        cpu->next_instr = thumb_lookup[cpu_readh(cpu, cpu->pc)];
         cpu->pc += 2;
     } else {
         cpu->next_instr.w = cpu_readw(cpu, cpu->pc);
