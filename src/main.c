@@ -91,7 +91,8 @@ int main(int argc, char** argv) {
     SDL_Renderer* renderer;
     SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 4, GBA_SCREEN_H * 4, 0, &window,
                                 &renderer);
-    SDL_SetWindowTitle(window, "agbemu");
+    snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", romfilenodir, 0.0);
+    SDL_SetWindowTitle(window, wintitle);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
@@ -100,6 +101,9 @@ int main(int argc, char** argv) {
                                              GBA_SCREEN_W, GBA_SCREEN_H);
 
     Uint64 prev_time = SDL_GetPerformanceCounter();
+    Uint64 prev_fps_update = prev_time;
+    Uint64 prev_fps_frame = 0;
+    const Uint64 frame_ticks = SDL_GetPerformanceFrequency() / 60;
     Uint64 frame = 0;
     bool running = true;
     while (running) {
@@ -123,22 +127,26 @@ int main(int argc, char** argv) {
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
 
-        frame++;
         Uint64 cur_time = SDL_GetPerformanceCounter();
-        Uint64 diff = cur_time - prev_time;
-        double diffsec = (double) diff / SDL_GetPerformanceFrequency();
-        int wait = 1000 * (1.0 / 60 - diffsec);
+        Uint64 elapsed = cur_time - prev_time;
+
+        Sint64 wait = frame_ticks - elapsed;
         if (wait > 0 && !uncap) {
-            SDL_Delay(wait);
+            SDL_Delay(wait * 1000 / SDL_GetPerformanceFrequency());
             cur_time = SDL_GetPerformanceCounter();
-            diff = cur_time - prev_time;
         }
-        double fps = (double) SDL_GetPerformanceFrequency() / diff;
-        if (frame % 60 == 0) {
-            snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", romfilenodir, fps);
+        elapsed = cur_time - prev_fps_update;
+        if (elapsed >= SDL_GetPerformanceFrequency() / 2) {
+            double fps = (double) SDL_GetPerformanceFrequency() *
+                         (frame - prev_fps_frame) / elapsed;
+            snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", romfilenodir,
+                     fps);
             SDL_SetWindowTitle(window, wintitle);
+            prev_fps_update = cur_time;
+            prev_fps_frame = frame;
         }
         prev_time = cur_time;
+        frame++;
     }
 
     destroy_cartridge(cart);
