@@ -28,8 +28,6 @@ typedef struct {
 } Scheduler;
 
 void run_scheduler(Scheduler* sched, int cycles);
-void run_to_interrupt(Scheduler* sched);
-
 void run_next_event(Scheduler* sched);
 
 void add_event(Scheduler* sched, Event* e);

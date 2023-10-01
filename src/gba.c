@@ -423,7 +423,7 @@ void gba_step(GBA* gba) {
         cpu_step(&gba->cpu);
         return;
     }
-    run_to_interrupt(&gba->sched);
+    run_next_event(&gba->sched);
 }
 
 void log_error(GBA* gba, char* mess, word addr) {

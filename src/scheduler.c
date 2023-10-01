@@ -13,13 +13,6 @@ void run_scheduler(Scheduler* sched, int cycles) {
     sched->master->cycles = end_time;
 }
 
-void run_to_interrupt(Scheduler* sched) {
-    while (sched->n_events && !sched->master->ppu.frame_complete &&
-           !(sched->master->io.ie.h & sched->master->io.ifl.h)) {
-        run_next_event(sched);
-    }
-}
-
 void run_next_event(Scheduler* sched) {
     if (sched->n_events == 0) return;
 
