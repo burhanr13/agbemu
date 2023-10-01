@@ -42,6 +42,9 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     gba->sched.ppu_next.time = 0;
     gba->sched.ppu_next.callback = PPU_CLBK_HDRAW;
     gba->ppu.ly = -1;
+    for (int i = 0; i < 4; i++) {
+        gba->sched.timer_overflows[i] = -1;
+    }
 }
 
 byte* load_bios(char* filename) {
@@ -406,7 +409,6 @@ void bus_writew(GBA* gba, word addr, word w) {
 void tick_components(GBA* gba, int cycles) {
     for (int i = 0; i < cycles; i++) {
         tick_scheduler(&gba->sched);
-        tick_timers(&gba->tmc);
 
         gba->cycles++;
     }

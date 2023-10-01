@@ -55,6 +55,7 @@ hword io_readh(IO* io, word addr) {
         case TM2CNT_L:
         case TM3CNT_L: {
             int i = (addr - TM0CNT_L) / (TM1CNT_L - TM0CNT_L);
+            update_timer_count(&io->master->tmc, i);
             return io->master->tmc.counter[i];
         }
     }
@@ -87,7 +88,7 @@ void io_writeh(IO* io, word addr, hword data) {
             int i = (addr - DMA0CNT_H) / (DMA1CNT_H - DMA0CNT_H);
             bool prev_ena = io->dma[i].cnt.enable;
             io->dma[i].cnt.h = data;
-            if(!prev_ena && io->dma[i].cnt.enable)
+            if (!prev_ena && io->dma[i].cnt.enable)
                 dma_enable(&io->master->dmac, i);
             break;
         }
@@ -97,9 +98,13 @@ void io_writeh(IO* io, word addr, hword data) {
         case TM3CNT_H: {
             int i = (addr - TM0CNT_H) / (TM1CNT_H - TM0CNT_H);
             bool prev_ena = io->tm[i].cnt.enable;
+            update_timer_count(&io->master->tmc, i);
             io->tm[i].cnt.h = data;
-            if(!prev_ena && io->tm[i].cnt.enable)
+            if (!prev_ena && io->tm[i].cnt.enable) {
                 io->master->tmc.counter[i] = io->tm[i].reload;
+                io->master->tmc.set_time[i] = io->master->cycles;
+            }
+            update_timer_reload(&io->master->tmc, i);
             break;
         }
         case KEYINPUT:

@@ -19,6 +19,7 @@ typedef struct {
     GBA* master;
 
     PPUEvent ppu_next;
+    dword timer_overflows[4];
 } Scheduler;
 
 void tick_scheduler(Scheduler* sched);
