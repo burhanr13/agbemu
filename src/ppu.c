@@ -234,8 +234,13 @@ void on_hdraw(PPU* ppu) {
         ppu->frame_complete = true;
     }
 
-    ppu->master->sched.ppu_next.time += 4 * GBA_SCREEN_W;
-    ppu->master->sched.ppu_next.callback = PPU_CLBK_HBLANK;
+    add_event(
+        &ppu->master->sched,
+        &(Event){ppu->master->cycles + 4 * GBA_SCREEN_W, EVENT_PPU_HBLANK});
+
+    add_event(
+        &ppu->master->sched,
+        &(Event){ppu->master->cycles + 4 * DOTS_W, EVENT_PPU_HDRAW});
 }
 
 void on_vblank(PPU* ppu) {
@@ -273,6 +278,4 @@ void on_hblank(PPU* ppu) {
             dma_activate(&ppu->master->dmac, i);
     }
 
-    ppu->master->sched.ppu_next.time += 4 * (DOTS_W - GBA_SCREEN_W);
-    ppu->master->sched.ppu_next.callback = PPU_CLBK_HDRAW;
 }

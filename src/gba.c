@@ -39,12 +39,7 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     gba->io.bgaff[1].pa = 1 << 8;
     gba->io.bgaff[1].pd = 1 << 8;
 
-    gba->sched.ppu_next.time = 0;
-    gba->sched.ppu_next.callback = PPU_CLBK_HDRAW;
-    gba->ppu.ly = -1;
-    for (int i = 0; i < 4; i++) {
-        gba->sched.timer_overflows[i] = -1;
-    }
+    add_event(&gba->sched, &(Event){0, EVENT_PPU_HDRAW});
 }
 
 byte* load_bios(char* filename) {
@@ -407,11 +402,7 @@ void bus_writew(GBA* gba, word addr, word w) {
 }
 
 void tick_components(GBA* gba, int cycles) {
-    for (int i = 0; i < cycles; i++) {
-        tick_scheduler(&gba->sched);
-
-        gba->cycles++;
-    }
+    run_scheduler(&gba->sched, cycles);
 }
 
 void gba_step(GBA* gba) {
@@ -432,7 +423,7 @@ void gba_step(GBA* gba) {
         cpu_step(&gba->cpu);
         return;
     }
-    tick_components(gba, 1);
+    run_to_interrupt(&gba->sched);
 }
 
 void log_error(GBA* gba, char* mess, word addr) {

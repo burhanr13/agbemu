@@ -8,7 +8,8 @@
 const int RATES[4] = {0, 6, 8, 10};
 
 void update_timer_count(TimerController* tmc, int i) {
-    if (!tmc->master->io.tm[i].cnt.enable || tmc->master->io.tm[i].cnt.countup) {
+    if (!tmc->master->io.tm[i].cnt.enable ||
+        tmc->master->io.tm[i].cnt.countup) {
         tmc->set_time[i] = tmc->master->cycles;
         return;
     }
@@ -20,18 +21,16 @@ void update_timer_count(TimerController* tmc, int i) {
 }
 
 void update_timer_reload(TimerController* tmc, int i) {
-    if (!tmc->master->io.tm[i].cnt.enable ||
-        tmc->master->io.tm[i].cnt.countup) {
-        tmc->master->sched.timer_overflows[i] = -1;
+    remove_event(&tmc->master->sched, i);
+
+    if (!tmc->master->io.tm[i].cnt.enable || tmc->master->io.tm[i].cnt.countup)
         return;
-    }
 
     int rate = RATES[tmc->master->io.tm[i].cnt.rate];
-    tmc->master->sched.timer_overflows[i] =
+    dword rel_time =
         (tmc->set_time[i] + ((0x10000 - tmc->counter[i]) << rate)) &
         ~((1 << rate) - 1);
-    if (tmc->master->sched.timer_overflows[i] == tmc->master->cycles)
-        reload_timer(tmc, i);
+    add_event(&tmc->master->sched, &(Event){rel_time, i});
 }
 
 void reload_timer(TimerController* tmc, int i) {
