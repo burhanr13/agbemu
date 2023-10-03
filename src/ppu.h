@@ -18,7 +18,7 @@ typedef union {
     };
 } BgTile;
 
-enum { OBJ_MODE_NORMAL, OBJ_MODE_SEMITRANS, OBJ_MODE_WINOBJ };
+enum { OBJ_MODE_NORMAL, OBJ_MODE_SEMITRANS, OBJ_MODE_OBJWIN };
 enum { OBJ_SHAPE_SQR, OBJ_SHAPE_HORZ, OBJ_SHAPE_VERT };
 
 typedef struct {
@@ -60,7 +60,15 @@ typedef struct {
     hword affparam;
 } ObjAttr;
 
-enum { WIN0, WIN1, WINOBJ };
+enum { WIN0, WIN1, OBJWIN };
+enum { LBG0, LBG1, LBG2, LBG3, LOBJ, LBD };
+
+typedef struct {
+    byte priority : 2;
+    byte semitrans : 1;
+    byte obj0 : 1;
+    byte pad : 4;
+} ObjDotAttr;
 
 typedef struct _GBA GBA;
 
@@ -71,9 +79,9 @@ typedef struct {
     byte ly;
 
     hword bgline[4][GBA_SCREEN_W];
-    hword objline[4][GBA_SCREEN_W];
-    byte slayer[GBA_SCREEN_W];
-    byte wlayer[GBA_SCREEN_W];
+    hword objline[GBA_SCREEN_W];
+    ObjDotAttr objdotattrs[GBA_SCREEN_W];
+    byte window[GBA_SCREEN_W];
 
     struct {
         word x;
@@ -81,17 +89,18 @@ typedef struct {
     } bgaffintr[2];
 
     bool draw_bg[4];
-    bool draw_obj[4];
+    bool draw_obj;
 
     int obj_cycles;
 
     bool frame_complete;
 } PPU;
 
-void render_bg_lines(PPU* ppu);
-void render_obj_lines(PPU* ppu);
+void render_bgs(PPU* ppu);
+void render_objs(PPU* ppu);
+void render_windows(PPU* ppu);
 
-void draw_line(PPU* ppu);
+void draw_scanline(PPU* ppu);
 
 void on_hdraw(PPU* ppu);
 void on_vblank(PPU* ppu);
