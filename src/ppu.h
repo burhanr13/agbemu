@@ -57,11 +57,11 @@ typedef struct {
             hword palette : 4;
         };
     };
-    hword affparam;
+    shword affparam;
 } ObjAttr;
 
-enum { WIN0, WIN1, OBJWIN };
-enum { LBG0, LBG1, LBG2, LBG3, LOBJ, LBD };
+enum { WIN0, WIN1, WOBJ, WOUT };
+enum { LBG0, LBG1, LBG2, LBG3, LOBJ, LBD, LMAX };
 
 typedef struct {
     byte priority : 2;
@@ -78,8 +78,7 @@ typedef struct {
     hword screen[GBA_SCREEN_H][GBA_SCREEN_W];
     byte ly;
 
-    hword bgline[4][GBA_SCREEN_W];
-    hword objline[GBA_SCREEN_W];
+    hword layerlines[LMAX][GBA_SCREEN_W];
     ObjDotAttr objdotattrs[GBA_SCREEN_W];
     byte window[GBA_SCREEN_W];
 
