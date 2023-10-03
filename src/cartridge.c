@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 Cartridge* create_cartridge(char* filename) {
-    FILE* fp = fopen(filename,"rb");
+    FILE* fp = fopen(filename, "rb");
     if (!fp) return NULL;
 
     Cartridge* cart = malloc(sizeof *cart);

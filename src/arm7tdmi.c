@@ -37,11 +37,9 @@ void cpu_fetch(Arm7TDMI* cpu) {
 void cpu_flush(Arm7TDMI* cpu) {
     if (cpu->cpsr.t) {
         cpu->pc &= ~1;
-        cpu->cur_instr =
-            thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
+        cpu->cur_instr = thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
         cpu->pc += 2;
-        cpu->next_instr =
-            thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
+        cpu->next_instr = thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
         cpu->pc += 2;
     } else {
         cpu->pc &= ~0b11;
@@ -195,7 +193,7 @@ void print_cpu_state(Arm7TDMI* cpu) {
         }
         printf("\n");
     }
-    printf("    cpsr=%08x (n=%d,z=%d,c=%d,v=%d,i=%d,f=%d,t=%d,m=%s)\n",
-           cpu->cpsr.w, cpu->cpsr.n, cpu->cpsr.z, cpu->cpsr.c, cpu->cpsr.v,
-           cpu->cpsr.i, cpu->cpsr.v, cpu->cpsr.t, mode_name(cpu->cpsr.m));
+    printf("    cpsr=%08x (n=%d,z=%d,c=%d,v=%d,i=%d,f=%d,t=%d,m=%s)\n", cpu->cpsr.w, cpu->cpsr.n,
+           cpu->cpsr.z, cpu->cpsr.c, cpu->cpsr.v, cpu->cpsr.i, cpu->cpsr.v, cpu->cpsr.t,
+           mode_name(cpu->cpsr.m));
 }

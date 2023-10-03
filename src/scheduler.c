@@ -36,8 +36,7 @@ void add_event(Scheduler* sched, Event* e) {
 
     int i = sched->n_events;
     sched->event_queue[sched->n_events++] = *e;
-    while (i > 0 &&
-           sched->event_queue[i].time < sched->event_queue[i - 1].time) {
+    while (i > 0 && sched->event_queue[i].time < sched->event_queue[i - 1].time) {
         Event tmp = sched->event_queue[i - 1];
         sched->event_queue[i - 1] = sched->event_queue[i];
         sched->event_queue[i] = tmp;

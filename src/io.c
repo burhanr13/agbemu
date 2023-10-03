@@ -63,8 +63,8 @@ hword io_readh(IO* io, word addr) {
 }
 
 void io_writeh(IO* io, word addr, hword data) {
-    if ((addr & ~0b11) == BG2X || (addr & ~0b11) == BG2Y ||
-        (addr & ~0b11) == BG3X || (addr & ~0b11) == BG3Y) {
+    if ((addr & ~0b11) == BG2X || (addr & ~0b11) == BG2Y || (addr & ~0b11) == BG3X ||
+        (addr & ~0b11) == BG3Y) {
         word w;
         if (addr & 0b10) {
             w = data << 16;

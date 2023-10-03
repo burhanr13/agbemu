@@ -15,16 +15,7 @@ typedef enum {
     M_SYSTEM = 0b11111
 } CpuMode;
 
-typedef enum {
-    I_RESET,
-    I_UND,
-    I_SWI,
-    I_PABT,
-    I_DABT,
-    I_ADDR,
-    I_IRQ,
-    I_FIQ
-} CpuInterrupt;
+typedef enum { I_RESET, I_UND, I_SWI, I_PABT, I_DABT, I_ADDR, I_IRQ, I_FIQ } CpuInterrupt;
 
 typedef struct _GBA GBA;
 

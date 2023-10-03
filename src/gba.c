@@ -287,8 +287,7 @@ void bus_writeb(GBA* gba, word addr, byte b) {
         case R_VRAM:
             addr %= 0x20000;
             if (addr > VRAM_SIZE) addr -= 0x8000;
-            if (addr < 0x10000 ||
-                (addr < 0x14000 && gba->io.dispcnt.bg_mode >= 3))
+            if (addr < 0x10000 || (addr < 0x14000 && gba->io.dispcnt.bg_mode >= 3))
                 gba->vram.h[addr >> 1] = b * 0x0101;
             break;
         case R_OAM:
@@ -315,8 +314,7 @@ void bus_writeh(GBA* gba, word addr, hword h) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            log_error(gba, "invalid halfword write to bios",
-                      (region << 24) | addr);
+            log_error(gba, "invalid halfword write to bios", (region << 24) | addr);
             break;
         case R_EWRAM:
             gba->ewram.h[addr % EWRAM_SIZE >> 1] = h;

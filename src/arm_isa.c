@@ -62,13 +62,11 @@ void arm_exec_instr(Arm7TDMI* cpu) {
         exec_arm_single_trans(cpu, instr);
     } else if (instr.branch_ex.c1 == 0b000100101111111111110001) {
         exec_arm_branch_ex(cpu, instr);
-    } else if (instr.swap.c1 == 0b00010 && instr.swap.c2 == 0b00 &&
-               instr.swap.c3 == 0b00001001) {
+    } else if (instr.swap.c1 == 0b00010 && instr.swap.c2 == 0b00 && instr.swap.c3 == 0b00001001) {
         exec_arm_swap(cpu, instr);
     } else if (instr.multiply.c1 == 0b000000 && instr.multiply.c2 == 0b1001) {
         exec_arm_multiply(cpu, instr);
-    } else if (instr.multiply_long.c1 == 0b00001 &&
-               instr.multiply_long.c2 == 0b1001) {
+    } else if (instr.multiply_long.c1 == 0b00001 && instr.multiply_long.c2 == 0b1001) {
         exec_arm_multiply_long(cpu, instr);
     } else if (instr.half_transr.c1 == 0b000 && instr.half_transr.i == 0 &&
                instr.half_transr.c2 == 0b00001 && instr.half_transr.c3 == 1) {
@@ -249,8 +247,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
         if (sub) op2 = ~op2;
         dword dop1 = op1;
         dword dop2 = op2;
-        if ((sub && (!car || cpu->cpsr.c)) || (!sub && car && cpu->cpsr.c))
-            dop2++;
+        if ((sub && (!car || cpu->cpsr.c)) || (!sub && car && cpu->cpsr.c)) dop2++;
         dword dres = dop1 + dop2;
         res = dres;
         c = (dres > 0xffffffff) ? 1 : 0;
@@ -305,9 +302,7 @@ void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
     word op = cpu->r[instr.multiply_long.rs];
     for (int i = 1; i <= 4; i++) {
         cpu_internal_cycle(cpu);
-        if ((op >> 8 * i) == 0 ||
-            ((-op >> 8 * i) == 0 && instr.multiply_long.u))
-            break;
+        if ((op >> 8 * i) == 0 || ((-op >> 8 * i) == 0 && instr.multiply_long.u)) break;
     }
     dword res;
     if (instr.multiply_long.u) {
@@ -316,8 +311,7 @@ void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
                (sdword) ((sword) cpu->r[instr.multiply_long.rs]);
         res = sres;
     } else {
-        res = (dword) cpu->r[instr.multiply_long.rm] *
-              (dword) cpu->r[instr.multiply_long.rs];
+        res = (dword) cpu->r[instr.multiply_long.rm] * (dword) cpu->r[instr.multiply_long.rs];
     }
     if (instr.multiply_long.a) {
         cpu_internal_cycle(cpu);
@@ -490,8 +484,7 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
                     offset >>= 1;
                     offset |= cpu->cpsr.c << 31;
                 } else {
-                    offset =
-                        (offset >> shift_amt) | (offset << (32 - shift_amt));
+                    offset = (offset >> shift_amt) | (offset << (32 - shift_amt));
                 }
                 break;
         }
@@ -578,8 +571,7 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr) {
     cpu_fetch(cpu);
 
     bool user_trans =
-        instr.block_trans.s &&
-        !((instr.block_trans.rlist & (1 << 15)) && instr.block_trans.l);
+        instr.block_trans.s && !((instr.block_trans.rlist & (1 << 15)) && instr.block_trans.l);
     CpuMode mode = cpu->cpsr.m;
     if (user_trans) {
         cpu->cpsr.m = M_USER;
@@ -616,8 +608,7 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr) {
         } else {
             data = cpu->r[rlist[i]];
             cpu_writew(cpu, addr, data);
-            if (i == 0 && instr.block_trans.w)
-                cpu->r[instr.block_trans.rn] = wback;
+            if (i == 0 && instr.block_trans.w) cpu->r[instr.block_trans.rn] = wback;
         }
     }
 

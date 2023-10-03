@@ -12,7 +12,6 @@ typedef struct {
     hword counter[4];
 } TimerController;
 
-
 void update_timer_count(TimerController* tmc, int i);
 void update_timer_reload(TimerController* tmc, int i);
 

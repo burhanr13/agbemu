@@ -5,7 +5,7 @@
 ArmInstr thumb_lookup[1 << 16];
 
 void thumb_generate_lookup() {
-    for (int i = 0; i < 1 << 16;i++){
+    for (int i = 0; i < 1 << 16; i++) {
         thumb_lookup[i] = thumb_decode_instr((ThumbInstr){i});
     }
 }
@@ -122,8 +122,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                     dec.data_proc.s = 0;
                     dec.data_proc.rn = instr.hi_ops.rd | (instr.hi_ops.h1 << 3);
                     dec.data_proc.rd = instr.hi_ops.rd | (instr.hi_ops.h1 << 3);
-                    dec.data_proc.op2 =
-                        instr.hi_ops.rs | (instr.hi_ops.h2 << 3);
+                    dec.data_proc.op2 = instr.hi_ops.rs | (instr.hi_ops.h2 << 3);
                     switch (instr.hi_ops.op) {
                         case 0:
                             dec.data_proc.opcode = A_ADD;
@@ -137,8 +136,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                             break;
                         case 3:
                             dec.branch_ex.c1 = 0b000100101111111111110001;
-                            dec.branch_ex.rn =
-                                instr.hi_ops.rs | (instr.hi_ops.h2 << 3);
+                            dec.branch_ex.rn = instr.hi_ops.rs | (instr.hi_ops.h2 << 3);
                             break;
                     }
                     break;
@@ -196,9 +194,8 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
             dec.single_trans.l = instr.ldst_imm.l;
             dec.single_trans.rn = instr.ldst_imm.rb;
             dec.single_trans.rd = instr.ldst_imm.rd;
-            dec.single_trans.offset = (instr.ldst_imm.b)
-                                          ? instr.ldst_imm.offset
-                                          : instr.ldst_imm.offset << 2;
+            dec.single_trans.offset =
+                (instr.ldst_imm.b) ? instr.ldst_imm.offset : instr.ldst_imm.offset << 2;
             break;
         case 8:
             dec.half_transi.c1 = 0b000;

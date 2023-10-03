@@ -12,8 +12,7 @@ const int SCLAYOUT[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
 
 // size: sqr, short, long
-const int OBJLAYOUT[4][3] = {
-    {8, 8, 16}, {16, 8, 32}, {32, 16, 32}, {64, 32, 64}};
+const int OBJLAYOUT[4][3] = {{8, 8, 16}, {16, 8, 32}, {32, 16, 32}, {64, 32, 64}};
 
 void render_bg_line_text(PPU* ppu, int bg) {
     if (!(ppu->master->io.dispcnt.bg_enable & (1 << bg))) return;
@@ -38,11 +37,8 @@ void render_bg_line_text(PPU* ppu, int bg) {
         word tile_addr = tile_start + 64 * tile.num;
         hword tmpfy = fy;
         if (tile.vflip) tmpfy = 7 - fy;
-        dword row =
-            ppu->master->vram.w[((tile_addr + 8 * tmpfy) % 0x10000) >> 2];
-        row |= (dword) ppu->master->vram
-                   .w[((tile_addr + 8 * tmpfy + 4) % 0x10000) >> 2]
-               << 32;
+        dword row = ppu->master->vram.w[((tile_addr + 8 * tmpfy) % 0x10000) >> 2];
+        row |= (dword) ppu->master->vram.w[((tile_addr + 8 * tmpfy + 4) % 0x10000) >> 2] << 32;
         for (int x = 0; x < GBA_SCREEN_W; x++) {
             byte col_ind;
             if (tile.hflip) {
@@ -50,8 +46,7 @@ void render_bg_line_text(PPU* ppu, int bg) {
             } else {
                 col_ind = (row >> 8 * fx) & 0xff;
             }
-            if (col_ind)
-                ppu->bgline[bg][x] = ppu->master->pram.h[col_ind] & ~(1 << 15);
+            if (col_ind) ppu->bgline[bg][x] = ppu->master->pram.h[col_ind] & ~(1 << 15);
             else ppu->bgline[bg][x] = 1 << 15;
 
             fx++;
@@ -69,10 +64,8 @@ void render_bg_line_text(PPU* ppu, int bg) {
                 tile_addr = tile_start + 64 * tile.num;
                 tmpfy = fy;
                 if (tile.vflip) tmpfy = 7 - fy;
-                row = ppu->master->vram
-                          .w[((tile_addr + 8 * tmpfy) % 0x10000) >> 2];
-                row |= (dword) ppu->master->vram
-                           .w[((tile_addr + 8 * tmpfy + 4) % 0x10000) >> 2]
+                row = ppu->master->vram.w[((tile_addr + 8 * tmpfy) % 0x10000) >> 2];
+                row |= (dword) ppu->master->vram.w[((tile_addr + 8 * tmpfy + 4) % 0x10000) >> 2]
                        << 32;
             }
         }
@@ -80,8 +73,7 @@ void render_bg_line_text(PPU* ppu, int bg) {
         word tile_addr = tile_start + 32 * tile.num;
         hword tmpfy = fy;
         if (tile.vflip) tmpfy = 7 - fy;
-        word row =
-            ppu->master->vram.w[((tile_addr + 4 * tmpfy) % 0x10000) >> 2];
+        word row = ppu->master->vram.w[((tile_addr + 4 * tmpfy) % 0x10000) >> 2];
         for (int x = 0; x < GBA_SCREEN_W; x++) {
             byte col_ind;
             if (tile.hflip) {
@@ -109,8 +101,7 @@ void render_bg_line_text(PPU* ppu, int bg) {
                 tile_addr = tile_start + 32 * tile.num;
                 tmpfy = fy;
                 if (tile.vflip) tmpfy = 7 - fy;
-                row = ppu->master->vram
-                          .w[((tile_addr + 4 * tmpfy) % 0x10000) >> 2];
+                row = ppu->master->vram.w[((tile_addr + 4 * tmpfy) % 0x10000) >> 2];
             }
         }
     }
@@ -129,15 +120,12 @@ void render_bg_line_aff(PPU* ppu, int bg, int mode) {
 
     hword size = 1 << (7 + ppu->master->io.bgcnt[bg].size);
 
-    for (int x = 0; x < GBA_SCREEN_W; x++,
-             x0 += ppu->master->io.bgaff[bg - 2].pa,
-             y0 += ppu->master->io.bgaff[bg - 2].pc) {
+    for (int x = 0; x < GBA_SCREEN_W;
+         x++, x0 += ppu->master->io.bgaff[bg - 2].pa, y0 += ppu->master->io.bgaff[bg - 2].pc) {
         word sx = x0 >> 8;
         word sy = y0 >> 8;
-        if (((mode < 3) && (sx >= size || sy >= size) &&
-             !ppu->master->io.bgcnt[bg].overflow) ||
-            ((mode == 3 || mode == 4) &&
-             (sx >= GBA_SCREEN_W || sy >= GBA_SCREEN_H)) ||
+        if (((mode < 3) && (sx >= size || sy >= size) && !ppu->master->io.bgcnt[bg].overflow) ||
+            ((mode == 3 || mode == 4) && (sx >= GBA_SCREEN_W || sy >= GBA_SCREEN_H)) ||
             ((mode == 5) && (sx >= 160 || sy >= 128))) {
             ppu->bgline[bg][x] = 1 << 15;
             continue;
@@ -155,30 +143,24 @@ void render_bg_line_aff(PPU* ppu, int bg, int mode) {
                 hword finex = sx & 0b111;
                 hword finey = sy & 0b111;
                 byte tile =
-                    ppu->master->vram
-                        .b[(map_start + tiley * (size >> 3) + tilex) % 0x10000];
-                col_ind = ppu->master->vram
-                              .b[(tile_start + 64 * tile + finey * 8 + finex) %
-                                 0x10000];
+                    ppu->master->vram.b[(map_start + tiley * (size >> 3) + tilex) % 0x10000];
+                col_ind =
+                    ppu->master->vram.b[(tile_start + 64 * tile + finey * 8 + finex) % 0x10000];
                 break;
             case 3:
                 pal = false;
-                ppu->bgline[bg][x] =
-                    ppu->master->vram.h[sy * GBA_SCREEN_W + sx];
+                ppu->bgline[bg][x] = ppu->master->vram.h[sy * GBA_SCREEN_W + sx];
                 break;
             case 4:
-                col_ind =
-                    ppu->master->vram.b[bm_start + sy * GBA_SCREEN_W + sx];
+                col_ind = ppu->master->vram.b[bm_start + sy * GBA_SCREEN_W + sx];
                 break;
             case 5:
                 pal = false;
-                ppu->bgline[bg][x] =
-                    ppu->master->vram.h[(bm_start >> 1) + sy * 160 + sx];
+                ppu->bgline[bg][x] = ppu->master->vram.h[(bm_start >> 1) + sy * 160 + sx];
                 break;
         }
         if (pal) {
-            if (col_ind)
-                ppu->bgline[bg][x] = ppu->master->pram.h[col_ind] & ~(1 << 15);
+            if (col_ind) ppu->bgline[bg][x] = ppu->master->pram.h[col_ind] & ~(1 << 15);
             else ppu->bgline[bg][x] = 1 << 15;
         }
     }
@@ -246,13 +228,10 @@ void render_obj_line(PPU* ppu, int i) {
 
     byte fx = 0;
     if (o.palmode) {
-        tile_addr +=
-            ty * 64 * (ppu->master->io.dispcnt.obj_mapmode ? w / 8 : 16);
+        tile_addr += ty * 64 * (ppu->master->io.dispcnt.obj_mapmode ? w / 8 : 16);
         if (o.hflip) tile_addr += 64 * (w / 8 - 1);
-        dword row =
-            ppu->master->vram.w[(0x10000 + (tile_addr + 8 * fy) % 0x8000) >> 2];
-        row |= (dword) ppu->master->vram
-                   .w[(0x10000 + (tile_addr + 8 * fy + 4) % 0x8000) >> 2]
+        dword row = ppu->master->vram.w[(0x10000 + (tile_addr + 8 * fy) % 0x8000) >> 2];
+        row |= (dword) ppu->master->vram.w[(0x10000 + (tile_addr + 8 * fy + 4) % 0x8000) >> 2]
                << 32;
         for (int x = 0; x < w; x++) {
             int sx = (o.x + x) % 512;
@@ -275,8 +254,7 @@ void render_obj_line(PPU* ppu, int i) {
                         hword col = ppu->master->pram.h[0x100 + col_ind];
                         ppu->draw_obj = true;
                         ppu->objline[sx] = col & ~(1 << 15);
-                        ppu->objdotattrs[sx].semitrans =
-                            (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
+                        ppu->objdotattrs[sx].semitrans = (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
                     }
                     ppu->objdotattrs[sx].priority = o.priority;
                     if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
@@ -290,20 +268,16 @@ void render_obj_line(PPU* ppu, int i) {
                 } else {
                     tile_addr += 64;
                 }
-                row = ppu->master->vram
-                          .w[(0x10000 + (tile_addr + 8 * fy) % 0x8000) >> 2];
+                row = ppu->master->vram.w[(0x10000 + (tile_addr + 8 * fy) % 0x8000) >> 2];
                 row |=
-                    (dword) ppu->master->vram
-                        .w[(0x10000 + (tile_addr + 8 * fy + 4) % 0x8000) >> 2]
+                    (dword) ppu->master->vram.w[(0x10000 + (tile_addr + 8 * fy + 4) % 0x8000) >> 2]
                     << 32;
             }
         }
     } else {
-        tile_addr +=
-            ty * 32 * (ppu->master->io.dispcnt.obj_mapmode ? w / 8 : 32);
+        tile_addr += ty * 32 * (ppu->master->io.dispcnt.obj_mapmode ? w / 8 : 32);
         if (o.hflip) tile_addr += 32 * (w / 8 - 1);
-        word row =
-            ppu->master->vram.w[(0x10000 + (tile_addr + 4 * fy) % 0x8000) >> 2];
+        word row = ppu->master->vram.w[(0x10000 + (tile_addr + 4 * fy) % 0x8000) >> 2];
         for (int x = 0; x < w; x++) {
             int sx = (o.x + x) % 512;
 
@@ -327,8 +301,7 @@ void render_obj_line(PPU* ppu, int i) {
                         hword col = ppu->master->pram.h[0x100 + col_ind];
                         ppu->draw_obj = true;
                         ppu->objline[sx] = col & ~(1 << 15);
-                        ppu->objdotattrs[sx].semitrans =
-                            (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
+                        ppu->objdotattrs[sx].semitrans = (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
                     }
                     ppu->objdotattrs[sx].priority = o.priority;
                     if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
@@ -342,8 +315,7 @@ void render_obj_line(PPU* ppu, int i) {
                 } else {
                     tile_addr += 32;
                 }
-                row = ppu->master->vram
-                          .w[(0x10000 + (tile_addr + 4 * fy) % 0x8000) >> 2];
+                row = ppu->master->vram.w[(0x10000 + (tile_addr + 4 * fy) % 0x8000) >> 2];
             }
         }
     }
@@ -392,8 +364,7 @@ void compose_lines(PPU* ppu) {
                 put_obj = false;
                 layers[l++] = LOBJ;
             }
-            if (ppu->draw_bg[sorted_bgs[i]] &&
-                !(ppu->bgline[sorted_bgs[i]][x] & (1 << 15))) {
+            if (ppu->draw_bg[sorted_bgs[i]] && !(ppu->bgline[sorted_bgs[i]][x] & (1 << 15))) {
                 layers[l++] = sorted_bgs[i];
             }
         }
@@ -440,8 +411,7 @@ void on_hdraw(PPU* ppu) {
 
     if (ppu->ly == ppu->master->io.dispstat.lyc) {
         ppu->master->io.dispstat.vcounteq = 1;
-        if (ppu->master->io.dispstat.vcount_irq)
-            ppu->master->io.ifl.vcounteq = 1;
+        if (ppu->master->io.dispstat.vcount_irq) ppu->master->io.ifl.vcounteq = 1;
     } else ppu->master->io.dispstat.vcounteq = 0;
 
     if (ppu->ly == GBA_SCREEN_H) {
@@ -452,12 +422,10 @@ void on_hdraw(PPU* ppu) {
         ppu->frame_complete = true;
     }
 
-    add_event(
-        &ppu->master->sched,
-        &(Event){ppu->master->cycles + 4 * GBA_SCREEN_W, EVENT_PPU_HBLANK});
-
     add_event(&ppu->master->sched,
-              &(Event){ppu->master->cycles + 4 * DOTS_W, EVENT_PPU_HDRAW});
+              &(Event){ppu->master->cycles + 4 * GBA_SCREEN_W, EVENT_PPU_HBLANK});
+
+    add_event(&ppu->master->sched, &(Event){ppu->master->cycles + 4 * DOTS_W, EVENT_PPU_HDRAW});
 }
 
 void on_vblank(PPU* ppu) {
@@ -469,8 +437,7 @@ void on_vblank(PPU* ppu) {
     ppu->bgaffintr[1].y = ppu->master->io.bgaff[1].y;
 
     for (int i = 0; i < 4; i++) {
-        if (ppu->master->io.dma[i].cnt.start == DMA_ST_VBLANK)
-            dma_activate(&ppu->master->dmac, i);
+        if (ppu->master->io.dma[i].cnt.start == DMA_ST_VBLANK) dma_activate(&ppu->master->dmac, i);
     }
 }
 
@@ -491,7 +458,6 @@ void on_hblank(PPU* ppu) {
     if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
 
     for (int i = 0; i < 4; i++) {
-        if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK)
-            dma_activate(&ppu->master->dmac, i);
+        if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK) dma_activate(&ppu->master->dmac, i);
     }
 }

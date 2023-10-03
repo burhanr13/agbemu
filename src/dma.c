@@ -75,13 +75,11 @@ void dma_step(DMAController* dmac, int i) {
             if (lg) printf("Warning: Infinite DMA\n");
         }
 
-        if (dmac->master->io.dma[i].cnt.irq)
-            dmac->master->io.ifl.dma |= (1 << i);
+        if (dmac->master->io.dma[i].cnt.irq) dmac->master->io.ifl.dma |= (1 << i);
 
         tick_components(dmac->master, 2);
         if ((dmac->dma[i].sptr & (1 << 27)) && (dmac->dma[i].dptr & (1 << 27)))
             tick_components(dmac->master, 2);
-
     }
 }
 
@@ -100,6 +98,6 @@ void dma_transw(DMAController* dmac, word daddr, word saddr) {
 }
 
 void dma_update_active(DMAController* dmac) {
-    dmac->any_active = dmac->dma[0].active || dmac->dma[1].active ||
-                       dmac->dma[2].active || dmac->dma[3].active;
+    dmac->any_active =
+        dmac->dma[0].active || dmac->dma[1].active || dmac->dma[2].active || dmac->dma[3].active;
 }

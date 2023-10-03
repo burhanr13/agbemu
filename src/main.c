@@ -28,8 +28,7 @@ void read_args(int argc, char** argv) {
                         dbg = true;
                         break;
                     case 'b':
-                        if (*(f + 1) || i + 1 == argc ||
-                            sscanf(argv[i + 1], "0x%x", &bkpt) < 1) {
+                        if (*(f + 1) || i + 1 == argc || sscanf(argv[i + 1], "0x%x", &bkpt) < 1) {
                             printf("Provide valid hex address with -b\n");
                         }
                         break;
@@ -96,16 +95,14 @@ int main(int argc, char** argv) {
 
     SDL_Window* window;
     SDL_Renderer* renderer;
-    SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 4, GBA_SCREEN_H * 4, 0, &window,
-                                &renderer);
+    SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 4, GBA_SCREEN_H * 4, 0, &window, &renderer);
     snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", romfilenodir, 0.0);
     SDL_SetWindowTitle(window, wintitle);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
-    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR555,
-                                             SDL_TEXTUREACCESS_STREAMING,
-                                             GBA_SCREEN_W, GBA_SCREEN_H);
+    SDL_Texture* texture = SDL_CreateTexture(
+        renderer, SDL_PIXELFORMAT_BGR555, SDL_TEXTUREACCESS_STREAMING, GBA_SCREEN_W, GBA_SCREEN_H);
 
     Uint64 prev_time = SDL_GetPerformanceCounter();
     Uint64 prev_fps_update = prev_time;
@@ -144,10 +141,9 @@ int main(int argc, char** argv) {
         }
         elapsed = cur_time - prev_fps_update;
         if (elapsed >= SDL_GetPerformanceFrequency() / 2) {
-            double fps = (double) SDL_GetPerformanceFrequency() *
-                         (frame - prev_fps_frame) / elapsed;
-            snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", romfilenodir,
-                     fps);
+            double fps =
+                (double) SDL_GetPerformanceFrequency() * (frame - prev_fps_frame) / elapsed;
+            snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", romfilenodir, fps);
             SDL_SetWindowTitle(window, wintitle);
             prev_fps_update = cur_time;
             prev_fps_frame = frame;
