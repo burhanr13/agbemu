@@ -216,8 +216,6 @@ void render_obj_line(PPU* ppu, int i) {
     }
     if (o.disable_double) {
         if (o.aff) {
-            o.x -= w / 2;
-            o.y -= h / 2;
             w *= 2;
             h *= 2;
         } else return;
