@@ -100,12 +100,11 @@ typedef struct {
                     hword reserved : 1;
                     hword frame_sel : 1;
                     hword hblank_free : 1;
-                    hword obj_tilemap : 1;
+                    hword obj_mapmode : 1;
                     hword forced_blank : 1;
                     hword bg_enable : 4;
                     hword obj_enable : 1;
-                    hword win_enable : 2;
-                    hword winobj_enable : 1;
+                    hword win_enable : 3;
                 };
             } dispcnt;
             hword unused_002;

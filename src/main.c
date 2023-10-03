@@ -11,6 +11,7 @@ word bkpt;
 bool lg, dbg;
 char* romfile;
 bool uncap;
+bool bootbios;
 
 char wintitle[200];
 
@@ -34,6 +35,9 @@ void read_args(int argc, char** argv) {
                         break;
                     case 'u':
                         uncap = true;
+                        break;
+                    case 'B':
+                        bootbios = true;
                         break;
                     default:
                         printf("Invalid flag\n");

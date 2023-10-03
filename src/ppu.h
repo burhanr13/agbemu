@@ -16,9 +16,10 @@ typedef union {
         hword vflip : 1;
         hword palette : 4;
     };
-} Tile;
+} BgTile;
 
 enum { OBJ_MODE_NORMAL, OBJ_MODE_SEMITRANS, OBJ_MODE_WINOBJ };
+enum { OBJ_SHAPE_SQR, OBJ_SHAPE_HORZ, OBJ_SHAPE_VERT };
 
 typedef struct {
     union {
@@ -53,11 +54,13 @@ typedef struct {
         struct {
             hword tilenum : 10;
             hword priority : 2;
-            hword palnum : 4;
+            hword palette : 4;
         };
     };
     hword affparam;
 } ObjAttr;
+
+enum { WIN0, WIN1, WINOBJ };
 
 typedef struct _GBA GBA;
 
@@ -65,7 +68,7 @@ typedef struct {
     GBA* master;
 
     hword screen[GBA_SCREEN_H][GBA_SCREEN_W];
-    int ly;
+    byte ly;
 
     hword bgline[4][GBA_SCREEN_W];
     hword objline[4][GBA_SCREEN_W];

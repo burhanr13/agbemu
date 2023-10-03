@@ -13,7 +13,7 @@
 #include "timer.h"
 #include "types.h"
 
-extern bool lg, dbg;
+extern bool lg, dbg, bootbios;
 
 void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     memset(gba, 0, sizeof *gba);
@@ -29,15 +29,17 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
 
     gba->cpu.cpsr.m = M_SYSTEM;
 
-    gba->cpu.pc = 0x08000000;
-    gba->cpu.banked_sp[B_SVC] = 0x3007fe0;
-    gba->cpu.banked_sp[B_IRQ] = 0x3007fa0;
-    gba->cpu.sp = 0x3007f00;
+    if (!bootbios) {
+        gba->cpu.pc = 0x08000000;
+        gba->cpu.banked_sp[B_SVC] = 0x3007fe0;
+        gba->cpu.banked_sp[B_IRQ] = 0x3007fa0;
+        gba->cpu.sp = 0x3007f00;
 
-    gba->io.bgaff[0].pa = 1 << 8;
-    gba->io.bgaff[0].pd = 1 << 8;
-    gba->io.bgaff[1].pa = 1 << 8;
-    gba->io.bgaff[1].pd = 1 << 8;
+        gba->io.bgaff[0].pa = 1 << 8;
+        gba->io.bgaff[0].pd = 1 << 8;
+        gba->io.bgaff[1].pa = 1 << 8;
+        gba->io.bgaff[1].pd = 1 << 8;
+    }
 
     add_event(&gba->sched, &(Event){0, EVENT_PPU_HDRAW});
 }
