@@ -442,6 +442,7 @@ void compose_lines(PPU* ppu) {
             tmp = bg_prios[j];
             bg_prios[j] = bg_prios[j - 1];
             bg_prios[j - 1] = tmp;
+            j--;
         }
     }
 
