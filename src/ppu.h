@@ -100,6 +100,7 @@ typedef struct {
 
     bool draw_bg[4];
     bool draw_obj;
+    bool in_win[2];
 
     int obj_cycles;
 

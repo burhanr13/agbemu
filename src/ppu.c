@@ -282,7 +282,7 @@ void render_obj_line(PPU* ppu, int i) {
             }
             if (o.mode == OBJ_MODE_OBJWIN) {
                 if (ppu->master->io.dispcnt.winobj_enable && !(col & (1 << 15))) {
-                    ppu->window[x] = WOBJ;
+                    ppu->window[sx] = WOBJ;
                 }
             } else if ((!ppu->objdotattrs[x].obj0 && o.priority < ppu->objdotattrs[sx].priority) ||
                        (ppu->layerlines[LOBJ][sx] & (1 << 15))) {
@@ -322,7 +322,7 @@ void render_obj_line(PPU* ppu, int i) {
                     }
                     if (o.mode == OBJ_MODE_OBJWIN) {
                         if (ppu->master->io.dispcnt.winobj_enable && col_ind) {
-                            ppu->window[x] = WOBJ;
+                            ppu->window[sx] = WOBJ;
                         }
                     } else if ((!ppu->objdotattrs[x].obj0 &&
                                 o.priority < ppu->objdotattrs[sx].priority) ||
@@ -368,7 +368,7 @@ void render_obj_line(PPU* ppu, int i) {
                     }
                     if (o.mode == OBJ_MODE_OBJWIN) {
                         if (ppu->master->io.dispcnt.winobj_enable && col_ind) {
-                            ppu->window[x] = WOBJ;
+                            ppu->window[sx] = WOBJ;
                         }
                     } else if ((!ppu->objdotattrs[x].obj0 &&
                                 o.priority < ppu->objdotattrs[sx].priority) ||
@@ -418,19 +418,12 @@ void render_windows(PPU* ppu) {
     if (!ppu->master->io.dispcnt.win_enable) return;
 
     for (int i = 1; i >= 0; i--) {
-        if (!(ppu->master->io.dispcnt.win_enable & (1 << i))) continue;
-        byte y1 = ppu->master->io.winv[i].y1;
-        byte y2 = ppu->master->io.winv[i].y2;
-        if (y2 < y1 || y2 > GBA_SCREEN_H) y2 = GBA_SCREEN_H;
-        if (y1 > GBA_SCREEN_H) y1 = GBA_SCREEN_H;
-        if (ppu->ly < y1 || ppu->ly >= y2) continue;
+        if (!(ppu->master->io.dispcnt.win_enable & (1 << i)) || !ppu->in_win[i]) continue;
 
         byte x1 = ppu->master->io.winh[i].x1;
         byte x2 = ppu->master->io.winh[i].x2;
-        if (x2 < x1 || x2 > GBA_SCREEN_W) x2 = GBA_SCREEN_W;
-        if (x1 > GBA_SCREEN_W) x1 = GBA_SCREEN_W;
-        for (int x = x1; x < x2; x++) {
-            ppu->window[x] = i;
+        for (byte x = x1; x != x2; x++) {
+            if (x < GBA_SCREEN_W) ppu->window[x] = i;
         }
     }
 }
@@ -570,6 +563,11 @@ void on_hdraw(PPU* ppu) {
     } else if (ppu->ly == LINES_H - 1) {
         ppu->master->io.dispstat.vblank = 0;
         ppu->frame_complete = true;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        if (ppu->ly == ppu->master->io.winv[i].y1) ppu->in_win[i] = true;
+        if (ppu->ly == ppu->master->io.winv[i].y2) ppu->in_win[i] = false;
     }
 
     if (ppu->master->io.dma[3].cnt.start == DMA_ST_SPEC) {
