@@ -44,6 +44,11 @@ enum {
     WIN1V = 0x046,
     WININ = 0x048,
     WINOUT = 0x04a,
+    // special effects control
+    MOSAIC = 0x04c,
+    BLDCNT = 0x050,
+    BLDALPHA = 0x052,
+    BLDY = 0x054,
 
     // dma control
     DMA0SAD = 0x0b0,
@@ -175,7 +180,35 @@ typedef struct {
                     byte unused : 2;
                 } wincnt[4];
             };
-            byte gap0xx[DMA0SAD - WINOUT - 2];
+            union {
+                word w;
+            } mosaic;
+            union {
+                hword h;
+                struct {
+                    hword target1 : 6;
+                    hword effect : 2;
+                    hword target2 : 6;
+                    hword unused : 2;
+                };
+            } bldcnt;
+            union {
+                hword h;
+                struct {
+                    hword eva : 5;
+                    hword unused1 : 3;
+                    hword evb : 5;
+                    hword unused2 : 3;
+                };
+            } bldalpha;
+            union {
+                word w;
+                struct {
+                    word evy : 5;
+                    word unused : 27;
+                };
+            } bldy;
+            byte gap0xx[DMA0SAD - BLDY - 4];
             struct {
                 word sad;
                 word dad;

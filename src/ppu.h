@@ -11,6 +11,15 @@
 typedef union {
     hword h;
     struct {
+        hword r : 5;
+        hword g : 5;
+        hword b : 5;
+    };
+} Color;
+
+typedef union {
+    hword h;
+    struct {
         hword num : 10;
         hword hflip : 1;
         hword vflip : 1;
@@ -62,6 +71,8 @@ typedef struct {
 
 enum { WIN0, WIN1, WOUT, WOBJ };
 enum { LBG0, LBG1, LBG2, LBG3, LOBJ, LBD, LMAX };
+
+enum { EFF_NONE, EFF_ALPHA, EFF_BINC, EFF_BDEC };
 
 typedef struct {
     byte priority : 2;

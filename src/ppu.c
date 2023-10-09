@@ -476,9 +476,64 @@ void compose_lines(PPU* ppu) {
         }
         layers[l++] = LBD;
 
-        hword color0 = ppu->layerlines[layers[0]][x];
+        bool target1 = ppu->master->io.bldcnt.target1 & (1 << layers[0]);
+        bool target2 = l > 0 && ppu->master->io.bldcnt.target2 & (1 << layers[1]);
 
-        ppu->screen[ppu->ly][x] = color0;
+        Color color1 = {ppu->layerlines[layers[0]][x]};
+
+        if (layers[0] == LOBJ && ppu->objdotattrs[x].semitrans && target2) {
+            Color color2 = {ppu->layerlines[layers[1]][x]};
+            byte eva = ppu->master->io.bldalpha.eva;
+            byte evb = ppu->master->io.bldalpha.evb;
+            if (eva > 16) eva = 16;
+            if (evb > 16) evb = 16;
+            byte i;
+            i = (eva * color1.r + evb * color2.r) / 16;
+            color1.r = (i > 31) ? 31 : i;
+            i = (eva * color1.g + evb * color2.g) / 16;
+            color1.g = (i > 31) ? 31 : i;
+            i = (eva * color1.b + evb * color2.b) / 16;
+            color1.b = (i > 31) ? 31 : i;
+        } else if ((!win_ena || ppu->master->io.wincnt[win].effects_enable) && target1) {
+            switch (ppu->master->io.bldcnt.effect) {
+                case EFF_NONE:
+                    break;
+                case EFF_ALPHA: {
+                    if (!target2) break;
+                    Color color2 = {ppu->layerlines[layers[1]][x]};
+                    byte eva = ppu->master->io.bldalpha.eva;
+                    byte evb = ppu->master->io.bldalpha.evb;
+                    if (eva > 16) eva = 16;
+                    if (evb > 16) evb = 16;
+                    byte i;
+                    i = (eva * color1.r + evb * color2.r) / 16;
+                    color1.r = (i > 31) ? 31 : i;
+                    i = (eva * color1.g + evb * color2.g) / 16;
+                    color1.g = (i > 31) ? 31 : i;
+                    i = (eva * color1.b + evb * color2.b) / 16;
+                    color1.b = (i > 31) ? 31 : i;
+                    break;
+                }
+                case EFF_BINC: {
+                    byte evy = ppu->master->io.bldy.evy;
+                    if (evy > 16) evy = 16;
+                    color1.r += (31 - color1.r) * evy / 16;
+                    color1.g += (31 - color1.g) * evy / 16;
+                    color1.b += (31 - color1.b) * evy / 16;
+                    break;
+                }
+                case EFF_BDEC: {
+                    byte evy = ppu->master->io.bldy.evy;
+                    if (evy > 16) evy = 16;
+                    color1.r -= color1.r * evy / 16;
+                    color1.g -= color1.g * evy / 16;
+                    color1.b -= color1.b * evy / 16;
+                    break;
+                }
+            }
+        }
+
+        ppu->screen[ppu->ly][x] = color1.h;
     }
 }
 
