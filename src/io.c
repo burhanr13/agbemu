@@ -35,7 +35,7 @@ void io_writeb(IO* io, word addr, byte data) {
 }
 
 hword io_readh(IO* io, word addr) {
-    if ((BG0HOFS <= addr && addr <= BG3Y + 2)) {
+    if ((BG0HOFS <= addr && addr <= WIN1V)) {
         return 0;
     }
     if (DMA0SAD <= addr && addr <= DMA3CNT_H) {

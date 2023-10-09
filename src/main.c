@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 
     read_args(argc, argv);
     if (!romfile) {
-        printf("Usage: agbemu [-dlu] [-b <bkpt>] <romfile>\n");
+        printf("Usage: agbemu [options] <romfile>\n");
         return 0;
     }
 

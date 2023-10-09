@@ -15,6 +15,7 @@ enum {
     BG1CNT = 0x00a,
     BG2CNT = 0x00c,
     BG3CNT = 0x00e,
+    // text bg
     BG0HOFS = 0x010,
     BG0VOFS = 0x012,
     BG1HOFS = 0x014,
@@ -23,6 +24,7 @@ enum {
     BG2VOFS = 0x01a,
     BG3HOFS = 0x01c,
     BG3VOFS = 0x01e,
+    // affine bg
     BG2PA = 0x020,
     BG2PB = 0x022,
     BG2PC = 0x024,
@@ -107,7 +109,7 @@ typedef struct {
                     hword win_enable : 3;
                 };
             } dispcnt;
-            hword unused_002;
+            hword greenswap;
             union {
                 hword h;
                 struct {
@@ -147,7 +149,33 @@ typedef struct {
                 sword x;
                 sword y;
             } bgaff[2];
-            byte gap0xx[DMA0SAD - BG3Y - 4];
+            union {
+                hword h;
+                struct {
+                    byte x2;
+                    byte x1;
+                };
+            } winh[2];
+            union {
+                hword h;
+                struct {
+                    byte y2;
+                    byte y1;
+                };
+            } winv[2];
+            union {
+                struct {
+                    hword winin;
+                    hword winout;
+                };
+                struct {
+                    byte bg_enable : 4;
+                    byte obj_enable : 1;
+                    byte effects_enable : 1;
+                    byte unused : 2;
+                } wincnt[4];
+            };
+            byte gap0xx[DMA0SAD - WINOUT - 2];
             struct {
                 word sad;
                 word dad;

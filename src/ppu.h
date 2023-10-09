@@ -60,7 +60,7 @@ typedef struct {
     shword affparam;
 } ObjAttr;
 
-enum { WIN0, WIN1, WOBJ, WOUT };
+enum { WIN0, WIN1, WOUT, WOBJ };
 enum { LBG0, LBG1, LBG2, LBG3, LOBJ, LBD, LMAX };
 
 typedef struct {

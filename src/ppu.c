@@ -419,7 +419,22 @@ void render_objs(PPU* ppu) {
 void render_windows(PPU* ppu) {
     if (!ppu->master->io.dispcnt.win_enable) return;
 
-    memset(ppu->window, WOUT, sizeof ppu->window);
+    for (int i = 1; i >= 0; i--) {
+        if (!(ppu->master->io.dispcnt.win_enable & (1 << i))) continue;
+        byte y1 = ppu->master->io.winv[i].y1;
+        byte y2 = ppu->master->io.winv[i].y2;
+        if (y2 < y1 || y2 > GBA_SCREEN_H) y2 = GBA_SCREEN_H;
+        if (y1 > GBA_SCREEN_H) y1 = GBA_SCREEN_H;
+        if (ppu->ly < y1 || ppu->ly >= y2) continue;
+
+        byte x1 = ppu->master->io.winh[i].x1;
+        byte x2 = ppu->master->io.winh[i].x2;
+        if (x2 < x1 || x2 > GBA_SCREEN_W) x2 = GBA_SCREEN_W;
+        if (x1 > GBA_SCREEN_W) x1 = GBA_SCREEN_W;
+        for (int x = x1; x < x2; x++) {
+            ppu->window[x] = i;
+        }
+    }
 }
 
 void compose_lines(PPU* ppu) {
@@ -441,14 +456,18 @@ void compose_lines(PPU* ppu) {
 
     for (int x = 0; x < GBA_SCREEN_W; x++) {
         byte layers[6];
+        bool win_ena = ppu->master->io.dispcnt.win_enable;
+        byte win = ppu->window[x];
         int l = 0;
-        bool put_obj = ppu->draw_obj && !(ppu->layerlines[LOBJ][x] & (1 << 15));
+        bool put_obj = ppu->draw_obj && !(ppu->layerlines[LOBJ][x] & (1 << 15)) &&
+                       (!win_ena || (ppu->master->io.wincnt[win].obj_enable));
         for (int i = 0; i < 4 && l < 2; i++) {
             if (put_obj && ppu->objdotattrs[x].priority <= bg_prios[i]) {
                 put_obj = false;
                 layers[l++] = LOBJ;
             }
-            if (ppu->draw_bg[sorted_bgs[i]] && !(ppu->layerlines[sorted_bgs[i]][x] & (1 << 15))) {
+            if (ppu->draw_bg[sorted_bgs[i]] && !(ppu->layerlines[sorted_bgs[i]][x] & (1 << 15)) &&
+                (!win_ena || (ppu->master->io.wincnt[win].bg_enable & (1 << sorted_bgs[i])))) {
                 layers[l++] = sorted_bgs[i];
             }
         }
@@ -474,6 +493,7 @@ void draw_scanline(PPU* ppu) {
     ppu->draw_bg[3] = false;
     ppu->draw_obj = false;
 
+    if (ppu->master->io.dispcnt.win_enable) memset(ppu->window, WOUT, GBA_SCREEN_W);
     render_bgs(ppu);
     render_objs(ppu);
     render_windows(ppu);
@@ -529,16 +549,18 @@ void on_hblank(PPU* ppu) {
         } else {
             draw_scanline(ppu);
         }
+
+        if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
+
         ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
         ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
         ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
         ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
+
+        for (int i = 0; i < 4; i++) {
+            if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK)
+                dma_activate(&ppu->master->dmac, i);
+        }
     }
     ppu->master->io.dispstat.hblank = 1;
-
-    if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
-
-    for (int i = 0; i < 4; i++) {
-        if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK) dma_activate(&ppu->master->dmac, i);
-    }
 }
