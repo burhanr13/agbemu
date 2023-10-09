@@ -578,6 +578,14 @@ void on_hdraw(PPU* ppu) {
         ppu->frame_complete = true;
     }
 
+    if (ppu->master->io.dma[3].cnt.start == DMA_ST_SPEC) {
+        if (2 <= ppu->ly && ppu->ly < 162) {
+            dma_activate(&ppu->master->dmac, 3);
+        } else if (ppu->ly == 162) {
+            ppu->master->io.dma[3].cnt.enable = 0;
+        }
+    }
+
     add_event(&ppu->master->sched,
               &(Event){ppu->master->cycles + 4 * GBA_SCREEN_W, EVENT_PPU_HBLANK});
 

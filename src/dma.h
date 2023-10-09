@@ -16,6 +16,7 @@ typedef struct {
         word dptr;
         hword ct;
         bool active;
+        bool initial;
     } dma[4];
     bool any_active;
 } DMAController;

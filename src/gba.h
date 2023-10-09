@@ -49,6 +49,7 @@ typedef struct _GBA {
     Scheduler sched;
 
     Cartridge* cart;
+    word next_cart_addr;
 
     dword cycles;
 

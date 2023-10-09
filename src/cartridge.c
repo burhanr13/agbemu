@@ -15,14 +15,20 @@ Cartridge* create_cartridge(char* filename) {
     cart->rom.b = malloc(cart->rom_size);
     fread(cart->rom.b, 1, cart->rom_size, fp);
     fclose(fp);
-    cart->ram.b = NULL;
-    cart->ram_size = 0;
+
 
     return cart;
 }
 
 void destroy_cartridge(Cartridge* cart) {
     free(cart->rom.b);
-    free(cart->ram.b);
     free(cart);
+}
+
+byte cart_read_sram(Cartridge* cart, hword addr) {
+    return 0;
+}
+
+void cart_write_sram(Cartridge* cart, hword addr, byte b) {
+
 }

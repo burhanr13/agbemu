@@ -309,6 +309,20 @@ typedef struct {
             } ifl;
             union {
                 word w;
+                struct {
+                    word sram : 2;
+                    word rom0 : 2;
+                    word rom0s : 1;
+                    word rom1 : 2;
+                    word rom1s : 1;
+                    word rom2 : 2;
+                    word rom2s : 1;
+                    word phi : 2;
+                    word unused : 1;
+                    word prefetch : 1;
+                    word gamepaktype : 1;
+                    word unused1 : 16;
+                };
             } waitcnt;
             word ime;
             byte unused_2xx[POSTFLG - IME - 4];
