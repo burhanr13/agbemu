@@ -280,8 +280,8 @@ void render_obj_line(PPU* ppu, int i) {
                     } else col = 1 << 15;
                 }
             }
-            if (o.mode == OBJ_MODE_OBJWIN && (ppu->master->io.dispcnt.win_enable & (1 << WOBJ))) {
-                if (!(col & (1 << 15))) {
+            if (o.mode == OBJ_MODE_OBJWIN) {
+                if (ppu->master->io.dispcnt.winobj_enable && !(col & (1 << 15))) {
                     ppu->window[x] = WOBJ;
                 }
             } else if ((!ppu->objdotattrs[x].obj0 && o.priority < ppu->objdotattrs[sx].priority) ||
@@ -320,9 +320,8 @@ void render_obj_line(PPU* ppu, int i) {
                     } else {
                         col_ind = row >> (8 * fx) & 0xff;
                     }
-                    if (o.mode == OBJ_MODE_OBJWIN &&
-                        (ppu->master->io.dispcnt.win_enable & (1 << WOBJ))) {
-                        if (col_ind) {
+                    if (o.mode == OBJ_MODE_OBJWIN) {
+                        if (ppu->master->io.dispcnt.winobj_enable && col_ind) {
                             ppu->window[x] = WOBJ;
                         }
                     } else if ((!ppu->objdotattrs[x].obj0 &&
@@ -367,9 +366,8 @@ void render_obj_line(PPU* ppu, int i) {
                     } else {
                         col_ind = (row >> 4 * fx) & 0xf;
                     }
-                    if (o.mode == OBJ_MODE_OBJWIN &&
-                        (ppu->master->io.dispcnt.win_enable & (1 << WOBJ))) {
-                        if (col_ind) {
+                    if (o.mode == OBJ_MODE_OBJWIN) {
+                        if (ppu->master->io.dispcnt.winobj_enable && col_ind) {
                             ppu->window[x] = WOBJ;
                         }
                     } else if ((!ppu->objdotattrs[x].obj0 &&
@@ -454,9 +452,18 @@ void compose_lines(PPU* ppu) {
         }
     }
 
+    byte effect = ppu->master->io.bldcnt.effect;
+
+    byte eva = ppu->master->io.bldalpha.eva;
+    byte evb = ppu->master->io.bldalpha.evb;
+    byte evy = ppu->master->io.bldy.evy;
+    if (eva > 16) eva = 16;
+    if (evb > 16) evb = 16;
+    if (evy > 16) evy = 16;
+
     for (int x = 0; x < GBA_SCREEN_W; x++) {
         byte layers[6];
-        bool win_ena = ppu->master->io.dispcnt.win_enable;
+        bool win_ena = ppu->master->io.dispcnt.win_enable || ppu->master->io.dispcnt.winobj_enable;
         byte win = ppu->window[x];
         int l = 0;
         bool put_obj = ppu->draw_obj && !(ppu->layerlines[LOBJ][x] & (1 << 15)) &&
@@ -477,16 +484,12 @@ void compose_lines(PPU* ppu) {
         layers[l++] = LBD;
 
         bool target1 = ppu->master->io.bldcnt.target1 & (1 << layers[0]);
-        bool target2 = l > 0 && ppu->master->io.bldcnt.target2 & (1 << layers[1]);
+        bool target2 = l > 1 && (ppu->master->io.bldcnt.target2 & (1 << layers[1]));
 
         Color color1 = {ppu->layerlines[layers[0]][x]};
 
-        if (layers[0] == LOBJ && ppu->objdotattrs[x].semitrans && target2) {
+        if (target2 && layers[0] == LOBJ && ppu->objdotattrs[x].semitrans) {
             Color color2 = {ppu->layerlines[layers[1]][x]};
-            byte eva = ppu->master->io.bldalpha.eva;
-            byte evb = ppu->master->io.bldalpha.evb;
-            if (eva > 16) eva = 16;
-            if (evb > 16) evb = 16;
             byte i;
             i = (eva * color1.r + evb * color2.r) / 16;
             color1.r = (i > 31) ? 31 : i;
@@ -494,17 +497,11 @@ void compose_lines(PPU* ppu) {
             color1.g = (i > 31) ? 31 : i;
             i = (eva * color1.b + evb * color2.b) / 16;
             color1.b = (i > 31) ? 31 : i;
-        } else if ((!win_ena || ppu->master->io.wincnt[win].effects_enable) && target1) {
-            switch (ppu->master->io.bldcnt.effect) {
-                case EFF_NONE:
-                    break;
+        } else if (effect && target1 && (!win_ena || ppu->master->io.wincnt[win].effects_enable)) {
+            switch (effect) {
                 case EFF_ALPHA: {
                     if (!target2) break;
                     Color color2 = {ppu->layerlines[layers[1]][x]};
-                    byte eva = ppu->master->io.bldalpha.eva;
-                    byte evb = ppu->master->io.bldalpha.evb;
-                    if (eva > 16) eva = 16;
-                    if (evb > 16) evb = 16;
                     byte i;
                     i = (eva * color1.r + evb * color2.r) / 16;
                     color1.r = (i > 31) ? 31 : i;
@@ -515,16 +512,12 @@ void compose_lines(PPU* ppu) {
                     break;
                 }
                 case EFF_BINC: {
-                    byte evy = ppu->master->io.bldy.evy;
-                    if (evy > 16) evy = 16;
                     color1.r += (31 - color1.r) * evy / 16;
                     color1.g += (31 - color1.g) * evy / 16;
                     color1.b += (31 - color1.b) * evy / 16;
                     break;
                 }
                 case EFF_BDEC: {
-                    byte evy = ppu->master->io.bldy.evy;
-                    if (evy > 16) evy = 16;
                     color1.r -= color1.r * evy / 16;
                     color1.g -= color1.g * evy / 16;
                     color1.b -= color1.b * evy / 16;
@@ -548,7 +541,8 @@ void draw_scanline(PPU* ppu) {
     ppu->draw_bg[3] = false;
     ppu->draw_obj = false;
 
-    if (ppu->master->io.dispcnt.win_enable) memset(ppu->window, WOUT, GBA_SCREEN_W);
+    if (ppu->master->io.dispcnt.win_enable || ppu->master->io.dispcnt.winobj_enable)
+        memset(ppu->window, WOUT, GBA_SCREEN_W);
     render_bgs(ppu);
     render_objs(ppu);
     render_windows(ppu);

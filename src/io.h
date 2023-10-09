@@ -111,7 +111,8 @@ typedef struct {
                     hword forced_blank : 1;
                     hword bg_enable : 4;
                     hword obj_enable : 1;
-                    hword win_enable : 3;
+                    hword win_enable : 2;
+                    hword winobj_enable : 1;
                 };
             } dispcnt;
             hword greenswap;

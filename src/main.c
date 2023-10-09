@@ -112,16 +112,18 @@ int main(int argc, char** argv) {
     bool running = true;
     while (running) {
 
-        SDL_Event e;
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) running = false;
-        }
-        update_input(gba);
+        Uint64 cur_time;
+        Uint64 elapsed;
+        do {
+            while (!gba->ppu.frame_complete) {
+                gba_step(gba);
+            }
+            gba->ppu.frame_complete = false;
+            frame++;
 
-        while (!gba->ppu.frame_complete) {
-            gba_step(gba);
-        }
-        gba->ppu.frame_complete = false;
+            cur_time = SDL_GetPerformanceCounter();
+            elapsed = cur_time - prev_time;
+        } while (uncap && elapsed < frame_ticks);
 
         void* pixels;
         int pitch;
@@ -131,8 +133,14 @@ int main(int argc, char** argv) {
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
 
-        Uint64 cur_time = SDL_GetPerformanceCounter();
-        Uint64 elapsed = cur_time - prev_time;
+        SDL_Event e;
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) running = false;
+        }
+        update_input(gba);
+
+        cur_time = SDL_GetPerformanceCounter();
+        elapsed = cur_time - prev_time;
 
         Sint64 wait = frame_ticks - elapsed;
         if (wait > 0 && !uncap) {
@@ -149,7 +157,6 @@ int main(int argc, char** argv) {
             prev_fps_frame = frame;
         }
         prev_time = cur_time;
-        frame++;
     }
 
     destroy_cartridge(cart);
