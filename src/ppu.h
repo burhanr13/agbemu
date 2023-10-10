@@ -11,15 +11,6 @@
 typedef union {
     hword h;
     struct {
-        hword r : 5;
-        hword g : 5;
-        hword b : 5;
-    };
-} Color;
-
-typedef union {
-    hword h;
-    struct {
         hword num : 10;
         hword hflip : 1;
         hword vflip : 1;

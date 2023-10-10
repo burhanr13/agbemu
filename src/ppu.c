@@ -482,62 +482,63 @@ void compose_lines(PPU* ppu) {
         bool target1 = ppu->master->io.bldcnt.target1 & (1 << layers[0]);
         bool target2 = l > 1 && (ppu->master->io.bldcnt.target2 & (1 << layers[1]));
 
-        Color color1 = {ppu->layerlines[layers[0]][x]};
+        hword color1 = ppu->layerlines[layers[0]][x];
+        byte r1 = color1 & 0x1f;
+        byte g1 = (color1 >> 5) & 0x1f;
+        byte b1 = (color1 >> 10) & 0x1f;
 
         if (target2 && layers[0] == LOBJ && ppu->objdotattrs[x].semitrans) {
-            Color color2 = {ppu->layerlines[layers[1]][x]};
-            byte i;
-            i = (eva * color1.r + evb * color2.r) / 16;
-            color1.r = (i > 31) ? 31 : i;
-            i = (eva * color1.g + evb * color2.g) / 16;
-            color1.g = (i > 31) ? 31 : i;
-            i = (eva * color1.b + evb * color2.b) / 16;
-            color1.b = (i > 31) ? 31 : i;
+            hword color2 = ppu->layerlines[layers[1]][x];
+            byte r2 = color2 & 0x1f;
+            byte g2 = (color2 >> 5) & 0x1f;
+            byte b2 = (color2 >> 10) & 0x1f;
+            r1 = (eva * r1 + evb * r2) / 16;
+            if (r1 > 31) r1 = 31;
+            g1 = (eva * g1 + evb * g2) / 16;
+            if (g1 > 31) g1 = 31;
+            b1 = (eva * b1 + evb * b2) / 16;
+            if (b1 > 31) b1 = 31;
         } else if (effect && target1 && (!win_ena || ppu->master->io.wincnt[win].effects_enable)) {
             switch (effect) {
                 case EFF_ALPHA: {
                     if (!target2) break;
-                    Color color2 = {ppu->layerlines[layers[1]][x]};
-                    byte i;
-                    i = (eva * color1.r + evb * color2.r) / 16;
-                    color1.r = (i > 31) ? 31 : i;
-                    i = (eva * color1.g + evb * color2.g) / 16;
-                    color1.g = (i > 31) ? 31 : i;
-                    i = (eva * color1.b + evb * color2.b) / 16;
-                    color1.b = (i > 31) ? 31 : i;
+                    hword color2 = ppu->layerlines[layers[1]][x];
+                    byte r2 = color2 & 0x1f;
+                    byte g2 = (color2 >> 5) & 0x1f;
+                    byte b2 = (color2 >> 10) & 0x1f;
+                    r1 = (eva * r1 + evb * r2) / 16;
+                    if (r1 > 31) r1 = 31;
+                    g1 = (eva * g1 + evb * g2) / 16;
+                    if (g1 > 31) g1 = 31;
+                    b1 = (eva * b1 + evb * b2) / 16;
+                    if (b1 > 31) b1 = 31;
                     break;
                 }
                 case EFF_BINC: {
-                    color1.r += (31 - color1.r) * evy / 16;
-                    color1.g += (31 - color1.g) * evy / 16;
-                    color1.b += (31 - color1.b) * evy / 16;
+                    r1 += (31 - r1) * evy / 16;
+                    g1 += (31 - g1) * evy / 16;
+                    b1 += (31 - b1) * evy / 16;
                     break;
                 }
                 case EFF_BDEC: {
-                    color1.r -= color1.r * evy / 16;
-                    color1.g -= color1.g * evy / 16;
-                    color1.b -= color1.b * evy / 16;
+                    r1 -= r1 * evy / 16;
+                    g1 -= g1 * evy / 16;
+                    b1 -= b1 * evy / 16;
                     break;
                 }
             }
         }
 
         if (filter) {
-            byte i = color1.r;
-            if (i >= 16) i -= (32 - i) / 2;
-            else i -= i / 2;
-            color1.r = i;
-            i = color1.g;
-            if (i >= 16) i -= (32 - i) / 2;
-            else i -= i / 2;
-            color1.g = i;
-            i = color1.b;
-            if (i >= 16) i -= (32 - i) / 2;
-            else i -= i / 2;
-            color1.b = i;
+            if (r1 >= 16) r1 -= (32 - r1) / 2;
+            else r1 -= r1 / 2;
+            if (g1 >= 16) g1 -= (32 - g1) / 2;
+            else g1 -= g1 / 2;
+            if (b1 >= 16) b1 -= (32 - b1) / 2;
+            else b1 -= b1 / 2;
         }
 
-        ppu->screen[ppu->ly][x] = color1.h;
+        ppu->screen[ppu->ly][x] = (b1 << 10) | (g1 << 5) | r1;
     }
 }
 
