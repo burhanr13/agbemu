@@ -8,6 +8,8 @@
 #include "io.h"
 #include "scheduler.h"
 
+extern bool filter;
+
 const int SCLAYOUT[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
 
@@ -518,6 +520,21 @@ void compose_lines(PPU* ppu) {
                     break;
                 }
             }
+        }
+
+        if (filter) {
+            byte i = color1.r;
+            if (i >= 16) i -= (32 - i) / 2;
+            else i -= i / 2;
+            color1.r = i;
+            i = color1.g;
+            if (i >= 16) i -= (32 - i) / 2;
+            else i -= i / 2;
+            color1.g = i;
+            i = color1.b;
+            if (i >= 16) i -= (32 - i) / 2;
+            else i -= i / 2;
+            color1.b = i;
         }
 
         ppu->screen[ppu->ly][x] = color1.h;

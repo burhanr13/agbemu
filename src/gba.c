@@ -91,6 +91,7 @@ int get_waitstates(GBA* gba, word addr, DataWidth d) {
             int s_waits = gba->io.waitcnt.rom0s ? 2 : 3;
             int total = 0;
             if (cart_addr == gba->next_cart_addr) {
+                if (gba->io.waitcnt.prefetch) s_waits = 1;
                 total += s_waits;
             } else {
                 total += n_waits;
@@ -106,6 +107,7 @@ int get_waitstates(GBA* gba, word addr, DataWidth d) {
             int s_waits = gba->io.waitcnt.rom1s ? 2 : 5;
             int total = 0;
             if (cart_addr == gba->next_cart_addr) {
+                if (gba->io.waitcnt.prefetch) s_waits = 1;
                 total += s_waits;
             } else {
                 total += n_waits;
@@ -121,6 +123,7 @@ int get_waitstates(GBA* gba, word addr, DataWidth d) {
             int s_waits = gba->io.waitcnt.rom2s ? 2 : 9;
             int total = 0;
             if (cart_addr == gba->next_cart_addr) {
+                if (gba->io.waitcnt.prefetch) s_waits = 1;
                 total += s_waits;
             } else {
                 total += n_waits;

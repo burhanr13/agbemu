@@ -12,6 +12,7 @@ bool lg, dbg;
 char* romfile;
 bool uncap;
 bool bootbios;
+bool filter;
 
 char wintitle[200];
 
@@ -37,6 +38,9 @@ void read_args(int argc, char** argv) {
                         break;
                     case 'B':
                         bootbios = true;
+                        break;
+                    case 'f':
+                        filter = true;
                         break;
                     default:
                         printf("Invalid flag\n");
