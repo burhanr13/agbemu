@@ -161,6 +161,7 @@ void cpu_writew(Arm7TDMI* cpu, word addr, word w) {
 
 void cpu_internal_cycle(Arm7TDMI* cpu) {
     tick_components(cpu->master, 1);
+    if (!cpu->master->io.waitcnt.prefetch) cpu->master->next_cart_addr = 0;
 }
 
 char* mode_name(CpuMode m) {
