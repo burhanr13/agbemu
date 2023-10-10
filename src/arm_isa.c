@@ -8,7 +8,7 @@
 ArmExecFunc arm_lookup[1 << 12];
 
 void arm_generate_lookup() {
-    for (int i = 0; i < 1 << 12;i++){
+    for (int i = 0; i < 1 << 12; i++) {
         arm_lookup[i] = arm_decode_instr((ArmInstr){(((i & 0xf) << 4) | (i >> 4 << 20))});
     }
 }
@@ -41,8 +41,6 @@ ArmExecFunc arm_decode_instr(ArmInstr instr) {
     } else if (instr.psr_trans.c1 == 0b00 && instr.psr_trans.c2 == 0b10 &&
                instr.psr_trans.c3 == 0) {
         return exec_arm_psr_trans;
-    } else if (instr.data_proc.c1 == 0b00) {
-        return exec_arm_data_proc;
     } else {
         return exec_arm_data_proc;
     }
@@ -88,7 +86,7 @@ bool eval_cond(Arm7TDMI* cpu, ArmInstr instr) {
 void arm_exec_instr(Arm7TDMI* cpu) {
     ArmInstr instr = cpu->cur_instr;
     if (!eval_cond(cpu, instr)) {
-        cpu_fetch(cpu);
+        cpu_fetch_instr(cpu);
         return;
     }
 
@@ -116,7 +114,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
         word shift_type = (shift >> 1) & 0b11;
         word shift_amt;
         if (shift & 1) {
-            cpu_fetch(cpu);
+            cpu_fetch_instr(cpu);
             shiftr = true;
             word rs = shift >> 4;
             shift_amt = cpu->r[rs] & 0xff;
@@ -175,7 +173,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
     }
     word op1 = cpu->r[instr.data_proc.rn];
     if (instr.data_proc.rn == 15 && instr.data_proc.rd != 15) op1 &= ~0b10;
-    if (!shiftr) cpu_fetch(cpu);
+    if (!shiftr) cpu_fetch_instr(cpu);
 
     word res = 0;
     bool arith = false;
@@ -288,7 +286,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
     word op = cpu->r[instr.multiply.rs];
     for (int i = 1; i <= 4; i++) {
         cpu_internal_cycle(cpu);
@@ -307,7 +305,7 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
     cpu_internal_cycle(cpu);
     word op = cpu->r[instr.multiply_long.rs];
     for (int i = 1; i <= 4; i++) {
@@ -372,16 +370,16 @@ void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr) {
         }
         cpu->r[instr.psr_trans.rd] = psr;
     }
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
 }
 
 void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {
     word addr = cpu->r[instr.swap.rn];
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
     if (instr.swap.b) {
         byte data;
         cpu_internal_cycle(cpu);
-        data = cpu_readb(cpu, addr);
+        data = cpu_readb(cpu, addr, false);
         byte tmp = data;
         data = cpu->r[instr.swap.rm];
         cpu_writeb(cpu, addr, data);
@@ -390,8 +388,6 @@ void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {
         word data;
         cpu_internal_cycle(cpu);
         data = cpu_readw(cpu, addr);
-        word rot = (addr % 4) * 8;
-        data = data >> rot | data << (32 - rot);
         word tmp = data;
         data = cpu->r[instr.swap.rm];
         cpu_writew(cpu, addr, data);
@@ -400,7 +396,7 @@ void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr) {
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
     cpu->pc = cpu->r[instr.branch_ex.rn];
     cpu->cpsr.t = cpu->r[instr.branch_ex.rn] & 1;
     cpu_flush(cpu);
@@ -414,7 +410,7 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
     } else {
         offset = cpu->r[instr.half_transr.rm];
     }
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
 
     if (!instr.half_transi.u) offset = -offset;
     word wback = addr + offset;
@@ -428,11 +424,9 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
                 cpu->r[instr.half_transi.rn] = wback;
             }
             if (instr.half_transi.h) {
-                data = (shword) cpu_readh(cpu, addr);
-                word rot = (addr % 2) * 8;
-                data >>= rot;
+                data = cpu_readh(cpu, addr, true);
             } else {
-                data = (sbyte) cpu_readb(cpu, addr);
+                data = cpu_readb(cpu, addr, true);
             }
             cpu->r[instr.half_transi.rd] = data;
         }
@@ -443,9 +437,7 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
             if (instr.half_transi.w || !instr.half_transi.p) {
                 cpu->r[instr.half_transi.rn] = wback;
             }
-            data = cpu_readh(cpu, addr);
-            word rot = (addr % 2) * 8;
-            data = data >> rot | data << (32 - rot);
+            data = cpu_readh(cpu, addr, false);
             cpu->r[instr.half_transi.rd] = data;
         } else {
             data = cpu->r[instr.half_transi.rd];
@@ -502,7 +494,7 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
         offset = instr.single_trans.offset;
     }
 
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
 
     if (!instr.single_trans.u) offset = -offset;
     word wback = addr + offset;
@@ -515,7 +507,7 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
             if (instr.single_trans.w || !instr.single_trans.p) {
                 cpu->r[instr.single_trans.rn] = wback;
             }
-            data = cpu_readb(cpu, addr);
+            data = cpu_readb(cpu, addr, false);
             cpu->r[instr.single_trans.rd] = data;
         } else {
             data = cpu->r[instr.single_trans.rd];
@@ -532,8 +524,6 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
                 cpu->r[instr.single_trans.rn] = wback;
             }
             data = cpu_readw(cpu, addr);
-            word rot = (addr % 4) * 8;
-            data = data >> rot | data << (32 - rot);
             cpu->r[instr.single_trans.rd] = data;
         } else {
             data = cpu->r[instr.single_trans.rd];
@@ -578,7 +568,7 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr) {
     }
 
     if (instr.block_trans.p == instr.block_trans.u) addr += 4;
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
 
     bool user_trans =
         instr.block_trans.s && !((instr.block_trans.rlist & (1 << 15)) && instr.block_trans.l);
@@ -598,7 +588,7 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr) {
     for (int i = 0; i < rcount; i++, addr += 4) {
         word data;
         if (instr.block_trans.l) {
-            data = cpu_readw(cpu, addr);
+            data = cpu_fetchw(cpu, addr);
             cpu->r[rlist[i]] = data;
             if (rlist[i] == 15) {
                 if (user_trans) {
@@ -644,14 +634,14 @@ void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr) {
             } else {
                 if (offset & (1 << 22)) dest += 0xff800000;
                 cpu->lr = dest;
-                cpu_fetch(cpu);
+                cpu_fetch_instr(cpu);
                 return;
             }
         } else {
             cpu->lr = (cpu->pc - 4) & ~0b11;
         }
     }
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
     cpu->pc = dest;
     cpu_flush(cpu);
 }

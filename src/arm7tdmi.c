@@ -23,13 +23,13 @@ void cpu_step(Arm7TDMI* cpu) {
     arm_exec_instr(cpu);
 }
 
-void cpu_fetch(Arm7TDMI* cpu) {
+void cpu_fetch_instr(Arm7TDMI* cpu) {
     cpu->cur_instr = cpu->next_instr;
     if (cpu->cpsr.t) {
-        cpu->next_instr = thumb_lookup[cpu_readh(cpu, cpu->pc)];
+        cpu->next_instr = thumb_lookup[cpu_fetchh(cpu, cpu->pc)];
         cpu->pc += 2;
     } else {
-        cpu->next_instr.w = cpu_readw(cpu, cpu->pc);
+        cpu->next_instr.w = cpu_fetchw(cpu, cpu->pc);
         cpu->pc += 4;
     }
 }
@@ -37,15 +37,15 @@ void cpu_fetch(Arm7TDMI* cpu) {
 void cpu_flush(Arm7TDMI* cpu) {
     if (cpu->cpsr.t) {
         cpu->pc &= ~1;
-        cpu->cur_instr = thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
+        cpu->cur_instr = thumb_decode_instr((ThumbInstr){cpu_fetchh(cpu, cpu->pc)});
         cpu->pc += 2;
-        cpu->next_instr = thumb_decode_instr((ThumbInstr){cpu_readh(cpu, cpu->pc)});
+        cpu->next_instr = thumb_decode_instr((ThumbInstr){cpu_fetchh(cpu, cpu->pc)});
         cpu->pc += 2;
     } else {
         cpu->pc &= ~0b11;
-        cpu->cur_instr.w = cpu_readw(cpu, cpu->pc);
+        cpu->cur_instr.w = cpu_fetchw(cpu, cpu->pc);
         cpu->pc += 4;
-        cpu->next_instr.w = cpu_readw(cpu, cpu->pc);
+        cpu->next_instr.w = cpu_fetchw(cpu, cpu->pc);
         cpu->pc += 4;
     }
 }
@@ -122,26 +122,44 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
     if (cpu->cpsr.t) {
         if (intr == I_SWI) cpu->lr -= 2;
     } else cpu->lr -= 4;
-    cpu_fetch(cpu);
+    cpu_fetch_instr(cpu);
     cpu->cpsr.t = 0;
     cpu->cpsr.i = 1;
     cpu->pc = 4 * intr;
     cpu_flush(cpu);
 }
 
-byte cpu_readb(Arm7TDMI* cpu, word addr) {
+word cpu_readb(Arm7TDMI* cpu, word addr, bool sx) {
     tick_components(cpu->master, get_waitstates(cpu->master, addr, D_BYTE));
-    return bus_readb(cpu->master, addr);
+    word data = bus_readb(cpu->master, addr);
+    if (cpu->master->openbus) data = cpu->bus_val;
+    if (sx) data = (sbyte) data;
+    cpu->bus_val = data;
+    return data;
 }
 
-hword cpu_readh(Arm7TDMI* cpu, word addr) {
+word cpu_readh(Arm7TDMI* cpu, word addr, bool sx) {
     tick_components(cpu->master, get_waitstates(cpu->master, addr, D_HWORD));
-    return bus_readh(cpu->master, addr);
+    word data = bus_readh(cpu->master, addr);
+    if (cpu->master->openbus) data = cpu->bus_val;
+    if (addr & 1) {
+        if (sx) {
+            data = ((shword) data) >> 8;
+        } else data = (data >> 8) | (data << 24);
+    } else if (sx) data = (shword) data;
+    cpu->bus_val = data;
+    return data;
 }
 
 word cpu_readw(Arm7TDMI* cpu, word addr) {
     tick_components(cpu->master, get_waitstates(cpu->master, addr, D_WORD));
-    return bus_readw(cpu->master, addr);
+    word data = bus_readw(cpu->master, addr);
+    if (cpu->master->openbus) data = cpu->bus_val;
+    if (addr & 0b11) {
+        data = (data >> (8 * (addr & 0b11))) | (data << (32 - 8 * (addr & 0b11)));
+    }
+    cpu->bus_val = data;
+    return data;
 }
 
 void cpu_writeb(Arm7TDMI* cpu, word addr, byte b) {
@@ -157,6 +175,22 @@ void cpu_writeh(Arm7TDMI* cpu, word addr, hword h) {
 void cpu_writew(Arm7TDMI* cpu, word addr, word w) {
     tick_components(cpu->master, get_waitstates(cpu->master, addr, D_WORD));
     bus_writew(cpu->master, addr, w);
+}
+
+hword cpu_fetchh(Arm7TDMI* cpu, word addr) {
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, D_HWORD));
+    word data = bus_readh(cpu->master, addr);
+    if (cpu->master->openbus) data = cpu->bus_val;
+    else cpu->bus_val = data * 0x00010001;
+    return data;
+}
+
+word cpu_fetchw(Arm7TDMI* cpu, word addr) {
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, D_WORD));
+    word data = bus_readw(cpu->master, addr);
+    if (cpu->master->openbus) data = cpu->bus_val;
+    else cpu->bus_val = data;
+    return data;
 }
 
 void cpu_internal_cycle(Arm7TDMI* cpu) {

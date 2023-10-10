@@ -16,8 +16,6 @@ typedef struct {
 Cartridge* create_cartridge(char* filename);
 void destroy_cartridge(Cartridge* cart);
 
-
-
 byte cart_read_sram(Cartridge* cart, hword addr);
 void cart_write_sram(Cartridge* cart, hword addr, byte b);
 

@@ -58,6 +58,7 @@ typedef struct _GBA {
         hword* h;
         word* w;
     } bios;
+    word last_bios_val;
 
     union {
         byte b[EWRAM_SIZE];
@@ -94,6 +95,8 @@ typedef struct _GBA {
 
     bool halt;
     bool stop;
+
+    bool openbus;
 
 } GBA;
 

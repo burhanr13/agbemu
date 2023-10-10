@@ -10,12 +10,12 @@ Cartridge* create_cartridge(char* filename) {
     Cartridge* cart = malloc(sizeof *cart);
 
     fseek(fp, 0, SEEK_END);
-    cart->rom_size = ftell(fp);
+    int flen = ftell(fp);
     fseek(fp, 0, SEEK_SET);
+    cart->rom_size = (flen + 32) & ~0b11;
     cart->rom.b = malloc(cart->rom_size);
-    fread(cart->rom.b, 1, cart->rom_size, fp);
+    fread(cart->rom.b, 1, flen, fp);
     fclose(fp);
-
 
     return cart;
 }

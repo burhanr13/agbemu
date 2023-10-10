@@ -14,6 +14,7 @@ typedef struct {
     struct {
         word sptr;
         word dptr;
+        word bus_val;
         hword ct;
         bool active;
         bool initial;
@@ -26,8 +27,8 @@ void dma_activate(DMAController* dmac, int i);
 
 void dma_step(DMAController* dmac, int i);
 
-void dma_transh(DMAController* dmac, word daddr, word saddr);
-void dma_transw(DMAController* dmac, word daddr, word saddr);
+void dma_transh(DMAController* dmac, int i, word daddr, word saddr);
+void dma_transw(DMAController* dmac, int i, word daddr, word saddr);
 
 void dma_update_active(DMAController* dmac);
 

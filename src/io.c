@@ -35,7 +35,8 @@ void io_writeb(IO* io, word addr, byte data) {
 }
 
 hword io_readh(IO* io, word addr) {
-    if ((BG0HOFS <= addr && addr <= WIN1V)) {
+    if ((BG0HOFS <= addr && addr <= BLDY)) {
+        io->master->openbus = true;
         return 0;
     }
     if (DMA0SAD <= addr && addr <= DMA3CNT_H) {
@@ -45,7 +46,13 @@ hword io_readh(IO* io, word addr) {
             case DMA2CNT_H:
             case DMA3CNT_H:
                 return io->h[addr >> 1];
+            case DMA0CNT_L:
+            case DMA1CNT_L:
+            case DMA2CNT_L:
+            case DMA3CNT_L:
+                return 0;
             default:
+                io->master->openbus = true;
                 return 0;
         }
     }

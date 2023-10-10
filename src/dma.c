@@ -65,9 +65,9 @@ void dma_step(DMAController* dmac, int i) {
     }
 
     if (dmac->master->io.dma[i].cnt.wsize) {
-        dma_transw(dmac, dmac->dma[i].dptr, dmac->dma[i].sptr);
+        dma_transw(dmac, i, dmac->dma[i].dptr, dmac->dma[i].sptr);
     } else {
-        dma_transh(dmac, dmac->dma[i].dptr, dmac->dma[i].sptr);
+        dma_transh(dmac, i, dmac->dma[i].dptr, dmac->dma[i].sptr);
     }
     update_addr(&dmac->dma[i].sptr, dmac->master->io.dma[i].cnt.sadcnt,
                 2 << dmac->master->io.dma[i].cnt.wsize);
@@ -85,16 +85,20 @@ void dma_step(DMAController* dmac, int i) {
     }
 }
 
-void dma_transh(DMAController* dmac, word daddr, word saddr) {
+void dma_transh(DMAController* dmac, int i, word daddr, word saddr) {
     tick_components(dmac->master, get_waitstates(dmac->master, saddr, D_HWORD));
     hword data = bus_readh(dmac->master, saddr);
+    if (dmac->master->openbus) data = dmac->dma[i].bus_val;
+    dmac->dma[i].bus_val = data;
     tick_components(dmac->master, get_waitstates(dmac->master, daddr, D_HWORD));
     bus_writeh(dmac->master, daddr, data);
 }
 
-void dma_transw(DMAController* dmac, word daddr, word saddr) {
+void dma_transw(DMAController* dmac, int i, word daddr, word saddr) {
     tick_components(dmac->master, get_waitstates(dmac->master, saddr, D_WORD));
     word data = bus_readw(dmac->master, saddr);
+    if (dmac->master->openbus) data = dmac->dma[i].bus_val;
+    dmac->dma[i].bus_val = data;
     tick_components(dmac->master, get_waitstates(dmac->master, daddr, D_WORD));
     bus_writew(dmac->master, daddr, data);
 }

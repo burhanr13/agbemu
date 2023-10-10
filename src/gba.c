@@ -62,27 +62,21 @@ int get_waitstates(GBA* gba, word addr, DataWidth d) {
     switch (region) {
         case R_BIOS:
             return 1;
-        case R_EWRAM:
-            switch (d) {
-                case D_BYTE:
-                case D_HWORD:
-                    return 3;
-                case D_WORD:
-                    return 6;
-            }
+        case R_EWRAM: {
+            int waits = 3;
+            if (d == D_WORD) waits += 3;
+            return waits;
+        }
         case R_IWRAM:
             return 1;
         case R_IO:
             return 1;
         case R_PRAM:
-        case R_VRAM:
-            switch (d) {
-                case D_BYTE:
-                case D_HWORD:
-                    return 1;
-                case D_WORD:
-                    return 2;
-            }
+        case R_VRAM: {
+            int waits = 1;
+            if (d == D_WORD) waits += 1;
+            return waits;
+        }
         case R_OAM:
             return 1;
         case R_ROM0:
@@ -141,6 +135,7 @@ int get_waitstates(GBA* gba, word addr, DataWidth d) {
 }
 
 byte bus_readb(GBA* gba, word addr) {
+    gba->openbus = false;
     word region = addr >> 24;
     word rom_addr = addr % (1 << 25);
     word cart_addr = addr % (1 << 27);
@@ -148,7 +143,10 @@ byte bus_readb(GBA* gba, word addr) {
     switch (region) {
         case R_BIOS:
             if (addr < BIOS_SIZE) {
-                return gba->bios.b[addr];
+                if (gba->cpu.pc < BIOS_SIZE) {
+                    gba->last_bios_val = gba->bios.w[addr >> 2];
+                    return gba->bios.b[addr];
+                } else return gba->last_bios_val >> (8 * (addr % 4));
             }
             break;
         case R_EWRAM:
@@ -188,11 +186,13 @@ byte bus_readb(GBA* gba, word addr) {
             return cart_read_sram(gba->cart, addr);
             break;
     }
+    gba->openbus = true;
     log_error(gba, "invalid byte read", (region << 24) | addr);
     return 0;
 }
 
 hword bus_readh(GBA* gba, word addr) {
+    gba->openbus = false;
     word region = addr >> 24;
     word rom_addr = addr % (1 << 25);
     word cart_addr = addr % (1 << 27);
@@ -200,7 +200,10 @@ hword bus_readh(GBA* gba, word addr) {
     switch (region) {
         case R_BIOS:
             if (addr < BIOS_SIZE) {
-                return gba->bios.h[addr >> 1];
+                if (gba->cpu.pc < BIOS_SIZE) {
+                    gba->last_bios_val = gba->bios.w[addr >> 2];
+                    return gba->bios.h[addr >> 1];
+                } else return gba->last_bios_val >> (16 * (addr % 2));
             }
             break;
         case R_EWRAM:
@@ -240,11 +243,13 @@ hword bus_readh(GBA* gba, word addr) {
             return cart_read_sram(gba->cart, addr) * 0x0101;
             break;
     }
+    gba->openbus = true;
     log_error(gba, "invalid hword read", (region << 24) | addr);
     return 0;
 }
 
 word bus_readw(GBA* gba, word addr) {
+    gba->openbus = false;
     word region = addr >> 24;
     word rom_addr = addr % (1 << 25);
     word cart_addr = addr % (1 << 27);
@@ -252,7 +257,11 @@ word bus_readw(GBA* gba, word addr) {
     switch (region) {
         case R_BIOS:
             if (addr < BIOS_SIZE) {
-                return gba->bios.w[addr >> 2];
+                if (gba->cpu.pc < BIOS_SIZE) {
+                    word data = gba->bios.w[addr >> 2];
+                    gba->last_bios_val = data;
+                    return data;
+                } else return gba->last_bios_val;
             }
             break;
         case R_EWRAM:
@@ -292,6 +301,7 @@ word bus_readw(GBA* gba, word addr) {
             return cart_read_sram(gba->cart, addr) * 0x01010101;
             break;
     }
+    gba->openbus = true;
     log_error(gba, "invalid word read", (region << 24) | addr);
     return 0;
 }
