@@ -203,7 +203,11 @@ hword bus_readh(GBA* gba, word addr) {
                 if (gba->cpu.pc < BIOS_SIZE) {
                     gba->last_bios_val = gba->bios.w[addr >> 2];
                     return gba->bios.h[addr >> 1];
-                } else return gba->last_bios_val >> (16 * (addr % 2));
+                } else if (!gba->dmac.any_active) return gba->last_bios_val >> (16 * (addr % 2));
+                else {
+                    gba->openbus = true;
+                    return 0;
+                }
             }
             break;
         case R_EWRAM:
@@ -261,7 +265,11 @@ word bus_readw(GBA* gba, word addr) {
                     word data = gba->bios.w[addr >> 2];
                     gba->last_bios_val = data;
                     return data;
-                } else return gba->last_bios_val;
+                } else if (!gba->dmac.any_active) return gba->last_bios_val;
+                else {
+                    gba->openbus = true;
+                    return 0;
+                }
             }
             break;
         case R_EWRAM:
