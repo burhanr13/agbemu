@@ -5,6 +5,49 @@
 #include "arm7tdmi.h"
 #include "gba.h"
 
+ArmExecFunc arm_lookup[1 << 12];
+
+void arm_generate_lookup() {
+    for (int i = 0; i < 1 << 12;i++){
+        arm_lookup[i] = arm_decode_instr((ArmInstr){(((i & 0xf) << 4) | (i >> 4 << 20))});
+    }
+}
+
+ArmExecFunc arm_decode_instr(ArmInstr instr) {
+    if (instr.sw_intr.c1 == 0b1111) {
+        return exec_arm_sw_intr;
+    } else if (instr.branch.c1 == 0b101) {
+        return exec_arm_branch;
+    } else if (instr.block_trans.c1 == 0b100) {
+        return exec_arm_block_trans;
+    } else if (instr.undefined.c1 == 0b011 && instr.undefined.c2 == 1) {
+        return exec_arm_undefined;
+    } else if (instr.single_trans.c1 == 0b01) {
+        return exec_arm_single_trans;
+    } else if (instr.branch_ex.c1 == 0b00010010 && instr.branch_ex.c3 == 0b0001) {
+        return exec_arm_branch_ex;
+    } else if (instr.swap.c1 == 0b00010 && instr.swap.c2 == 0b00 && instr.swap.c4 == 0b1001) {
+        return exec_arm_swap;
+    } else if (instr.multiply.c1 == 0b000000 && instr.multiply.c2 == 0b1001) {
+        return exec_arm_multiply;
+    } else if (instr.multiply_long.c1 == 0b00001 && instr.multiply_long.c2 == 0b1001) {
+        return exec_arm_multiply_long;
+    } else if (instr.half_transr.c1 == 0b000 && instr.half_transr.i == 0 &&
+               instr.half_transr.c3 == 1 && instr.half_transr.c4 == 1) {
+        return exec_arm_half_trans;
+    } else if (instr.half_transi.c1 == 0b000 && instr.half_transi.i == 1 &&
+               instr.half_transi.c2 == 1 && instr.half_transi.c3 == 1) {
+        return exec_arm_half_trans;
+    } else if (instr.psr_trans.c1 == 0b00 && instr.psr_trans.c2 == 0b10 &&
+               instr.psr_trans.c3 == 0) {
+        return exec_arm_psr_trans;
+    } else if (instr.data_proc.c1 == 0b00) {
+        return exec_arm_data_proc;
+    } else {
+        return exec_arm_data_proc;
+    }
+}
+
 bool eval_cond(Arm7TDMI* cpu, ArmInstr instr) {
     switch (instr.cond) {
         case C_AL:
@@ -49,40 +92,7 @@ void arm_exec_instr(Arm7TDMI* cpu) {
         return;
     }
 
-    if (instr.sw_intr.c1 == 0b1111) {
-        exec_arm_sw_intr(cpu, instr);
-    } else if (instr.branch.c1 == 0b101) {
-        exec_arm_branch(cpu, instr);
-    } else if (instr.block_trans.c1 == 0b100) {
-        exec_arm_block_trans(cpu, instr);
-    } else if (instr.undefined.c1 == 0b011 && instr.undefined.c2 == 1) {
-        log_error(cpu->master, "undefined instruction", 0);
-        exec_arm_undefined(cpu, instr);
-    } else if (instr.single_trans.c1 == 0b01) {
-        exec_arm_single_trans(cpu, instr);
-    } else if (instr.branch_ex.c1 == 0b000100101111111111110001) {
-        exec_arm_branch_ex(cpu, instr);
-    } else if (instr.swap.c1 == 0b00010 && instr.swap.c2 == 0b00 && instr.swap.c3 == 0b00001001) {
-        exec_arm_swap(cpu, instr);
-    } else if (instr.multiply.c1 == 0b000000 && instr.multiply.c2 == 0b1001) {
-        exec_arm_multiply(cpu, instr);
-    } else if (instr.multiply_long.c1 == 0b00001 && instr.multiply_long.c2 == 0b1001) {
-        exec_arm_multiply_long(cpu, instr);
-    } else if (instr.half_transr.c1 == 0b000 && instr.half_transr.i == 0 &&
-               instr.half_transr.c2 == 0b00001 && instr.half_transr.c3 == 1) {
-        exec_arm_half_trans(cpu, instr);
-    } else if (instr.half_transi.c1 == 0b000 && instr.half_transi.i == 1 &&
-               instr.half_transi.c2 == 1 && instr.half_transi.c3 == 1) {
-        exec_arm_half_trans(cpu, instr);
-    } else if (instr.psr_trans.c1 == 0b00 && instr.psr_trans.c2 == 0b10 &&
-               instr.psr_trans.c3 == 0) {
-        exec_arm_psr_trans(cpu, instr);
-    } else if (instr.data_proc.c1 == 0b00) {
-        exec_arm_data_proc(cpu, instr);
-    } else {
-        log_error(cpu->master, "illegal instruction", 0);
-        cpu_fetch(cpu);
-    }
+    arm_lookup[(((instr.w >> 4) & 0xf) | (instr.w >> 20 << 4)) % (1 << 12)](cpu, instr);
 }
 
 void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {

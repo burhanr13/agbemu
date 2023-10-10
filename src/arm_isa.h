@@ -84,7 +84,8 @@ typedef union {
     } psr_trans;
     struct {
         word rm : 4;
-        word c3 : 8; // 00001001
+        word c4 : 4; // 1001
+        word c3 : 4;
         word rd : 4;
         word rn : 4;
         word c2 : 2; // 00
@@ -94,15 +95,18 @@ typedef union {
     } swap;
     struct {
         word rn : 4;
-        word c1 : 24; // 000100101111111111110001
+        word c3 : 4; // 0001
+        word c2 : 12;
+        word c1 : 8; // 00010010
         word cond : 4;
     } branch_ex;
     struct {
         word rm : 4;
-        word c3 : 1; // 1
+        word c4 : 1; // 1
         word h : 1;
         word s : 1;
-        word c2 : 5; // 00001
+        word c3 : 1; // 1
+        word c2 : 4;
         word rd : 4;
         word rn : 4;
         word l : 1;
@@ -173,6 +177,13 @@ typedef union {
         word cond : 4;
     } sw_intr;
 } ArmInstr;
+
+typedef void (*ArmExecFunc)(Arm7TDMI*, ArmInstr);
+
+extern ArmExecFunc arm_lookup[1 << 12];
+
+void arm_generate_lookup();
+ArmExecFunc arm_decode_instr(ArmInstr instr);
 
 void arm_exec_instr(Arm7TDMI* cpu);
 

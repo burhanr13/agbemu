@@ -89,6 +89,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    arm_generate_lookup();
     thumb_generate_lookup();
     init_gba(gba, cart, bios);
 

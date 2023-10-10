@@ -135,7 +135,8 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                             dec.data_proc.opcode = A_MOV;
                             break;
                         case 3:
-                            dec.branch_ex.c1 = 0b000100101111111111110001;
+                            dec.branch_ex.c3 = 0b0001;
+                            dec.branch_ex.c1 = 0b00010010;
                             dec.branch_ex.rn = instr.hi_ops.rs | (instr.hi_ops.h2 << 3);
                             break;
                     }
@@ -176,10 +177,10 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                 dec.half_transr.l = instr.ldst_s.s | instr.ldst_s.h;
                 dec.half_transr.rn = instr.ldst_s.rb;
                 dec.half_transr.rd = instr.ldst_s.rd;
-                dec.half_transr.c2 = 0b00001;
+                dec.half_transr.c3 = 1;
                 dec.half_transr.s = instr.ldst_s.s;
                 dec.half_transr.h = ~instr.ldst_s.s | instr.ldst_s.h;
-                dec.half_transr.c3 = 1;
+                dec.half_transr.c4 = 1;
                 dec.half_transr.rm = instr.ldst_s.ro;
             }
             break;
