@@ -37,9 +37,9 @@ void cpu_fetch_instr(Arm7TDMI* cpu) {
 void cpu_flush(Arm7TDMI* cpu) {
     if (cpu->cpsr.t) {
         cpu->pc &= ~1;
-        cpu->cur_instr = thumb_decode_instr((ThumbInstr){cpu_fetchh(cpu, cpu->pc)});
+        cpu->cur_instr = thumb_lookup[cpu_fetchh(cpu, cpu->pc)];
         cpu->pc += 2;
-        cpu->next_instr = thumb_decode_instr((ThumbInstr){cpu_fetchh(cpu, cpu->pc)});
+        cpu->next_instr = thumb_lookup[cpu_fetchh(cpu, cpu->pc)];
         cpu->pc += 2;
     } else {
         cpu->pc &= ~0b11;

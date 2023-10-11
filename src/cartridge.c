@@ -8,7 +8,7 @@ Cartridge* create_cartridge(char* filename) {
     FILE* fp = fopen(filename, "rb");
     if (!fp) return NULL;
 
-    Cartridge* cart = malloc(sizeof *cart);
+    Cartridge* cart = calloc(1, sizeof *cart);
 
     fseek(fp, 0, SEEK_END);
     cart->rom_size = ftell(fp);
@@ -52,6 +52,12 @@ Cartridge* create_cartridge(char* filename) {
         }
     }
 
+    cart->rom_filename = malloc(strlen(filename) + 1);
+    strcpy(cart->rom_filename, filename);
+    int i = strrchr(filename, '.') - filename;
+    cart->sav_filename = malloc(i + sizeof ".sav");
+    strcpy(cart->sav_filename + i, ".sav");
+
     if (cart->sav_size) cart->sram = malloc(cart->sav_size);
 
     return cart;
@@ -59,6 +65,9 @@ Cartridge* create_cartridge(char* filename) {
 
 void destroy_cartridge(Cartridge* cart) {
     if (cart->sav_size) free(cart->sram);
+
+    free(cart->rom_filename);
+    free(cart->sav_filename);
 
     free(cart->rom.b);
     free(cart);
@@ -68,7 +77,7 @@ byte cart_read_sram(Cartridge* cart, hword addr) {
     if (cart->sav_type == SAV_SRAM) {
         return cart->sram[addr % SRAM_SIZE];
     } else if (cart->sav_type == SAV_FLASH) {
-        return 0;
+        return cart_read_flash(cart, addr);
     } else {
         return 0;
     }
@@ -77,5 +86,77 @@ byte cart_read_sram(Cartridge* cart, hword addr) {
 void cart_write_sram(Cartridge* cart, hword addr, byte b) {
     if (cart->sav_type == SAV_SRAM) {
         cart->sram[addr % SRAM_SIZE] = b;
+    } else if (cart->sav_type == SAV_FLASH) {
+        cart_write_flash(cart, addr, b);
     }
 }
+
+byte cart_read_flash(Cartridge* cart, hword addr) {
+    if (cart->st.flash.mode == FLASH_ID) {
+        if (addr & 1) return 0xd4;
+        else return 0xbf;
+    } else return cart->flash[cart->st.flash.bank][addr];
+}
+
+void cart_write_flash(Cartridge* cart, hword addr, byte b) {
+    if (cart->st.flash.mode == FLASH_WRITE) {
+        cart->flash[cart->st.flash.bank][addr] = b;
+        cart->st.flash.mode = FLASH_NORM;
+        return;
+    }
+    if (cart->st.flash.mode == FLASH_BANKSEL) {
+        cart->st.flash.bank = b & 1;
+        cart->st.flash.mode = FLASH_NORM;
+        return;
+    }
+    switch (cart->st.flash.state) {
+        case 0:
+            if (addr == 0x5555 && b == 0xaa) cart->st.flash.state = 1;
+            break;
+        case 1:
+            if (addr == 0x2aaa && b == 0x55) cart->st.flash.state = 2;
+            break;
+        case 2:
+            if (cart->st.flash.mode == FLASH_ERASE) {
+                if (addr == 0x5555 && b == 0x10) {
+                    cart->st.flash.state = 0;
+                    memset(cart->flash, 0xff, cart->sav_size);
+                    cart->st.flash.mode = FLASH_NORM;
+                    return;
+                }
+                if (b == 0x30) {
+                    cart->st.flash.state = 0;
+                    memset(&cart->flash[cart->st.flash.bank][addr & 0xf000], 0xff, 0x1000);
+                    cart->st.flash.mode = FLASH_NORM;
+                    return;
+                }
+            }
+            if (addr == 0x5555) {
+                cart->st.flash.state = 0;
+                switch (b) {
+                    case 0x90:
+                        cart->st.flash.mode = FLASH_ID;
+                        break;
+                    case 0xf0:
+                        cart->st.flash.mode = FLASH_NORM;
+                        break;
+                    case 0x80:
+                        cart->st.flash.mode = FLASH_ERASE;
+                        break;
+                    case 0xa0:
+                        cart->st.flash.mode = FLASH_WRITE;
+                        break;
+                    case 0xb0:
+                        if (cart->big_flash) cart->st.flash.mode = FLASH_BANKSEL;
+                        break;
+                }
+            }
+            break;
+    }
+}
+
+hword cart_read_eeprom(Cartridge* cart) {
+    return 0;
+}
+
+void cart_write_eeprom(Cartridge* cart, hword h) {}
