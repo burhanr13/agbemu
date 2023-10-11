@@ -22,10 +22,11 @@ void run_next_event(Scheduler* sched) {
         sched->event_queue[i] = sched->event_queue[i + 1];
     }
     sched->master->cycles = e.time;
-    if (e.type < EVENT_TM0_ENA) {
+    if (e.type < EVENT_TM0_W) {
         reload_timer(&sched->master->tmc, e.type);
     } else if (e.type < EVENT_PPU_HDRAW) {
-        enable_timer(&sched->master->tmc, e.type - EVENT_TM0_ENA);
+        write_timer(&sched->master->io, e.type - EVENT_TM0_W,
+                    sched->master->tmc.new_tmcnt[e.type - EVENT_TM0_W]);
     } else if (e.type == EVENT_PPU_HDRAW) {
         on_hdraw(&sched->master->ppu);
     } else if (e.type == EVENT_PPU_HBLANK) {

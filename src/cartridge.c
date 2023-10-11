@@ -52,13 +52,22 @@ Cartridge* create_cartridge(char* filename) {
         }
     }
 
+    if (cart->big_flash) {
+        cart->st.flash.code = 0x1362;
+    } else {
+        cart->st.flash.code = 0xd4bf;
+    }
+
     cart->rom_filename = malloc(strlen(filename) + 1);
     strcpy(cart->rom_filename, filename);
     int i = strrchr(filename, '.') - filename;
     cart->sav_filename = malloc(i + sizeof ".sav");
     strcpy(cart->sav_filename + i, ".sav");
 
-    if (cart->sav_size) cart->sram = malloc(cart->sav_size);
+    if (cart->sav_size) {
+        cart->sram = malloc(cart->sav_size);
+        memset(cart->sram, 0xff, cart->sav_size);
+    }
 
     return cart;
 }
@@ -93,8 +102,7 @@ void cart_write_sram(Cartridge* cart, hword addr, byte b) {
 
 byte cart_read_flash(Cartridge* cart, hword addr) {
     if (cart->st.flash.mode == FLASH_ID) {
-        if (addr & 1) return 0xd4;
-        else return 0xbf;
+        return cart->st.flash.code >> 8 * (addr & 1);
     } else return cart->flash[cart->st.flash.bank][addr];
 }
 

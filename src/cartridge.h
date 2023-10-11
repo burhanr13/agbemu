@@ -44,6 +44,7 @@ typedef struct {
             FlashMode mode;
             int state;
             int bank;
+            hword code;
         } flash;
     } st;
 

@@ -488,9 +488,9 @@ void gba_step(GBA* gba) {
 }
 
 void log_error(GBA* gba, char* mess, word addr) {
-    if (lg) {
-        printf("Error: %s, addr=0x%08x\n", mess, addr);
-        print_cpu_state(&gba->cpu);
-        if (dbg) raise(SIGINT);
-    }
+    // if (lg) {
+    //     printf("Error: %s, addr=0x%08x\n", mess, addr);
+    //     print_cpu_state(&gba->cpu);
+    //     if (dbg) raise(SIGINT);
+    // }
 }

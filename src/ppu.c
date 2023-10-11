@@ -624,8 +624,6 @@ void on_hblank(PPU* ppu) {
             draw_scanline(ppu);
         }
 
-        if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
-
         ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
         ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
         ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
@@ -637,4 +635,5 @@ void on_hblank(PPU* ppu) {
         }
     }
     ppu->master->io.dispstat.hblank = 1;
+    if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
 }

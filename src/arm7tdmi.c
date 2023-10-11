@@ -35,6 +35,10 @@ void cpu_fetch_instr(Arm7TDMI* cpu) {
 }
 
 void cpu_flush(Arm7TDMI* cpu) {
+    if (cpu->pc > 0x0fffffff) {
+        print_cpu_state(cpu);
+        raise(SIGINT);
+    }
     if (cpu->cpsr.t) {
         cpu->pc &= ~1;
         cpu->cur_instr = thumb_lookup[cpu_fetchh(cpu, cpu->pc)];

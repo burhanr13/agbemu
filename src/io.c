@@ -109,13 +109,8 @@ void io_writeh(IO* io, word addr, hword data) {
         case TM2CNT_H:
         case TM3CNT_H: {
             int i = (addr - TM0CNT_H) / (TM1CNT_H - TM0CNT_H);
-            bool prev_ena = io->tm[i].cnt.enable;
-            update_timer_count(&io->master->tmc, i);
-            io->tm[i].cnt.h = data;
-            if (!prev_ena && io->tm[i].cnt.enable) {
-                add_event(&io->master->sched, &(Event){io->master->cycles + 1, EVENT_TM0_ENA + i});
-            } else update_timer_reload(&io->master->tmc, i);
-            break;
+            io->master->tmc.new_tmcnt[i] = data;
+            add_event(&io->master->sched, &(Event){io->master->cycles + 1, EVENT_TM0_W + i});
         }
         case KEYINPUT:
             break;

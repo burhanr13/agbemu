@@ -29,10 +29,15 @@ void update_timer_reload(TimerController* tmc, int i) {
     add_event(&tmc->master->sched, &(Event){rel_time, i});
 }
 
-void enable_timer(TimerController* tmc, int i) {
-    tmc->counter[i] = tmc->master->io.tm[i].reload;
-    tmc->set_time[i] = tmc->master->cycles;
-    update_timer_reload(tmc, i);
+void write_timer(IO* io, int i, hword new_tmcnt) {
+    bool prev_ena = io->tm[i].cnt.enable;
+    update_timer_count(&io->master->tmc, i);
+    io->tm[i].cnt.h = new_tmcnt;
+    if (!prev_ena && io->tm[i].cnt.enable) {
+        io->master->tmc.counter[i] = io->tm[i].reload;
+        io->master->tmc.set_time[i] = io->master->cycles;
+    } 
+    update_timer_reload(&io->master->tmc, i);
 }
 
 void reload_timer(TimerController* tmc, int i) {
