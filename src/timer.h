@@ -1,10 +1,10 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include "io.h"
 #include "types.h"
 
 typedef struct _GBA GBA;
+typedef struct _IO IO;
 
 typedef struct {
     GBA* master;

@@ -93,7 +93,7 @@ enum {
 
 typedef struct _GBA GBA;
 
-typedef struct {
+typedef struct _IO {
     GBA* master;
     union {
         byte b[IO_SIZE];
