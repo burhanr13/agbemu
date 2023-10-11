@@ -37,6 +37,8 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
         gba->cpu.banked_sp[B_IRQ] = 0x3007fa0;
         gba->cpu.sp = 0x3007f00;
 
+        gba->last_bios_val = 0xe129f000;
+
         gba->io.bgaff[0].pa = 1 << 8;
         gba->io.bgaff[0].pd = 1 << 8;
         gba->io.bgaff[1].pa = 1 << 8;
@@ -128,10 +130,15 @@ int get_waitstates(GBA* gba, word addr, DataWidth d) {
             return total;
         }
         case R_SRAM:
+        case R_SRAM2:
             return CART_WAITS[gba->io.waitcnt.sram];
         default:
             return 1;
     }
+}
+
+hword read_rom_oob(word addr) {
+    return (addr >> 1) & 0xffff;
 }
 
 byte bus_readb(GBA* gba, word addr) {
@@ -180,9 +187,10 @@ byte bus_readb(GBA* gba, word addr) {
             gba->next_cart_addr = (cart_addr & ~1) + 2;
             if (rom_addr < gba->cart->rom_size) {
                 return gba->cart->rom.b[rom_addr];
-            }
+            } else return read_rom_oob(addr);
             break;
         case R_SRAM:
+        case R_SRAM2:
             return cart_read_sram(gba->cart, addr);
             break;
     }
@@ -203,7 +211,8 @@ hword bus_readh(GBA* gba, word addr) {
                 if (gba->cpu.pc < BIOS_SIZE) {
                     gba->last_bios_val = gba->bios.w[addr >> 2];
                     return gba->bios.h[addr >> 1];
-                } else if (!gba->dmac.any_active) return gba->last_bios_val >> (16 * (addr % 2));
+                } else if (!gba->dmac.any_active)
+                    return gba->last_bios_val >> (16 * ((addr >> 1) % 2));
                 else {
                     gba->openbus = true;
                     return 0;
@@ -218,7 +227,7 @@ hword bus_readh(GBA* gba, word addr) {
             break;
         case R_IO:
             if (addr < IO_SIZE) {
-                return io_readh(&gba->io, addr & ~1);
+                return io_readh(&gba->io, addr);
             }
             break;
         case R_PRAM:
@@ -241,9 +250,10 @@ hword bus_readh(GBA* gba, word addr) {
             gba->next_cart_addr = (cart_addr & ~1) + 2;
             if (rom_addr < gba->cart->rom_size) {
                 return gba->cart->rom.h[rom_addr >> 1];
-            }
+            } else return read_rom_oob(addr & ~1);
             break;
         case R_SRAM:
+        case R_SRAM2:
             return cart_read_sram(gba->cart, addr) * 0x0101;
             break;
     }
@@ -303,9 +313,10 @@ word bus_readw(GBA* gba, word addr) {
             gba->next_cart_addr = (cart_addr & ~0b11) + 4;
             if (rom_addr < gba->cart->rom_size) {
                 return gba->cart->rom.w[rom_addr >> 2];
-            }
+            } else return read_rom_oob((addr & ~0b11) + 2) << 16 | read_rom_oob(addr & ~0b11);
             break;
         case R_SRAM:
+        case R_SRAM2:
             return cart_read_sram(gba->cart, addr) * 0x01010101;
             break;
     }
@@ -351,6 +362,7 @@ void bus_writeb(GBA* gba, word addr, byte b) {
         case R_ROM2EX:
             break;
         case R_SRAM:
+        case R_SRAM2:
             cart_write_sram(gba->cart, addr, b);
             break;
         default:
@@ -395,6 +407,7 @@ void bus_writeh(GBA* gba, word addr, hword h) {
         case R_ROM2EX:
             break;
         case R_SRAM:
+        case R_SRAM2:
             cart_write_sram(gba->cart, addr, h >> (8 * (addr & 1)));
             break;
         default:
@@ -439,6 +452,7 @@ void bus_writew(GBA* gba, word addr, word w) {
         case R_ROM2EX:
             break;
         case R_SRAM:
+        case R_SRAM2:
             cart_write_sram(gba->cart, addr, w >> (8 * (addr & 0b11)));
             break;
         default:

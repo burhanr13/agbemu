@@ -132,7 +132,7 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
 word cpu_readb(Arm7TDMI* cpu, word addr, bool sx) {
     tick_components(cpu->master, get_waitstates(cpu->master, addr, D_BYTE));
     word data = bus_readb(cpu->master, addr);
-    if (cpu->master->openbus) data = cpu->bus_val;
+    if (cpu->master->openbus) data = (byte) cpu->bus_val;
     if (sx) data = (sbyte) data;
     cpu->bus_val = data;
     return data;
@@ -141,7 +141,7 @@ word cpu_readb(Arm7TDMI* cpu, word addr, bool sx) {
 word cpu_readh(Arm7TDMI* cpu, word addr, bool sx) {
     tick_components(cpu->master, get_waitstates(cpu->master, addr, D_HWORD));
     word data = bus_readh(cpu->master, addr);
-    if (cpu->master->openbus) data = cpu->bus_val;
+    if (cpu->master->openbus) data = (hword) cpu->bus_val;
     if (addr & 1) {
         if (sx) {
             data = ((shword) data) >> 8;
@@ -181,7 +181,18 @@ hword cpu_fetchh(Arm7TDMI* cpu, word addr) {
     tick_components(cpu->master, get_waitstates(cpu->master, addr, D_HWORD));
     word data = bus_readh(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
-    else cpu->bus_val = data * 0x00010001;
+    else {
+        word reg = addr >> 24;
+        if (reg == R_BIOS || reg == R_OAM || reg == R_IWRAM) {
+            if (addr & 1) {
+                cpu->bus_val &= 0x0000ffff;
+                cpu->bus_val |= data << 16;
+            } else {
+                cpu->bus_val &= 0xffff0000;
+                cpu->bus_val |= data;
+            }
+        } else cpu->bus_val = data * 0x00010001;
+    }
     return data;
 }
 

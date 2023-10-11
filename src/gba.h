@@ -36,7 +36,8 @@ enum {
     R_ROM1EX,
     R_ROM2,
     R_ROM2EX,
-    R_SRAM
+    R_SRAM,
+    R_SRAM2
 };
 
 typedef struct _GBA {

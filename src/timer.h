@@ -15,6 +15,7 @@ typedef struct {
 void update_timer_count(TimerController* tmc, int i);
 void update_timer_reload(TimerController* tmc, int i);
 
+void enable_timer(TimerController* tmc, int i);
 void reload_timer(TimerController* tmc, int i);
 
 #endif

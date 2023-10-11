@@ -29,6 +29,12 @@ void update_timer_reload(TimerController* tmc, int i) {
     add_event(&tmc->master->sched, &(Event){rel_time, i});
 }
 
+void enable_timer(TimerController* tmc, int i) {
+    tmc->counter[i] = tmc->master->io.tm[i].reload;
+    tmc->set_time[i] = tmc->master->cycles;
+    update_timer_reload(tmc, i);
+}
+
 void reload_timer(TimerController* tmc, int i) {
     tmc->counter[i] = tmc->master->io.tm[i].reload;
     tmc->set_time[i] = tmc->master->cycles;

@@ -113,10 +113,8 @@ void io_writeh(IO* io, word addr, hword data) {
             update_timer_count(&io->master->tmc, i);
             io->tm[i].cnt.h = data;
             if (!prev_ena && io->tm[i].cnt.enable) {
-                io->master->tmc.counter[i] = io->tm[i].reload;
-                io->master->tmc.set_time[i] = io->master->cycles;
-            }
-            update_timer_reload(&io->master->tmc, i);
+                add_event(&io->master->sched, &(Event){io->master->cycles + 1, EVENT_TM0_ENA + i});
+            } else update_timer_reload(&io->master->tmc, i);
             break;
         }
         case KEYINPUT:
