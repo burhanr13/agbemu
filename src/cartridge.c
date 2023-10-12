@@ -62,18 +62,30 @@ Cartridge* create_cartridge(char* filename) {
     strcpy(cart->rom_filename, filename);
     int i = strrchr(filename, '.') - filename;
     cart->sav_filename = malloc(i + sizeof ".sav");
+    strncpy(cart->sav_filename, cart->rom_filename, i);
     strcpy(cart->sav_filename + i, ".sav");
 
     if (cart->sav_size) {
         cart->sram = malloc(cart->sav_size);
-        memset(cart->sram, 0xff, cart->sav_size);
+        FILE* fp = fopen(cart->sav_filename, "rb");
+        if (fp) {
+            fread(cart->sram, 1, cart->sav_size, fp);
+            fclose(fp);
+        } else memset(cart->sram, 0xff, cart->sav_size);
     }
 
     return cart;
 }
 
 void destroy_cartridge(Cartridge* cart) {
-    if (cart->sav_size) free(cart->sram);
+    if (cart->sav_size) {
+        FILE* fp = fopen(cart->sav_filename, "wb");
+        if (fp) {
+            fwrite(cart->sram, 1, cart->sav_size, fp);
+            fclose(fp);
+        }
+        free(cart->sram);
+    }
 
     free(cart->rom_filename);
     free(cart->sav_filename);
