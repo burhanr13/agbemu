@@ -5,7 +5,9 @@
 
 typedef enum { SAV_NONE, SAV_SRAM, SAV_FLASH, SAV_EEPROM } SavType;
 
-typedef enum { FLASH_NORM, FLASH_ID, FLASH_ERASE, FLASH_WRITE, FLASH_BANKSEL } FlashMode;
+typedef enum { FLASH_IDLE, FLASH_ID, FLASH_ERASE, FLASH_WRITE, FLASH_BANKSEL } FlashMode;
+
+typedef enum { EEPROM_IDLE, EEPROM_BRW, EEPROM_ADDR, EEPROM_DATA } EEPROMState;
 
 enum {
     SRAM_SIZE = 1 << 15,
@@ -34,18 +36,33 @@ typedef struct {
         dword* eeprom;
     };
 
+    word eeprom_mask;
+
     union {
-        bool big_flash;
-        bool big_eeprom;
+        struct {
+            bool big_flash;
+            hword flash_code;
+        };
+        struct {
+            bool big_eeprom;
+            bool eeprom_size_set;
+            byte eeprom_addr_len;
+        };
     };
 
     union {
         struct {
             FlashMode mode;
-            int state;
-            int bank;
-            hword code;
+            byte state;
+            byte bank;
         } flash;
+        struct {
+            EEPROMState state;
+            dword data;
+            hword addr;
+            byte index;
+            bool read;
+        } eeprom;
     } st;
 
 } Cartridge;
@@ -58,6 +75,8 @@ void cart_write_sram(Cartridge* cart, hword addr, byte b);
 
 byte cart_read_flash(Cartridge* cart, hword addr);
 void cart_write_flash(Cartridge* cart, hword addr, byte b);
+
+void cart_set_eeprom_size(Cartridge* cart, bool big_eeprom);
 
 hword cart_read_eeprom(Cartridge* cart);
 void cart_write_eeprom(Cartridge* cart, hword h);

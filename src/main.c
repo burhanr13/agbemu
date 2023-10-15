@@ -17,7 +17,7 @@ bool filter;
 
 char wintitle[200];
 
-void center_screen_in_window(int windowW, int windowH, SDL_Rect* dst) {
+static inline void center_screen_in_window(int windowW, int windowH, SDL_Rect* dst) {
     if (windowW > windowH) {
         dst->h = windowH;
         dst->y = 0;
@@ -92,15 +92,17 @@ void init_color_lookups() {
     }
 }
 
-int gba_convert_color(hword color) {
-    int r = color & 0x1f;
-    int g = (color >> 5) & 0x1f;
-    int b = (color >> 10) & 0x1f;
-    if (filter) {
-        return color_lookup_filter[r] << 16 | color_lookup_filter[g] << 8 |
-               color_lookup_filter[b] << 0;
-    } else {
-        return color_lookup[r] << 16 | color_lookup[g] << 8 | color_lookup[b] << 0;
+void gba_convert_screen(hword* gba_screen, Uint32* screen) {
+    for (int i = 0; i < GBA_SCREEN_W * GBA_SCREEN_H; i++) {
+        int r = gba_screen[i] & 0x1f;
+        int g = (gba_screen[i] >> 5) & 0x1f;
+        int b = (gba_screen[i] >> 10) & 0x1f;
+        if (filter) {
+            screen[i] = color_lookup_filter[r] << 16 | color_lookup_filter[g] << 8 |
+                        color_lookup_filter[b] << 0;
+        } else {
+            screen[i] = color_lookup[r] << 16 | color_lookup[g] << 8 | color_lookup[b] << 0;
+        }
     }
 }
 
@@ -135,7 +137,7 @@ int main(int argc, char** argv) {
     char* romfilenodir = romfile + strlen(romfile);
     while (romfilenodir > romfile && *(romfilenodir - 1) != '/') romfilenodir--;
 
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
     SDL_Window* window;
     SDL_Renderer* renderer;
@@ -173,10 +175,9 @@ int main(int argc, char** argv) {
         void* pixels;
         int pitch;
         SDL_LockTexture(texture, NULL, &pixels, &pitch);
-        for (int i = 0; i < GBA_SCREEN_W * GBA_SCREEN_H; i++) {
-            ((Uint32*) pixels)[i] = gba_convert_color(((hword*) gba->ppu.screen)[i]);
-        }
+        gba_convert_screen((hword*) gba->ppu.screen, pixels);
         SDL_UnlockTexture(texture);
+
         int windowW, windowH;
         SDL_GetWindowSize(window, &windowW, &windowH);
         SDL_Rect dst;

@@ -37,7 +37,7 @@ enum {
     R_ROM2,
     R_ROM2EX,
     R_SRAM,
-    R_SRAM2
+    R_SRAMEX
 };
 
 typedef struct _GBA {
@@ -50,7 +50,7 @@ typedef struct _GBA {
     Scheduler sched;
 
     Cartridge* cart;
-    word next_cart_addr;
+    word next_rom_addr;
 
     dword cycles;
 

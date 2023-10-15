@@ -19,6 +19,7 @@ Cartridge* create_cartridge(char* filename) {
 
     cart->sav_type = SAV_NONE;
     cart->sav_size = 0;
+    cart->eeprom_mask = 0;
 
     for (int i = 0; i < cart->rom_size >> 2; i++) {
         if (!strncmp((void*) &cart->rom.w[i], "SRAM_V", 6)) {
@@ -30,32 +31,36 @@ Cartridge* create_cartridge(char* filename) {
             cart->sav_type = SAV_EEPROM;
             cart->big_eeprom = true;
             cart->sav_size = EEPROM_SIZE_L;
+            if (cart->rom_size > 0x1000000) {
+                cart->eeprom_mask = 0x1ffff00;
+            } else {
+                cart->eeprom_mask = 0x1000000;
+            }
+            cart->eeprom_size_set = false;
+            cart->eeprom_addr_len = 14;
             break;
         }
         if (!strncmp((void*) &cart->rom.w[i], "FLASH_V", 7)) {
             cart->sav_type = SAV_FLASH;
             cart->big_flash = false;
             cart->sav_size = FLASH_BK_SIZE;
+            cart->flash_code = 0xd4bf;
             break;
         }
         if (!strncmp((void*) &cart->rom.w[i], "FLASH512_V", 10)) {
             cart->sav_type = SAV_FLASH;
             cart->big_flash = false;
             cart->sav_size = FLASH_BK_SIZE;
+            cart->flash_code = 0xd4bf;
             break;
         }
         if (!strncmp((void*) &cart->rom.w[i], "FLASH1M_V", 9)) {
             cart->sav_type = SAV_FLASH;
             cart->big_flash = true;
             cart->sav_size = FLASH_BK_SIZE * 2;
+            cart->flash_code = 0x1362;
             break;
         }
-    }
-
-    if (cart->big_flash) {
-        cart->st.flash.code = 0x1362;
-    } else {
-        cart->st.flash.code = 0xd4bf;
     }
 
     cart->rom_filename = malloc(strlen(filename) + 1);
@@ -114,19 +119,19 @@ void cart_write_sram(Cartridge* cart, hword addr, byte b) {
 
 byte cart_read_flash(Cartridge* cart, hword addr) {
     if (cart->st.flash.mode == FLASH_ID) {
-        return cart->st.flash.code >> 8 * (addr & 1);
+        return cart->flash_code >> 8 * (addr & 1);
     } else return cart->flash[cart->st.flash.bank][addr];
 }
 
 void cart_write_flash(Cartridge* cart, hword addr, byte b) {
     if (cart->st.flash.mode == FLASH_WRITE) {
         cart->flash[cart->st.flash.bank][addr] = b;
-        cart->st.flash.mode = FLASH_NORM;
+        cart->st.flash.mode = FLASH_IDLE;
         return;
     }
     if (cart->st.flash.mode == FLASH_BANKSEL) {
         cart->st.flash.bank = b & 1;
-        cart->st.flash.mode = FLASH_NORM;
+        cart->st.flash.mode = FLASH_IDLE;
         return;
     }
     switch (cart->st.flash.state) {
@@ -141,13 +146,13 @@ void cart_write_flash(Cartridge* cart, hword addr, byte b) {
                 if (addr == 0x5555 && b == 0x10) {
                     cart->st.flash.state = 0;
                     memset(cart->flash, 0xff, cart->sav_size);
-                    cart->st.flash.mode = FLASH_NORM;
+                    cart->st.flash.mode = FLASH_IDLE;
                     return;
                 }
                 if (b == 0x30) {
                     cart->st.flash.state = 0;
                     memset(&cart->flash[cart->st.flash.bank][addr & 0xf000], 0xff, 0x1000);
-                    cart->st.flash.mode = FLASH_NORM;
+                    cart->st.flash.mode = FLASH_IDLE;
                     return;
                 }
             }
@@ -158,7 +163,7 @@ void cart_write_flash(Cartridge* cart, hword addr, byte b) {
                         cart->st.flash.mode = FLASH_ID;
                         break;
                     case 0xf0:
-                        cart->st.flash.mode = FLASH_NORM;
+                        cart->st.flash.mode = FLASH_IDLE;
                         break;
                     case 0x80:
                         cart->st.flash.mode = FLASH_ERASE;
@@ -175,8 +180,66 @@ void cart_write_flash(Cartridge* cart, hword addr, byte b) {
     }
 }
 
-hword cart_read_eeprom(Cartridge* cart) {
-    return 0;
+void cart_set_eeprom_size(Cartridge* cart, bool big_eeprom) {
+    cart->big_eeprom = big_eeprom;
+    cart->sav_size = big_eeprom ? EEPROM_SIZE_L : EEPROM_SIZE_S;
+    cart->eeprom_addr_len = big_eeprom ? 14 : 6;
+    cart->eeprom = realloc(cart->eeprom, cart->sav_size);
+    cart->eeprom_size_set = true;
 }
 
-void cart_write_eeprom(Cartridge* cart, hword h) {}
+hword cart_read_eeprom(Cartridge* cart) {
+    switch (cart->st.eeprom.state) {
+        case EEPROM_DATA:
+            if(cart->st.eeprom.read) {
+                hword data = (cart->st.eeprom.data >> (63 - cart->st.eeprom.index)) & 1;
+                if(++cart->st.eeprom.index == 64) {
+                    cart->st.eeprom.state = EEPROM_IDLE;
+                }
+                return data;
+            } else return 0;
+        case EEPROM_IDLE:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+void cart_write_eeprom(Cartridge* cart, hword h) {
+    switch (cart->st.eeprom.state) {
+        case EEPROM_IDLE:
+            if (h & 1) cart->st.eeprom.state++;
+            break;
+        case EEPROM_BRW:
+            cart->st.eeprom.read = h & 1;
+            cart->st.eeprom.state++;
+            cart->st.eeprom.addr = 0;
+            cart->st.eeprom.index = 0;
+            break;
+        case EEPROM_ADDR:
+            cart->st.eeprom.addr <<= 1;
+            cart->st.eeprom.addr |= h & 1;
+            if (++cart->st.eeprom.index == cart->eeprom_addr_len) {
+                cart->st.eeprom.addr %= 1 << 10;
+                if (cart->st.eeprom.read) {
+                    cart->st.eeprom.data = cart->eeprom[cart->st.eeprom.addr];
+                    cart->st.eeprom.index = -4;
+                } else {
+                    cart->st.eeprom.data = 0;
+                    cart->st.eeprom.index = 0;
+                }
+                cart->st.eeprom.state++;
+            }
+            break;
+        case EEPROM_DATA:
+            if (!cart->st.eeprom.read) {
+                cart->st.eeprom.data <<= 1;
+                cart->st.eeprom.data |= h & 1;
+                if (++cart->st.eeprom.index == 64) {
+                    cart->eeprom[cart->st.eeprom.addr] = cart->st.eeprom.data;
+                    cart->st.eeprom.state = EEPROM_IDLE;
+                }
+            }
+            break;
+    }
+}

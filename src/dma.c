@@ -23,6 +23,15 @@ void dma_enable(DMAController* dmac, int i) {
     if (i < 3) {
         dmac->dma[i].ct %= 0x4000;
         if (dmac->dma[i].ct == 0) dmac->dma[i].ct = 0x4000;
+    } else if (dmac->master->cart->eeprom_mask && !dmac->master->cart->eeprom_size_set &&
+               (dmac->dma[i].sptr & dmac->master->cart->eeprom_mask) ==
+                   dmac->master->cart->eeprom_mask) {
+        if (dmac->dma[i].ct == 9) {
+            cart_set_eeprom_size(dmac->master->cart, false);
+        }
+        if (dmac->dma[i].ct == 17) {
+            cart_set_eeprom_size(dmac->master->cart, true);
+        }
     }
 
     if (dmac->master->io.dma[i].cnt.start == DMA_ST_IMM) {
@@ -39,7 +48,7 @@ void dma_activate(DMAController* dmac, int i) {
     dma_update_active(dmac);
     if (dmac->master->io.dma[i].cnt.dadcnt == DMA_ADCNT_INR) {
         dmac->dma[i].dptr = dmac->master->io.dma[i].dad;
-        if(dmac->master->io.dma[i].cnt.wsize) {
+        if (dmac->master->io.dma[i].cnt.wsize) {
             dmac->dma[i].dptr &= ~0b11;
         } else {
             dmac->dma[i].dptr &= ~1;
