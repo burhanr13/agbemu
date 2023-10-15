@@ -1,7 +1,7 @@
 CC := gcc
 CFLAGS := -g -Wall
 CPPFLAGS := -I/opt/homebrew/include -MP -MMD
-LDFLAGS := $(shell sdl2-config --libs) -lz
+LDFLAGS := $(shell sdl2-config --libs) -lm -lz
 
 BUILD_DIR := ./build
 SRC_DIR := ./src

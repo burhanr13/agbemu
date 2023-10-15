@@ -498,6 +498,7 @@ void compose_lines(PPU* ppu) {
             if (g1 > 31) g1 = 31;
             b1 = (eva * b1 + evb * b2) / 16;
             if (b1 > 31) b1 = 31;
+            ppu->screen[ppu->ly][x] = (b1 << 10) | (g1 << 5) | r1;
         } else if (effect && target1 && (!win_ena || ppu->master->io.wincnt[win].effects_enable)) {
             switch (effect) {
                 case EFF_ALPHA: {
@@ -527,18 +528,10 @@ void compose_lines(PPU* ppu) {
                     break;
                 }
             }
+            ppu->screen[ppu->ly][x] = (b1 << 10) | (g1 << 5) | r1;
+        } else {
+            ppu->screen[ppu->ly][x] = color1;
         }
-
-        if (filter) {
-            if (r1 >= 16) r1 -= (32 - r1) / 2;
-            else r1 -= r1 / 2;
-            if (g1 >= 16) g1 -= (32 - g1) / 2;
-            else g1 -= g1 / 2;
-            if (b1 >= 16) b1 -= (32 - b1) / 2;
-            else b1 -= b1 / 2;
-        }
-
-        ppu->screen[ppu->ly][x] = (b1 << 10) | (g1 << 5) | r1;
     }
 }
 

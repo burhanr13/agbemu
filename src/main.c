@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -80,6 +81,29 @@ void update_input(GBA* gba) {
     gba->io.keyinput.r = ~keys[SDL_SCANCODE_S];
 }
 
+byte color_lookup[32];
+byte color_lookup_filter[32];
+
+void init_color_lookups() {
+    for (int i = 0; i < 32; i++) {
+        float c = (float) i / 31;
+        color_lookup[i] = c * 255;
+        color_lookup_filter[i] = pow(c, 1.7) * 255;
+    }
+}
+
+int gba_convert_color(hword color) {
+    int r = color & 0x1f;
+    int g = (color >> 5) & 0x1f;
+    int b = (color >> 10) & 0x1f;
+    if (filter) {
+        return color_lookup_filter[r] << 16 | color_lookup_filter[g] << 8 |
+               color_lookup_filter[b] << 0;
+    } else {
+        return color_lookup[r] << 16 | color_lookup[g] << 8 | color_lookup[b] << 0;
+    }
+}
+
 int main(int argc, char** argv) {
 
     read_args(argc, argv);
@@ -105,6 +129,7 @@ int main(int argc, char** argv) {
 
     arm_generate_lookup();
     thumb_generate_lookup();
+    init_color_lookups();
     init_gba(gba, cart, bios);
 
     char* romfilenodir = romfile + strlen(romfile);
@@ -121,9 +146,9 @@ int main(int argc, char** argv) {
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
-    SDL_Texture* texture = SDL_CreateTexture(
-        renderer, SDL_PIXELFORMAT_BGR555, SDL_TEXTUREACCESS_STREAMING, GBA_SCREEN_W, GBA_SCREEN_H);
-
+    SDL_Texture* texture =
+        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
+                          GBA_SCREEN_W, GBA_SCREEN_H);
     Uint64 prev_time = SDL_GetPerformanceCounter();
     Uint64 prev_fps_update = prev_time;
     Uint64 prev_fps_frame = 0;
@@ -148,7 +173,9 @@ int main(int argc, char** argv) {
         void* pixels;
         int pitch;
         SDL_LockTexture(texture, NULL, &pixels, &pitch);
-        memcpy(pixels, gba->ppu.screen, sizeof gba->ppu.screen);
+        for (int i = 0; i < GBA_SCREEN_W * GBA_SCREEN_H; i++) {
+            ((Uint32*) pixels)[i] = gba_convert_color(((hword*) gba->ppu.screen)[i]);
+        }
         SDL_UnlockTexture(texture);
         int windowW, windowH;
         SDL_GetWindowSize(window, &windowW, &windowH);
