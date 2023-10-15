@@ -105,7 +105,7 @@ byte cart_read_sram(Cartridge* cart, hword addr) {
     } else if (cart->sav_type == SAV_FLASH) {
         return cart_read_flash(cart, addr);
     } else {
-        return 0;
+        return 0xff;
     }
 }
 

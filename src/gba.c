@@ -172,7 +172,7 @@ byte bus_readb(GBA* gba, word addr) {
             break;
         case R_VRAM:
             addr %= 0x20000;
-            if (addr > VRAM_SIZE) addr -= 0x8000;
+            if (addr >= VRAM_SIZE) addr -= 0x8000;
             return gba->vram.b[addr];
             break;
         case R_OAM:
@@ -238,7 +238,7 @@ hword bus_readh(GBA* gba, word addr) {
             break;
         case R_VRAM:
             addr %= 0x20000;
-            if (addr > VRAM_SIZE) addr -= 0x8000;
+            if (addr >= VRAM_SIZE) addr -= 0x8000;
             return gba->vram.h[addr >> 1];
             break;
         case R_OAM:
@@ -304,7 +304,7 @@ word bus_readw(GBA* gba, word addr) {
             break;
         case R_VRAM:
             addr %= 0x20000;
-            if (addr > VRAM_SIZE) addr -= 0x8000;
+            if (addr >= VRAM_SIZE) addr -= 0x8000;
             return gba->vram.w[addr >> 2];
             break;
         case R_OAM:
@@ -361,7 +361,7 @@ void bus_writeb(GBA* gba, word addr, byte b) {
             break;
         case R_VRAM:
             addr %= 0x20000;
-            if (addr > VRAM_SIZE) addr -= 0x8000;
+            if (addr >= VRAM_SIZE) addr -= 0x8000;
             if (addr < 0x10000 || (addr < 0x14000 && gba->io.dispcnt.bg_mode >= 3))
                 gba->vram.h[addr >> 1] = b * 0x0101;
             break;
@@ -411,7 +411,7 @@ void bus_writeh(GBA* gba, word addr, hword h) {
             break;
         case R_VRAM:
             addr %= 0x20000;
-            if (addr > VRAM_SIZE) addr -= 0x8000;
+            if (addr >= VRAM_SIZE) addr -= 0x8000;
             gba->vram.h[addr >> 1] = h;
             break;
         case R_OAM:
@@ -461,7 +461,7 @@ void bus_writew(GBA* gba, word addr, word w) {
             break;
         case R_VRAM:
             addr %= 0x20000;
-            if (addr > VRAM_SIZE) addr -= 0x8000;
+            if (addr >= VRAM_SIZE) addr -= 0x8000;
             gba->vram.w[addr >> 2] = w;
             break;
         case R_OAM:
