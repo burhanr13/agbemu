@@ -35,7 +35,7 @@ void cpu_fetch_instr(Arm7TDMI* cpu) {
 }
 
 void cpu_flush(Arm7TDMI* cpu) {
-    if (cpu->pc > 0x0fffffff) {
+    if (dbg && cpu->pc > 0x0fffffff) {
         print_cpu_state(cpu);
         raise(SIGINT);
     }
