@@ -78,7 +78,7 @@ void io_writeh(IO* io, word addr, hword data) {
             w |= io->h[(addr >> 1) & ~1];
         } else {
             w = data;
-            w |= io->h[(addr >> 1) | 1];
+            w |= io->h[(addr >> 1) | 1] << 16;
         }
         io_writew(io, addr & ~0b11, w);
         return;
