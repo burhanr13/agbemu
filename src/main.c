@@ -16,6 +16,20 @@ bool filter;
 
 char wintitle[200];
 
+void center_screen_in_window(int windowW, int windowH, SDL_Rect* dst) {
+    if (windowW > windowH) {
+        dst->h = windowH;
+        dst->y = 0;
+        dst->w = dst->h * GBA_SCREEN_W / GBA_SCREEN_H;
+        dst->x = (windowW - dst->w) / 2;
+    } else {
+        dst->w = windowW;
+        dst->x = 0;
+        dst->h = dst->w * GBA_SCREEN_H / GBA_SCREEN_W;
+        dst->y = (windowH - dst->h) / 2;
+    }
+}
+
 void read_args(int argc, char** argv) {
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
@@ -100,7 +114,8 @@ int main(int argc, char** argv) {
 
     SDL_Window* window;
     SDL_Renderer* renderer;
-    SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 4, GBA_SCREEN_H * 4, 0, &window, &renderer);
+    SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 4, GBA_SCREEN_H * 4, SDL_WINDOW_RESIZABLE, &window,
+                                &renderer);
     snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", romfilenodir, 0.0);
     SDL_SetWindowTitle(window, wintitle);
     SDL_RenderClear(renderer);
@@ -135,7 +150,12 @@ int main(int argc, char** argv) {
         SDL_LockTexture(texture, NULL, &pixels, &pitch);
         memcpy(pixels, gba->ppu.screen, sizeof gba->ppu.screen);
         SDL_UnlockTexture(texture);
-        SDL_RenderCopy(renderer, texture, NULL, NULL);
+        int windowW, windowH;
+        SDL_GetWindowSize(window, &windowW, &windowH);
+        SDL_Rect dst;
+        center_screen_in_window(windowW, windowH, &dst);
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, texture, NULL, &dst);
         SDL_RenderPresent(renderer);
 
         SDL_Event e;
