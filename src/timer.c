@@ -29,15 +29,10 @@ void update_timer_reload(TimerController* tmc, int i) {
     add_event(&tmc->master->sched, &(Event){rel_time, i});
 }
 
-void write_timer(IO* io, int i, hword new_tmcnt) {
-    bool prev_ena = io->tm[i].cnt.enable;
-    update_timer_count(&io->master->tmc, i);
-    io->tm[i].cnt.h = new_tmcnt;
-    if (!prev_ena && io->tm[i].cnt.enable) {
-        io->master->tmc.counter[i] = io->tm[i].reload;
-        io->master->tmc.set_time[i] = io->master->cycles;
-    } 
-    update_timer_reload(&io->master->tmc, i);
+void enable_timer(TimerController* tmc, int i) {
+    tmc->counter[i] = tmc->master->io.tm[i].reload;
+    tmc->set_time[i] = tmc->master->cycles;
+    update_timer_reload(tmc, i);
 }
 
 void reload_timer(TimerController* tmc, int i) {
@@ -51,5 +46,20 @@ void reload_timer(TimerController* tmc, int i) {
         tmc->master->io.tm[i + 1].cnt.countup) {
         tmc->counter[i + 1]++;
         if (tmc->counter[i + 1] == 0) reload_timer(tmc, i + 1);
+    }
+
+    if(tmc->master->io.soundcnth.cha_timer == i) {
+        fifo_a_pop(&tmc->master->apu);
+        if(tmc->master->apu.fifo_a_size <= 16 && tmc->master->io.dma[1].cnt.start == DMA_ST_SPEC) {
+            tmc->master->dmac.dma[1].sound = true;
+            dma_activate(&tmc->master->dmac, 1);
+        }
+    }
+    if (tmc->master->io.soundcnth.chb_timer == i) {
+        fifo_b_pop(&tmc->master->apu);
+        if (tmc->master->apu.fifo_b_size <= 16 && tmc->master->io.dma[2].cnt.start == DMA_ST_SPEC) {
+            tmc->master->dmac.dma[2].sound = true;
+            dma_activate(&tmc->master->dmac, 2);
+        }
     }
 }

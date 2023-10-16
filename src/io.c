@@ -71,7 +71,7 @@ hword io_readh(IO* io, word addr) {
 
 void io_writeh(IO* io, word addr, hword data) {
     if ((addr & ~0b11) == BG2X || (addr & ~0b11) == BG2Y || (addr & ~0b11) == BG3X ||
-        (addr & ~0b11) == BG3Y) {
+        (addr & ~0b11) == BG3Y || (addr & ~0b11) == FIFO_A || (addr & ~0b11) == FIFO_B) {
         word w;
         if (addr & 0b10) {
             w = data << 16;
@@ -178,6 +178,17 @@ void io_writeh(IO* io, word addr, hword data) {
             }
             io->nr44 = data & NRX4_LEN_ENABLE;
             break;
+        case SOUNDCNT_H:
+            io->soundcnth.h = data;
+            if(io->soundcnth.cha_reset) {
+                io->soundcnth.cha_reset = 0;
+                io->master->apu.fifo_a_size = 0;
+            }
+            if (io->soundcnth.chb_reset) {
+                io->soundcnth.chb_reset = 0;
+                io->master->apu.fifo_b_size = 0;
+            }
+            break;
         case DMA0CNT_H:
         case DMA1CNT_H:
         case DMA2CNT_H:
@@ -199,8 +210,13 @@ void io_writeh(IO* io, word addr, hword data) {
         case TM2CNT_H:
         case TM3CNT_H: {
             int i = (addr - TM0CNT_H) / (TM1CNT_H - TM0CNT_H);
-            io->master->tmc.new_tmcnt[i] = data;
-            add_event(&io->master->sched, &(Event){io->master->cycles + 1, EVENT_TM0_W + i});
+            bool prev_ena = io->tm[i].cnt.enable;
+            update_timer_count(&io->master->tmc, i);
+            io->tm[i].cnt.h = data;
+            update_timer_reload(&io->master->tmc, i);
+            if (!prev_ena && io->tm[i].cnt.enable) {
+                add_event(&io->master->sched, &(Event){io->master->cycles + 1, EVENT_TM0_ENA + i});
+            }
         }
         case KEYINPUT:
             break;
@@ -236,6 +252,12 @@ void io_writew(IO* io, word addr, word data) {
         case BG3Y:
             io->bgaff[1].y = data;
             io->master->ppu.bgaffintr[1].y = data;
+            break;
+        case FIFO_A:
+            fifo_a_push(&io->master->apu, data);
+            break;
+        case FIFO_B:
+            fifo_b_push(&io->master->apu, data);
             break;
         default:
             io_writeh(io, addr, data);

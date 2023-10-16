@@ -87,6 +87,7 @@ void hotkey_press(SDL_KeyCode key) {
             break;
         case SDLK_r:
             init_gba(gba, cart, bios);
+            pause = false;
             break;
         case SDLK_TAB:
             uncap = !uncap;
@@ -219,7 +220,7 @@ int main(int argc, char** argv) {
     while (running) {
         Uint64 cur_time;
         Uint64 elapsed;
-        bool play_audio = !(pause || mute || uncap);
+        bool play_audio = !(pause || mute || uncap) && (gba->io.nr52 & (1 << 7));
 
         if (!pause) {
             do {

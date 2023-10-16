@@ -17,7 +17,7 @@ typedef struct {
         word bus_val;
         hword ct;
         bool active;
-        bool initial;
+        bool sound;
     } dma[4];
     bool any_active;
 } DMAController;

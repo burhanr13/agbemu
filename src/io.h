@@ -67,7 +67,7 @@ enum {
     SOUNDBIAS = 0x088,
     WAVERAM = 0x090,
     FIFO_A = 0x0a0,
-    FIF0_B = 0x0a4,
+    FIFO_B = 0x0a4,
 
     // dma control
     DMA0SAD = 0x0b0,

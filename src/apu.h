@@ -69,7 +69,18 @@ typedef struct {
     bool ch4_env_dir;
     byte ch4_volume;
     byte ch4_len_counter;
+
+    byte fifo_a[32];
+    byte fifo_a_size;
+    byte fifo_b[32];
+    byte fifo_b_size;
 } APU;
+
+void fifo_a_push(APU* apu, word samples);
+void fifo_a_pop(APU* apu);
+
+void fifo_b_push(APU* apu, word samples);
+void fifo_b_pop(APU* apu);
 
 void tick_apu(APU* apu);
 

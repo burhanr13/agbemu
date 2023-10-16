@@ -100,7 +100,7 @@ void tick_apu(APU* apu) {
         byte ch3_sample = apu->ch3_enable ? get_sample_ch3(apu) : 0;
         byte ch4_sample = apu->ch4_enable ? get_sample_ch4(apu) : 0;
 
-        byte l_sample = 0, r_sample = 0;
+        hword l_sample = 0, r_sample = 0;
         if (apu->master->io.nr51 & (1 << 0)) r_sample += ch1_sample;
         if (apu->master->io.nr51 & (1 << 1)) r_sample += ch2_sample;
         if (apu->master->io.nr51 & (1 << 2)) r_sample += ch3_sample;
@@ -110,10 +110,22 @@ void tick_apu(APU* apu) {
         if (apu->master->io.nr51 & (1 << 6)) l_sample += ch3_sample;
         if (apu->master->io.nr51 & (1 << 7)) l_sample += ch4_sample;
 
-        apu->sample_buf[apu->sample_ind++] =
-            (float) l_sample / 500 * (((apu->master->io.nr50 & 0b01110000) >> 4) + 1);
-        apu->sample_buf[apu->sample_ind++] =
-            (float) r_sample / 500 * ((apu->master->io.nr50 & 0b00000111) + 1);
+        l_sample *= (((apu->master->io.nr50 & 0b01110000) >> 4) + 1);
+        r_sample *= ((apu->master->io.nr50 & 0b00000111) + 1);
+        l_sample >>= 2 - apu->master->io.soundcnth.gb_volume;
+        r_sample >>= 2 - apu->master->io.soundcnth.gb_volume;
+
+        hword cha_sample = apu->fifo_a[0];
+        hword chb_sample = apu->fifo_b[0];
+        cha_sample <<= apu->master->io.soundcnth.cha_volume;
+        chb_sample <<= apu->master->io.soundcnth.chb_volume;
+        if (apu->master->io.soundcnth.cha_ena_left) l_sample += cha_sample;
+        if (apu->master->io.soundcnth.cha_ena_right) r_sample += cha_sample;
+        if (apu->master->io.soundcnth.chb_ena_left) l_sample += chb_sample;
+        if (apu->master->io.soundcnth.chb_ena_right) r_sample += chb_sample;
+
+        apu->sample_buf[apu->sample_ind++] = (float) l_sample / 0x600;
+        apu->sample_buf[apu->sample_ind++] = (float) r_sample / 0x600;
         if (apu->sample_ind == SAMPLE_BUF_LEN) {
             apu->samples_full = true;
             apu->sample_ind = 0;
@@ -208,5 +220,35 @@ void tick_apu(APU* apu) {
                 }
             }
         }
+    }
+}
+
+void fifo_a_push(APU* apu, word samples) {
+    for (int i = 0; i < 4; i++, samples >>= 8) {
+        if (apu->fifo_a_size == 32) fifo_a_pop(apu);
+        apu->fifo_a[apu->fifo_a_size++] = samples & 0xff;
+    }
+}
+
+void fifo_a_pop(APU* apu) {
+    if (apu->fifo_a_size == 0) return;
+    apu->fifo_a_size--;
+    for (int i = 0; i < apu->fifo_a_size; i++) {
+        apu->fifo_a[i] = apu->fifo_a[i + 1];
+    }
+}
+
+void fifo_b_push(APU* apu, word samples) {
+    for (int i = 0; i < 4; i++, samples >>= 8) {
+        if (apu->fifo_b_size == 32) fifo_b_pop(apu);
+        apu->fifo_b[apu->fifo_b_size++] = samples & 0xff;
+    }
+}
+
+void fifo_b_pop(APU* apu) {
+    if (apu->fifo_b_size == 0) return;
+    apu->fifo_b_size--;
+    for (int i = 0; i < apu->fifo_b_size; i++) {
+        apu->fifo_b[i] = apu->fifo_b[i + 1];
     }
 }
