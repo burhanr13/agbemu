@@ -265,7 +265,7 @@ int main(int argc, char** argv) {
         Sint64 wait = frame_ticks - elapsed;
 
         if (play_audio) {
-            while (SDL_GetQueuedAudioSize(audio) >= 8 * SAMPLE_BUF_LEN) SDL_Delay(1);
+            while (SDL_GetQueuedAudioSize(audio) >= 12 * SAMPLE_BUF_LEN) SDL_Delay(1);
         } else if (wait > 0 && !uncap) {
             SDL_Delay(wait * 1000 / SDL_GetPerformanceFrequency());
         }
