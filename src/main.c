@@ -14,6 +14,11 @@ char* romfile;
 bool uncap;
 bool bootbios;
 bool filter;
+bool pause;
+
+GBA* gba;
+Cartridge* cart;
+byte* bios;
 
 char wintitle[200];
 
@@ -67,6 +72,25 @@ void read_args(int argc, char** argv) {
     }
 }
 
+void hotkey_press(SDL_KeyCode key) {
+    switch (key) {
+        case SDLK_p:
+            pause = !pause;
+            break;
+        case SDLK_f:
+            filter = !filter;
+            break;
+        case SDLK_r:
+            init_gba(gba, cart, bios);
+            break;
+        case SDLK_TAB:
+            uncap = !uncap;
+            break;
+        default:
+            break;
+    }
+}
+
 void update_input(GBA* gba) {
     const Uint8* keys = SDL_GetKeyboardState(NULL);
     gba->io.keyinput.a = ~keys[SDL_SCANCODE_Z];
@@ -114,14 +138,14 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    GBA* gba = malloc(sizeof *gba);
-    Cartridge* cart = create_cartridge(romfile);
+    gba = malloc(sizeof *gba);
+    cart = create_cartridge(romfile);
     if (!cart) {
         free(gba);
         printf("Invalid rom file\n");
         return -1;
     }
-    byte* bios = load_bios("bios.bin");
+    bios = load_bios("bios.bin");
     if (!bios) {
         free(gba);
         destroy_cartridge(cart);
@@ -158,19 +182,20 @@ int main(int argc, char** argv) {
     Uint64 frame = 0;
     bool running = true;
     while (running) {
-
         Uint64 cur_time;
         Uint64 elapsed;
-        do {
-            while (!gba->ppu.frame_complete) {
-                gba_step(gba);
-            }
-            gba->ppu.frame_complete = false;
-            frame++;
+        if (!pause) {
+            do {
+                while (!gba->ppu.frame_complete) {
+                    gba_step(gba);
+                }
+                gba->ppu.frame_complete = false;
+                frame++;
 
-            cur_time = SDL_GetPerformanceCounter();
-            elapsed = cur_time - prev_time;
-        } while (uncap && elapsed < frame_ticks);
+                cur_time = SDL_GetPerformanceCounter();
+                elapsed = cur_time - prev_time;
+            } while (uncap && elapsed < frame_ticks);
+        }
 
         void* pixels;
         int pitch;
@@ -189,6 +214,7 @@ int main(int argc, char** argv) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) running = false;
+            if (e.type == SDL_KEYDOWN) hotkey_press(e.key.keysym.sym);
         }
         update_input(gba);
 
