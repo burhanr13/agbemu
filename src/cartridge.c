@@ -4,6 +4,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+void eeprom_reverse_bytes(dword* eeprom, int size) {
+    for (int i = 0; i < size; i++) {
+        dword x = eeprom[i];
+        x = (x & 0xffffffff00000000) >> 32 | (x & 0x00000000ffffffff) << 32;
+        x = (x & 0xffff0000ffff0000) >> 16 | (x & 0x0000ffff0000ffff) << 16;
+        x = (x & 0xff00ff00ff00ff00) >> 8 | (x & 0x00ff00ff00ff00ff) << 8;
+        eeprom[i] = x;
+    }
+}
+
 Cartridge* create_cartridge(char* filename) {
     FILE* fp = fopen(filename, "rb");
     if (!fp) return NULL;
@@ -76,6 +86,9 @@ Cartridge* create_cartridge(char* filename) {
         if (fp) {
             fread(cart->sram, 1, cart->sav_size, fp);
             fclose(fp);
+            if (cart->sav_type == SAV_EEPROM) {
+                eeprom_reverse_bytes(cart->eeprom, cart->sav_size / 8);
+            }
         } else memset(cart->sram, 0xff, cart->sav_size);
     }
 
@@ -86,6 +99,9 @@ void destroy_cartridge(Cartridge* cart) {
     if (cart->sav_size) {
         FILE* fp = fopen(cart->sav_filename, "wb");
         if (fp) {
+            if (cart->sav_type == SAV_EEPROM) {
+                eeprom_reverse_bytes(cart->eeprom, cart->sav_size / 8);
+            }
             fwrite(cart->sram, 1, cart->sav_size, fp);
             fclose(fp);
         }
@@ -191,9 +207,9 @@ void cart_set_eeprom_size(Cartridge* cart, bool big_eeprom) {
 hword cart_read_eeprom(Cartridge* cart) {
     switch (cart->st.eeprom.state) {
         case EEPROM_DATA:
-            if(cart->st.eeprom.read) {
+            if (cart->st.eeprom.read) {
                 hword data = (cart->st.eeprom.data >> (63 - cart->st.eeprom.index)) & 1;
-                if(++cart->st.eeprom.index == 64) {
+                if (++cart->st.eeprom.index == 64) {
                     cart->st.eeprom.state = EEPROM_IDLE;
                 }
                 return data;
