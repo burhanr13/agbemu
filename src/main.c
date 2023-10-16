@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "apu.h"
 #include "cartridge.h"
 #include "gba.h"
 #include "thumb_isa.h"
@@ -15,6 +16,7 @@ bool uncap;
 bool bootbios;
 bool filter;
 bool pause;
+bool mute;
 
 GBA* gba;
 Cartridge* cart;
@@ -76,6 +78,9 @@ void hotkey_press(SDL_KeyCode key) {
     switch (key) {
         case SDLK_p:
             pause = !pause;
+            break;
+        case SDLK_m:
+            mute = !mute;
             break;
         case SDLK_f:
             filter = !filter;
@@ -184,7 +189,6 @@ int main(int argc, char** argv) {
     SDL_GameController* controller = NULL;
     if (SDL_NumJoysticks() > 0) {
         controller = SDL_GameControllerOpen(0);
-        printf("Controler\n");
     }
 
     SDL_Window* window;
@@ -199,19 +203,32 @@ int main(int argc, char** argv) {
     SDL_Texture* texture =
         SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                           GBA_SCREEN_W, GBA_SCREEN_H);
+
+    SDL_AudioSpec audio_spec = {
+        .freq = SAMPLE_FREQ, .format = AUDIO_F32, .channels = 2, .samples = SAMPLE_BUF_LEN / 2};
+    SDL_AudioDeviceID audio = SDL_OpenAudioDevice(NULL, 0, &audio_spec, NULL, 0);
+    SDL_PauseAudioDevice(audio, 0);
+
     Uint64 prev_time = SDL_GetPerformanceCounter();
     Uint64 prev_fps_update = prev_time;
     Uint64 prev_fps_frame = 0;
     const Uint64 frame_ticks = SDL_GetPerformanceFrequency() / 60;
     Uint64 frame = 0;
+
     bool running = true;
     while (running) {
         Uint64 cur_time;
         Uint64 elapsed;
+        bool play_audio = !(pause || mute || uncap);
+
         if (!pause) {
             do {
                 while (!gba->ppu.frame_complete) {
                     gba_step(gba);
+                    if (play_audio && gba->apu.samples_full) {
+                        SDL_QueueAudio(audio, gba->apu.sample_buf, sizeof gba->apu.sample_buf);
+                        gba->apu.samples_full = false;
+                    }
                 }
                 gba->ppu.frame_complete = false;
                 frame++;
@@ -245,12 +262,14 @@ int main(int argc, char** argv) {
 
         cur_time = SDL_GetPerformanceCounter();
         elapsed = cur_time - prev_time;
-
         Sint64 wait = frame_ticks - elapsed;
-        if (wait > 0 && !uncap) {
+
+        if (play_audio) {
+            while (SDL_GetQueuedAudioSize(audio) >= 8 * SAMPLE_BUF_LEN) SDL_Delay(1);
+        } else if (wait > 0 && !uncap) {
             SDL_Delay(wait * 1000 / SDL_GetPerformanceFrequency());
-            cur_time = SDL_GetPerformanceCounter();
         }
+        cur_time = SDL_GetPerformanceCounter();
         elapsed = cur_time - prev_fps_update;
         if (elapsed >= SDL_GetPerformanceFrequency() / 2) {
             double fps =
@@ -268,6 +287,8 @@ int main(int argc, char** argv) {
     free(gba);
 
     if (controller) SDL_GameControllerClose(controller);
+
+    SDL_CloseAudioDevice(audio);
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

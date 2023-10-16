@@ -88,6 +88,96 @@ void io_writeh(IO* io, word addr, hword data) {
             io->dispstat.h &= 0b111;
             io->dispstat.h |= data & ~0b111;
             break;
+        case SOUND1CNT_L:
+            if ((data & NR10_PACE) == 0) io->master->apu.ch1_sweep_pace = 0;
+            io->nr10 = data;
+            break;
+        case SOUND1CNT_H:
+            io->master->apu.ch1_len_counter = data & NRX1_LEN;
+            io->nr11 = data & NRX1_DUTY;
+            data >>= 8;
+            if (!(data & 0b11111000)) io->master->apu.ch1_enable = false;
+            io->nr12 = data;
+            break;
+        case SOUND1CNT_X:
+            io->master->apu.ch1_wavelen = data & NRX34_WVLEN;
+            io->sound1cntx = data & NRX34_WVLEN;
+            data >>= 8;
+            if ((io->nr12 & 0b11111000) && (data & NRX4_TRIGGER)) {
+                io->master->apu.ch1_enable = true;
+                io->master->apu.ch1_counter = io->master->apu.ch1_wavelen;
+                io->master->apu.ch1_duty_index = 0;
+                io->master->apu.ch1_env_counter = 0;
+                io->master->apu.ch1_env_pace = io->nr12 & NRX2_PACE;
+                io->master->apu.ch1_env_dir = io->nr12 & NRX2_DIR;
+                io->master->apu.ch1_volume = (io->nr12 & NRX2_VOL) >> 4;
+                io->master->apu.ch1_sweep_pace = (io->nr10 & NR10_PACE) >> 4;
+                io->master->apu.ch1_sweep_counter = 0;
+            }
+            io->nr14 |= data & NRX4_LEN_ENABLE;
+            break;
+        case SOUND2CNT_L:
+            io->master->apu.ch2_len_counter = data & NRX1_LEN;
+            io->nr21 = data & NRX1_DUTY;
+            data >>= 8;
+            if (!(data & 0b11111000)) io->master->apu.ch2_enable = false;
+            io->nr22 = data;
+            break;
+        case SOUND2CNT_H:
+            io->master->apu.ch2_wavelen = data & NRX34_WVLEN;
+            io->sound2cnth = data & NRX34_WVLEN;
+            data >>= 8;
+            if ((io->nr22 & 0b11111000) && (data & NRX4_TRIGGER)) {
+                io->master->apu.ch2_enable = true;
+                io->master->apu.ch2_counter = io->master->apu.ch2_wavelen;
+                io->master->apu.ch2_duty_index = 0;
+                io->master->apu.ch2_env_counter = 0;
+                io->master->apu.ch2_env_pace = io->nr22 & NRX2_PACE;
+                io->master->apu.ch2_env_dir = io->nr22 & NRX2_DIR;
+                io->master->apu.ch2_volume = (io->nr22 & NRX2_VOL) >> 4;
+            }
+            io->nr24 |= data & NRX4_LEN_ENABLE;
+            break;
+        case SOUND3CNT_L:
+            if (!(data & 0b10000000)) io->master->apu.ch3_enable = false;
+            io->nr30 = data & 0b10000000;
+            break;
+        case SOUND3CNT_H:
+            io->master->apu.ch3_len_counter = data;
+            data >>= 8;
+            io->nr32 = data & 0b01100000;
+            break;
+        case SOUND3CNT_X:
+            io->master->apu.ch3_wavelen = data & NRX34_WVLEN;
+            io->sound3cntx = data & NRX34_WVLEN;
+            data >>= 8;
+            if ((io->nr30 & 0b10000000) && (data & NRX4_TRIGGER)) {
+                io->master->apu.ch3_enable = true;
+                io->master->apu.ch3_counter = io->master->apu.ch3_wavelen;
+                io->master->apu.ch3_sample_index = 0;
+            }
+            io->nr34 |= data & NRX4_LEN_ENABLE;
+            break;
+        case SOUND4CNT_L:
+            io->master->apu.ch4_len_counter = data & NRX1_LEN;
+            data >>= 8;
+            if (!(data & 0b11111000)) io->master->apu.ch4_enable = false;
+            io->nr42 = data;
+            break;
+        case SOUND4CNT_H:
+            io->nr43 = data;
+            data >>= 8;
+            if ((io->nr42 & 0b11111000) && (data & NRX4_TRIGGER)) {
+                io->master->apu.ch4_enable = true;
+                io->master->apu.ch4_counter = 0;
+                io->master->apu.ch4_lfsr = 0;
+                io->master->apu.ch4_env_counter = 0;
+                io->master->apu.ch4_env_pace = io->nr42 & NRX2_PACE;
+                io->master->apu.ch4_env_dir = io->nr42 & NRX2_DIR;
+                io->master->apu.ch4_volume = (io->nr42 & NRX2_VOL) >> 4;
+            }
+            io->nr44 = data & NRX4_LEN_ENABLE;
+            break;
         case DMA0CNT_H:
         case DMA1CNT_H:
         case DMA2CNT_H:

@@ -2,6 +2,7 @@
 #define GBA_H
 
 #include "arm7tdmi.h"
+#include "apu.h"
 #include "cartridge.h"
 #include "dma.h"
 #include "io.h"
@@ -43,6 +44,7 @@ enum {
 typedef struct _GBA {
     Arm7TDMI cpu;
     PPU ppu;
+    APU apu;
 
     DMAController dmac;
     TimerController tmc;

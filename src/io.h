@@ -50,6 +50,25 @@ enum {
     BLDALPHA = 0x052,
     BLDY = 0x054,
 
+    // sound control
+    SOUND1CNT_L = 0x060,
+    SOUND1CNT_H = 0x062,
+    SOUND1CNT_X = 0x064,
+    SOUND2CNT_L = 0x068,
+    SOUND2CNT_H = 0x06c,
+    SOUND3CNT_L = 0x070,
+    SOUND3CNT_H = 0x072,
+    SOUND3CNT_X = 0x074,
+    SOUND4CNT_L = 0x078,
+    SOUND4CNT_H = 0x07c,
+    SOUNDCNT_L = 0x080,
+    SOUNDCNT_H = 0x082,
+    SOUNDCNT_X = 0x084,
+    SOUNDBIAS = 0x088,
+    WAVERAM = 0x090,
+    FIFO_A = 0x0a0,
+    FIF0_B = 0x0a4,
+
     // dma control
     DMA0SAD = 0x0b0,
     DMA0DAD = 0x0b4,
@@ -209,7 +228,105 @@ typedef struct _IO {
                     word unused : 27;
                 };
             } bldy;
-            byte gap0xx[DMA0SAD - BLDY - 4];
+            dword unused_058;
+            union {
+                hword sound1cntl;
+                byte nr10;
+            };
+            union {
+                hword sound1cnth;
+                struct {
+                    byte nr11;
+                    byte nr12;
+                };
+            };
+            union {
+                word sound1cntx;
+                struct {
+                    byte nr13;
+                    byte nr14;
+                };
+            };
+            union {
+                word sound2cntl;
+                struct {
+                    byte nr21;
+                    byte nr22;
+                };
+            };
+            union {
+                word sound2cnth;
+                struct {
+                    byte nr23;
+                    byte nr24;
+                };
+            };
+            union {
+                hword sound3cntl;
+                byte nr30;
+            };
+            union {
+                hword sound3cnth;
+                struct {
+                    byte nr31;
+                    byte nr32;
+                };
+            };
+            union {
+                word sound3cntx;
+                struct {
+                    byte nr33;
+                    byte nr34;
+                };
+            };
+            union {
+                word sound4cntl;
+                struct {
+                    byte nr41;
+                    byte nr42;
+                };
+            };
+            union {
+                word sound4cnth;
+                struct {
+                    byte nr43;
+                    byte nr44;
+                };
+            };
+            union {
+                hword soundcntl;
+                struct {
+                    byte nr50;
+                    byte nr51;
+                };
+            };
+            union {
+                hword h;
+                struct {
+                    hword gb_volume : 2;
+                    hword cha_volume : 1;
+                    hword chb_volume : 1;
+                    hword unused : 4;
+                    hword cha_ena_right : 1;
+                    hword cha_ena_left : 1;
+                    hword cha_timer : 1;
+                    hword cha_reset : 1;
+                    hword chb_ena_right : 1;
+                    hword chb_ena_left : 1;
+                    hword chb_timer : 1;
+                    hword chb_reset : 1;
+                };
+            } soundcnth;
+            union {
+                word soundcntx;
+                byte nr52;
+            };
+            word soundbias;
+            word unused_08c;
+            byte waveram[0x10];
+            word fifo_a;
+            word fifo_b;
+            dword unused_0a8;
             struct {
                 word sad;
                 word dad;
