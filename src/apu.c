@@ -100,7 +100,7 @@ void tick_apu(APU* apu) {
         byte ch3_sample = apu->ch3_enable ? get_sample_ch3(apu) : 0;
         byte ch4_sample = apu->ch4_enable ? get_sample_ch4(apu) : 0;
 
-        hword l_sample = 0, r_sample = 0;
+        shword l_sample = 0, r_sample = 0;
         if (apu->master->io.nr51 & (1 << 0)) r_sample += ch1_sample;
         if (apu->master->io.nr51 & (1 << 1)) r_sample += ch2_sample;
         if (apu->master->io.nr51 & (1 << 2)) r_sample += ch3_sample;
@@ -110,13 +110,13 @@ void tick_apu(APU* apu) {
         if (apu->master->io.nr51 & (1 << 6)) l_sample += ch3_sample;
         if (apu->master->io.nr51 & (1 << 7)) l_sample += ch4_sample;
 
-        l_sample *= (((apu->master->io.nr50 & 0b01110000) >> 4) + 1);
-        r_sample *= ((apu->master->io.nr50 & 0b00000111) + 1);
+        l_sample *= 2 * (((apu->master->io.nr50 & 0b01110000) >> 4) + 1);
+        r_sample *= 2 * ((apu->master->io.nr50 & 0b00000111) + 1);
         l_sample >>= 2 - apu->master->io.soundcnth.gb_volume;
         r_sample >>= 2 - apu->master->io.soundcnth.gb_volume;
 
-        hword cha_sample = apu->fifo_a[0];
-        hword chb_sample = apu->fifo_b[0];
+        shword cha_sample = apu->fifo_a[0] * 2;
+        shword chb_sample = apu->fifo_b[0] * 2;
         cha_sample <<= apu->master->io.soundcnth.cha_volume;
         chb_sample <<= apu->master->io.soundcnth.chb_volume;
         if (apu->master->io.soundcnth.cha_ena_left) l_sample += cha_sample;

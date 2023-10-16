@@ -70,8 +70,8 @@ typedef struct {
     byte ch4_volume;
     byte ch4_len_counter;
 
-    byte fifo_a[32];
-    byte fifo_a_size;
+    sbyte fifo_a[32];
+    sbyte fifo_a_size;
     byte fifo_b[32];
     byte fifo_b_size;
 } APU;
