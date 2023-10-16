@@ -91,7 +91,7 @@ void hotkey_press(SDL_KeyCode key) {
     }
 }
 
-void update_input(GBA* gba) {
+void update_input_keyboard(GBA* gba) {
     const Uint8* keys = SDL_GetKeyboardState(NULL);
     gba->io.keyinput.a = ~keys[SDL_SCANCODE_Z];
     gba->io.keyinput.b = ~keys[SDL_SCANCODE_X];
@@ -103,6 +103,24 @@ void update_input(GBA* gba) {
     gba->io.keyinput.down = ~keys[SDL_SCANCODE_DOWN];
     gba->io.keyinput.l = ~keys[SDL_SCANCODE_A];
     gba->io.keyinput.r = ~keys[SDL_SCANCODE_S];
+}
+
+void update_input_controller(GBA* gba, SDL_GameController* controller) {
+    gba->io.keyinput.a &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A);
+    gba->io.keyinput.b &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X);
+    gba->io.keyinput.start &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_START);
+    gba->io.keyinput.select &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_BACK);
+    gba->io.keyinput.left &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+    gba->io.keyinput.right &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+    gba->io.keyinput.up &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP);
+    gba->io.keyinput.down &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+    gba->io.keyinput.l &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+    gba->io.keyinput.r &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
 }
 
 byte color_lookup[32];
@@ -161,7 +179,13 @@ int main(int argc, char** argv) {
     char* romfilenodir = romfile + strlen(romfile);
     while (romfilenodir > romfile && *(romfilenodir - 1) != '/') romfilenodir--;
 
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
+
+    SDL_GameController* controller = NULL;
+    if (SDL_NumJoysticks() > 0) {
+        controller = SDL_GameControllerOpen(0);
+        printf("Controler\n");
+    }
 
     SDL_Window* window;
     SDL_Renderer* renderer;
@@ -216,7 +240,8 @@ int main(int argc, char** argv) {
             if (e.type == SDL_QUIT) running = false;
             if (e.type == SDL_KEYDOWN) hotkey_press(e.key.keysym.sym);
         }
-        update_input(gba);
+        update_input_keyboard(gba);
+        if (controller) update_input_controller(gba, controller);
 
         cur_time = SDL_GetPerformanceCounter();
         elapsed = cur_time - prev_time;
@@ -241,6 +266,8 @@ int main(int argc, char** argv) {
     destroy_cartridge(cart);
     free(bios);
     free(gba);
+
+    if (controller) SDL_GameControllerClose(controller);
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
