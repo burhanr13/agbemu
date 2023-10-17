@@ -449,7 +449,6 @@ void compose_lines(PPU* ppu) {
     }
 
     byte effect = ppu->master->io.bldcnt.effect;
-
     byte eva = ppu->master->io.bldalpha.eva;
     byte evb = ppu->master->io.bldalpha.evb;
     byte evy = ppu->master->io.bldy.evy;
@@ -457,52 +456,123 @@ void compose_lines(PPU* ppu) {
     if (evb > 16) evb = 16;
     if (evy > 16) evy = 16;
 
-    for (int x = 0; x < GBA_SCREEN_W; x++) {
-        byte layers[6];
-        bool win_ena = ppu->master->io.dispcnt.win_enable || ppu->master->io.dispcnt.winobj_enable;
-        byte win = ppu->window[x];
-        int l = 0;
-        bool put_obj = ppu->draw_obj && !(ppu->layerlines[LOBJ][x] & (1 << 15)) &&
-                       (!win_ena || (ppu->master->io.wincnt[win].obj_enable));
-        for (int i = 0; i < 4 && l < 2; i++) {
-            if (put_obj && ppu->objdotattrs[x].priority <= bg_prios[i]) {
-                put_obj = false;
+    if (effect) {
+        for (int x = 0; x < GBA_SCREEN_W; x++) {
+            byte layers[6];
+            bool win_ena =
+                ppu->master->io.dispcnt.win_enable || ppu->master->io.dispcnt.winobj_enable;
+            byte win = ppu->window[x];
+            int l = 0;
+            bool put_obj = ppu->draw_obj && !(ppu->layerlines[LOBJ][x] & (1 << 15)) &&
+                           (!win_ena || (ppu->master->io.wincnt[win].obj_enable));
+            for (int i = 0; i < 4 && l < 2; i++) {
+                if (put_obj && ppu->objdotattrs[x].priority <= bg_prios[i]) {
+                    put_obj = false;
+                    layers[l++] = LOBJ;
+                }
+                if (ppu->draw_bg[sorted_bgs[i]] &&
+                    !(ppu->layerlines[sorted_bgs[i]][x] & (1 << 15)) &&
+                    (!win_ena || (ppu->master->io.wincnt[win].bg_enable & (1 << sorted_bgs[i])))) {
+                    layers[l++] = sorted_bgs[i];
+                }
+            }
+            if (put_obj) {
                 layers[l++] = LOBJ;
             }
-            if (ppu->draw_bg[sorted_bgs[i]] && !(ppu->layerlines[sorted_bgs[i]][x] & (1 << 15)) &&
-                (!win_ena || (ppu->master->io.wincnt[win].bg_enable & (1 << sorted_bgs[i])))) {
-                layers[l++] = sorted_bgs[i];
+            layers[l++] = LBD;
+
+            hword color1 = ppu->layerlines[layers[0]][x];
+
+            if (layers[0] == LOBJ && ppu->objdotattrs[x].semitrans && l > 1 &&
+                (ppu->master->io.bldcnt.target2 & (1 << layers[1]))) {
+                byte r1 = color1 & 0x1f;
+                byte g1 = (color1 >> 5) & 0x1f;
+                byte b1 = (color1 >> 10) & 0x1f;
+                hword color2 = ppu->layerlines[layers[1]][x];
+                byte r2 = color2 & 0x1f;
+                byte g2 = (color2 >> 5) & 0x1f;
+                byte b2 = (color2 >> 10) & 0x1f;
+                r1 = (eva * r1 + evb * r2) / 16;
+                if (r1 > 31) r1 = 31;
+                g1 = (eva * g1 + evb * g2) / 16;
+                if (g1 > 31) g1 = 31;
+                b1 = (eva * b1 + evb * b2) / 16;
+                if (b1 > 31) b1 = 31;
+                ppu->screen[ppu->ly][x] = (b1 << 10) | (g1 << 5) | r1;
+            } else if ((ppu->master->io.bldcnt.target1 & (1 << layers[0])) &&
+                       (!win_ena || ppu->master->io.wincnt[win].effects_enable)) {
+                byte r1 = color1 & 0x1f;
+                byte g1 = (color1 >> 5) & 0x1f;
+                byte b1 = (color1 >> 10) & 0x1f;
+                switch (effect) {
+                    case EFF_ALPHA: {
+                        if (l == 1 || !(ppu->master->io.bldcnt.target2 & (1 << layers[1]))) break;
+                        hword color2 = ppu->layerlines[layers[1]][x];
+                        byte r2 = color2 & 0x1f;
+                        byte g2 = (color2 >> 5) & 0x1f;
+                        byte b2 = (color2 >> 10) & 0x1f;
+                        r1 = (eva * r1 + evb * r2) / 16;
+                        if (r1 > 31) r1 = 31;
+                        g1 = (eva * g1 + evb * g2) / 16;
+                        if (g1 > 31) g1 = 31;
+                        b1 = (eva * b1 + evb * b2) / 16;
+                        if (b1 > 31) b1 = 31;
+                        break;
+                    }
+                    case EFF_BINC: {
+                        r1 += (31 - r1) * evy / 16;
+                        g1 += (31 - g1) * evy / 16;
+                        b1 += (31 - b1) * evy / 16;
+                        break;
+                    }
+                    case EFF_BDEC: {
+                        r1 -= r1 * evy / 16;
+                        g1 -= g1 * evy / 16;
+                        b1 -= b1 * evy / 16;
+                        break;
+                    }
+                }
+                ppu->screen[ppu->ly][x] = (b1 << 10) | (g1 << 5) | r1;
+            } else {
+                ppu->screen[ppu->ly][x] = color1;
             }
         }
-        if (put_obj) {
-            layers[l++] = LOBJ;
-        }
-        layers[l++] = LBD;
+    } else {
+        for (int x = 0; x < GBA_SCREEN_W; x++) {
+            byte layers[6];
+            bool win_ena =
+                ppu->master->io.dispcnt.win_enable || ppu->master->io.dispcnt.winobj_enable;
+            byte win = ppu->window[x];
+            bool semitrans = ppu->objdotattrs[x].semitrans;
+            int l = 0;
+            bool put_obj = ppu->draw_obj && !(ppu->layerlines[LOBJ][x] & (1 << 15)) &&
+                           (!win_ena || (ppu->master->io.wincnt[win].obj_enable));
 
-        bool target1 = ppu->master->io.bldcnt.target1 & (1 << layers[0]);
-        bool target2 = l > 1 && (ppu->master->io.bldcnt.target2 & (1 << layers[1]));
+            if (semitrans) {
+                for (int i = 0; i < 4 && l < 2; i++) {
+                    if (put_obj && ppu->objdotattrs[x].priority <= bg_prios[i]) {
+                        put_obj = false;
+                        layers[l++] = LOBJ;
+                    }
+                    if (ppu->draw_bg[sorted_bgs[i]] &&
+                        !(ppu->layerlines[sorted_bgs[i]][x] & (1 << 15)) &&
+                        (!win_ena ||
+                         (ppu->master->io.wincnt[win].bg_enable & (1 << sorted_bgs[i])))) {
+                        layers[l++] = sorted_bgs[i];
+                    }
+                }
+                if (put_obj) {
+                    layers[l++] = LOBJ;
+                }
+                layers[l++] = LBD;
 
-        hword color1 = ppu->layerlines[layers[0]][x];
-        byte r1 = color1 & 0x1f;
-        byte g1 = (color1 >> 5) & 0x1f;
-        byte b1 = (color1 >> 10) & 0x1f;
+                hword color1 = ppu->layerlines[layers[0]][x];
 
-        if (target2 && layers[0] == LOBJ && ppu->objdotattrs[x].semitrans) {
-            hword color2 = ppu->layerlines[layers[1]][x];
-            byte r2 = color2 & 0x1f;
-            byte g2 = (color2 >> 5) & 0x1f;
-            byte b2 = (color2 >> 10) & 0x1f;
-            r1 = (eva * r1 + evb * r2) / 16;
-            if (r1 > 31) r1 = 31;
-            g1 = (eva * g1 + evb * g2) / 16;
-            if (g1 > 31) g1 = 31;
-            b1 = (eva * b1 + evb * b2) / 16;
-            if (b1 > 31) b1 = 31;
-            ppu->screen[ppu->ly][x] = (b1 << 10) | (g1 << 5) | r1;
-        } else if (effect && target1 && (!win_ena || ppu->master->io.wincnt[win].effects_enable)) {
-            switch (effect) {
-                case EFF_ALPHA: {
-                    if (!target2) break;
+                if (layers[0] == LOBJ && l > 1 &&
+                    (ppu->master->io.bldcnt.target2 & (1 << layers[1]))) {
+                    byte r1 = color1 & 0x1f;
+                    byte g1 = (color1 >> 5) & 0x1f;
+                    byte b1 = (color1 >> 10) & 0x1f;
                     hword color2 = ppu->layerlines[layers[1]][x];
                     byte r2 = color2 & 0x1f;
                     byte g2 = (color2 >> 5) & 0x1f;
@@ -513,24 +583,32 @@ void compose_lines(PPU* ppu) {
                     if (g1 > 31) g1 = 31;
                     b1 = (eva * b1 + evb * b2) / 16;
                     if (b1 > 31) b1 = 31;
-                    break;
+                    ppu->screen[ppu->ly][x] = (b1 << 10) | (g1 << 5) | r1;
+                } else {
+                    ppu->screen[ppu->ly][x] = color1;
                 }
-                case EFF_BINC: {
-                    r1 += (31 - r1) * evy / 16;
-                    g1 += (31 - g1) * evy / 16;
-                    b1 += (31 - b1) * evy / 16;
-                    break;
+            } else {
+                for (int i = 0; i < 4; i++) {
+                    if (put_obj && ppu->objdotattrs[x].priority <= bg_prios[i]) {
+                        put_obj = false;
+                        layers[l++] = LOBJ;
+                        break;
+                    }
+                    if (ppu->draw_bg[sorted_bgs[i]] &&
+                        !(ppu->layerlines[sorted_bgs[i]][x] & (1 << 15)) &&
+                        (!win_ena ||
+                         (ppu->master->io.wincnt[win].bg_enable & (1 << sorted_bgs[i])))) {
+                        layers[l++] = sorted_bgs[i];
+                        break;
+                    }
                 }
-                case EFF_BDEC: {
-                    r1 -= r1 * evy / 16;
-                    g1 -= g1 * evy / 16;
-                    b1 -= b1 * evy / 16;
-                    break;
+                if (put_obj) {
+                    layers[l++] = LOBJ;
                 }
+                layers[l++] = LBD;
+
+                ppu->screen[ppu->ly][x] = ppu->layerlines[layers[0]][x];
             }
-            ppu->screen[ppu->ly][x] = (b1 << 10) | (g1 << 5) | r1;
-        } else {
-            ppu->screen[ppu->ly][x] = color1;
         }
     }
 }
