@@ -67,80 +67,68 @@ byte* load_bios(char* filename) {
 int get_waitstates(GBA* gba, word addr, DataWidth d) {
     word region = addr >> 24;
     word rom_addr = addr % (1 << 25);
-    switch (region) {
-        case R_BIOS:
-            return 1;
-        case R_EWRAM: {
-            int waits = 3;
-            if (d == D_WORD) waits += 3;
-            return waits;
+    if (region < 8) {
+        int waits = 1;
+        if (region == R_EWRAM) waits = 3;
+        if (d == D_WORD && (region == R_EWRAM || region == R_PRAM || region == R_VRAM)) waits *= 2;
+        return waits;
+    } else if (region < 16) {
+        switch (region) {
+            case R_ROM0:
+            case R_ROM0EX: {
+                int n_waits = CART_WAITS[gba->io.waitcnt.rom0];
+                int s_waits = gba->io.waitcnt.rom0s ? 2 : 3;
+                int total = 0;
+                if (rom_addr == gba->next_rom_addr) {
+                    if (gba->io.waitcnt.prefetch) s_waits = 1;
+                    total += s_waits;
+                } else {
+                    total += n_waits;
+                }
+                if (d == D_WORD) {
+                    total += s_waits;
+                }
+                return total;
+            }
+            case R_ROM1:
+            case R_ROM1EX: {
+                int n_waits = CART_WAITS[gba->io.waitcnt.rom1];
+                int s_waits = gba->io.waitcnt.rom1s ? 2 : 5;
+                int total = 0;
+                if (rom_addr == gba->next_rom_addr) {
+                    if (gba->io.waitcnt.prefetch) s_waits = 1;
+                    total += s_waits;
+                } else {
+                    total += n_waits;
+                }
+                if (d == D_WORD) {
+                    total += s_waits;
+                }
+                return total;
+            }
+            case R_ROM2:
+            case R_ROM2EX: {
+                int n_waits = CART_WAITS[gba->io.waitcnt.rom2];
+                int s_waits = gba->io.waitcnt.rom2s ? 2 : 9;
+                int total = 0;
+                if (rom_addr == gba->next_rom_addr) {
+                    if (gba->io.waitcnt.prefetch) s_waits = 1;
+                    total += s_waits;
+                } else {
+                    total += n_waits;
+                }
+                if (d == D_WORD) {
+                    total += s_waits;
+                }
+                return total;
+            }
+            case R_SRAM:
+            case R_SRAMEX:
+                return CART_WAITS[gba->io.waitcnt.sram];
+            default:
+                return 1;
         }
-        case R_IWRAM:
-            return 1;
-        case R_IO:
-            return 1;
-        case R_PRAM:
-        case R_VRAM: {
-            int waits = 1;
-            if (d == D_WORD) waits += 1;
-            return waits;
-        }
-        case R_OAM:
-            return 1;
-        case R_ROM0:
-        case R_ROM0EX: {
-            int n_waits = CART_WAITS[gba->io.waitcnt.rom0];
-            int s_waits = gba->io.waitcnt.rom0s ? 2 : 3;
-            int total = 0;
-            if (rom_addr == gba->next_rom_addr) {
-                if (gba->io.waitcnt.prefetch) s_waits = 1;
-                total += s_waits;
-            } else {
-                total += n_waits;
-            }
-            if (d == D_WORD) {
-                total += s_waits;
-            }
-            return total;
-        }
-        case R_ROM1:
-        case R_ROM1EX: {
-            int n_waits = CART_WAITS[gba->io.waitcnt.rom1];
-            int s_waits = gba->io.waitcnt.rom1s ? 2 : 5;
-            int total = 0;
-            if (rom_addr == gba->next_rom_addr) {
-                if (gba->io.waitcnt.prefetch) s_waits = 1;
-                total += s_waits;
-            } else {
-                total += n_waits;
-            }
-            if (d == D_WORD) {
-                total += s_waits;
-            }
-            return total;
-        }
-        case R_ROM2:
-        case R_ROM2EX: {
-            int n_waits = CART_WAITS[gba->io.waitcnt.rom2];
-            int s_waits = gba->io.waitcnt.rom2s ? 2 : 9;
-            int total = 0;
-            if (rom_addr == gba->next_rom_addr) {
-                if (gba->io.waitcnt.prefetch) s_waits = 1;
-                total += s_waits;
-            } else {
-                total += n_waits;
-            }
-            if (d == D_WORD) {
-                total += s_waits;
-            }
-            return total;
-        }
-        case R_SRAM:
-        case R_SRAMEX:
-            return CART_WAITS[gba->io.waitcnt.sram];
-        default:
-            return 1;
-    }
+    } else return 1;
 }
 
 static inline hword read_rom_oob(word addr) {

@@ -184,7 +184,7 @@ hword cpu_fetchh(Arm7TDMI* cpu, word addr) {
     if (cpu->master->openbus) data = cpu->bus_val;
     else {
         word reg = addr >> 24;
-        if (reg == R_BIOS || reg == R_OAM || reg == R_IWRAM) {
+        if (reg == R_BIOS || reg == R_IWRAM || reg == R_OAM) {
             if (addr & 1) {
                 cpu->bus_val &= 0x0000ffff;
                 cpu->bus_val |= data << 16;
