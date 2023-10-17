@@ -201,9 +201,8 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
 
     word res = 0;
     bool arith = false;
-    bool sub = false;
-    bool rev = false;
-    bool car = false;
+    word car = 0;
+    word tmp;
     bool save = true;
     switch (instr.data_proc.opcode) {
         case A_AND:
@@ -214,30 +213,34 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
             break;
         case A_SUB:
             arith = true;
-            sub = true;
+            op2 = ~op2;
+            car = 1;
             break;
         case A_RSB:
             arith = true;
-            sub = true;
-            rev = true;
+            tmp = op1;
+            op1 = op2;
+            op2 = ~tmp;
+            car = 1;
             break;
         case A_ADD:
             arith = true;
             break;
         case A_ADC:
             arith = true;
-            car = true;
+            car = cpu->cpsr.c;
             break;
         case A_SBC:
             arith = true;
-            sub = true;
-            car = true;
+            op2 = ~op2;
+            car = cpu->cpsr.c;
             break;
         case A_RSC:
             arith = true;
-            sub = true;
-            rev = true;
-            car = true;
+            tmp = op1;
+            op1 = op2;
+            op2 = ~tmp;
+            car = cpu->cpsr.c;
             break;
         case A_TST:
             res = op1 & op2;
@@ -249,7 +252,8 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
             break;
         case A_CMP:
             arith = true;
-            sub = true;
+            op2 = ~op2;
+            car = 1;
             save = false;
             break;
         case A_CMN:
@@ -271,18 +275,9 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
     }
 
     if (arith) {
-        if (rev) {
-            word tmp = op1;
-            op1 = op2;
-            op2 = tmp;
-        }
-        if (sub) op2 = ~op2;
-        dword dop1 = op1;
-        dword dop2 = op2;
-        if ((sub && (!car || cpu->cpsr.c)) || (!sub && car && cpu->cpsr.c)) dop2++;
-        dword dres = dop1 + dop2;
-        res = dres;
-        c = (dres > 0xffffffff) ? 1 : 0;
+        res = op1 + op2;
+        c = (op1 > res) || (res > res + car);
+        res += car;
         v = (op1 >> 31) == (op2 >> 31) && (op1 >> 31) != (res >> 31);
     }
     z = (res == 0) ? 1 : 0;
