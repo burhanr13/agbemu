@@ -306,10 +306,11 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
 
 void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
     cpu_fetch_instr(cpu);
-    word op = cpu->r[instr.multiply.rs];
-    for (int i = 1; i <= 4; i++) {
+    sword op = cpu->r[instr.multiply.rs];
+    for (int i = 0; i < 4; i++) {
         cpu_internal_cycle(cpu);
-        if ((op >> 8 * i) == 0 || (-op >> 8 * i) == 0) break;
+        op >>= 8;
+        if (op == 0 || op == -1) break;
     }
     word res = cpu->r[instr.multiply.rm] * cpu->r[instr.multiply.rs];
     if (instr.multiply.a) {
@@ -326,10 +327,11 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
     cpu_fetch_instr(cpu);
     cpu_internal_cycle(cpu);
-    word op = cpu->r[instr.multiply_long.rs];
+    sword op = cpu->r[instr.multiply_long.rs];
     for (int i = 1; i <= 4; i++) {
         cpu_internal_cycle(cpu);
-        if ((op >> 8 * i) == 0 || ((-op >> 8 * i) == 0 && instr.multiply_long.u)) break;
+        op >>= 8;
+        if (op == 0 || (op == -1 && instr.multiply_long.u)) break;
     }
     dword res;
     if (instr.multiply_long.u) {

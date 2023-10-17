@@ -110,9 +110,9 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                             dec.multiply.s = 1;
                             dec.multiply.rd = instr.alu.rd;
                             dec.multiply.rn = 0;
-                            dec.multiply.rs = instr.alu.rs;
+                            dec.multiply.rs = instr.alu.rd;
                             dec.multiply.c2 = 0b1001;
-                            dec.multiply.rm = instr.alu.rd;
+                            dec.multiply.rm = instr.alu.rs;
                             break;
                     }
                     break;
