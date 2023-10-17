@@ -29,7 +29,7 @@ typedef struct {
     dword cycles;
     hword apu_div;
 
-    float sample_buf[SAMPLE_BUF_LEN];
+    shword sample_buf[SAMPLE_BUF_LEN];
     int sample_ind;
     bool samples_full;
 

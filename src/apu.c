@@ -112,20 +112,32 @@ void tick_apu(APU* apu) {
 
         l_sample *= 2 * (((apu->master->io.nr50 & 0b01110000) >> 4) + 1);
         r_sample *= 2 * ((apu->master->io.nr50 & 0b00000111) + 1);
+        l_sample -= 0x80;
+        r_sample -= 0x80;
         l_sample >>= 2 - apu->master->io.soundcnth.gb_volume;
         r_sample >>= 2 - apu->master->io.soundcnth.gb_volume;
 
-        shword cha_sample = apu->fifo_a[0] * 2;
-        shword chb_sample = apu->fifo_b[0] * 2;
-        cha_sample <<= apu->master->io.soundcnth.cha_volume;
-        chb_sample <<= apu->master->io.soundcnth.chb_volume;
+        shword cha_sample = apu->fifo_a[0];
+        shword chb_sample = apu->fifo_b[0];
+        if (apu->master->io.soundcnth.cha_volume) cha_sample *= 2;
+        if (apu->master->io.soundcnth.chb_volume) chb_sample *= 2;
         if (apu->master->io.soundcnth.cha_ena_left) l_sample += cha_sample;
         if (apu->master->io.soundcnth.cha_ena_right) r_sample += cha_sample;
         if (apu->master->io.soundcnth.chb_ena_left) l_sample += chb_sample;
         if (apu->master->io.soundcnth.chb_ena_right) r_sample += chb_sample;
 
-        apu->sample_buf[apu->sample_ind++] = (float) l_sample / 0x600;
-        apu->sample_buf[apu->sample_ind++] = (float) r_sample / 0x600;
+        l_sample += apu->master->io.soundbias.bias;
+        r_sample += apu->master->io.soundbias.bias;
+
+        if (l_sample < 0) l_sample = 0;
+        if (r_sample < 0) r_sample = 0;
+        if (l_sample >= 0x400) l_sample = 0x400;
+        if (r_sample >= 0x400) r_sample = 0x400;
+        l_sample -= 0x200;
+        r_sample -= 0x200;
+
+        apu->sample_buf[apu->sample_ind++] = l_sample * 32;
+        apu->sample_buf[apu->sample_ind++] = r_sample * 32;
         if (apu->sample_ind == SAMPLE_BUF_LEN) {
             apu->samples_full = true;
             apu->sample_ind = 0;

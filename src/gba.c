@@ -46,7 +46,10 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
         gba->io.bgaff[0].pd = 1 << 8;
         gba->io.bgaff[1].pa = 1 << 8;
         gba->io.bgaff[1].pd = 1 << 8;
+        gba->io.soundbias.bias = 0x200;
     }
+
+    gba->next_rom_addr = -1;
 
     add_event(&gba->sched, &(Event){0, EVENT_PPU_HDRAW});
 }
@@ -499,12 +502,8 @@ void tick_components(GBA* gba, int cycles) {
 
 void gba_step(GBA* gba) {
     if (gba->dmac.any_active) {
-        for (int i = 0; i < 4; i++) {
-            if (gba->dmac.dma[i].active) {
-                dma_step(&gba->dmac, i);
-                return;
-            }
-        }
+        dma_step(&gba->dmac, gba->dmac.active_dma);
+        return;
     }
     if (gba->io.ie.h & gba->io.ifl.h) {
         if (gba->halt || ((gba->io.ime & 1) && !gba->cpu.cpsr.i)) {

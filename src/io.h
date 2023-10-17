@@ -321,7 +321,15 @@ typedef struct _IO {
                 word soundcntx;
                 byte nr52;
             };
-            word soundbias;
+            union {
+                word w;
+                struct {
+                    word bias : 10;
+                    word unused1 : 4;
+                    word samplerate : 2;
+                    word unused2 : 16;
+                };
+            } soundbias;
             word unused_08c;
             byte waveram[0x10];
             word fifo_a;

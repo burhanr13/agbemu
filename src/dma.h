@@ -20,6 +20,7 @@ typedef struct {
         bool sound;
     } dma[4];
     bool any_active;
+    byte active_dma;
 } DMAController;
 
 void dma_enable(DMAController* dmac, int i);

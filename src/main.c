@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
                           GBA_SCREEN_W, GBA_SCREEN_H);
 
     SDL_AudioSpec audio_spec = {
-        .freq = SAMPLE_FREQ, .format = AUDIO_F32, .channels = 2, .samples = SAMPLE_BUF_LEN / 2};
+        .freq = SAMPLE_FREQ, .format = AUDIO_S16, .channels = 2, .samples = SAMPLE_BUF_LEN / 2};
     SDL_AudioDeviceID audio = SDL_OpenAudioDevice(NULL, 0, &audio_spec, NULL, 0);
     SDL_PauseAudioDevice(audio, 0);
 

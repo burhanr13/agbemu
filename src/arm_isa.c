@@ -93,9 +93,45 @@ void arm_exec_instr(Arm7TDMI* cpu) {
     arm_lookup[(((instr.w >> 4) & 0xf) | (instr.w >> 20 << 4)) % (1 << 12)](cpu, instr);
 }
 
+word arm_shifter(Arm7TDMI* cpu, byte shift, word operand, word* carry) {
+    word shift_type = (shift >> 1) & 0b11;
+    word shift_amt = shift >> 3;
+    if (shift_amt) {
+        switch (shift_type) {
+            case S_LSL:
+                *carry = (operand >> (32 - shift_amt)) & 1;
+                return operand << shift_amt;
+            case S_LSR:
+                *carry = (operand >> (shift_amt - 1)) & 1;
+                return operand >> shift_amt;
+            case S_ASR:
+                *carry = (operand >> (shift_amt - 1)) & 1;
+                return (sword) operand >> shift_amt;
+            case S_ROR:
+                *carry = (operand >> (shift_amt - 1)) & 1;
+                return (operand >> shift_amt) | (operand << (32 - shift_amt));
+        }
+    } else {
+        switch (shift_type) {
+            case S_LSL:
+                return operand;
+            case S_LSR:
+                *carry = operand >> 31;
+                return 0;
+            case S_ASR:
+                *carry = operand >> 31;
+                return (operand >> 31) ? -1 : 0;
+            case S_ROR:
+                *carry = operand & 1;
+                return (operand >> 1) | (cpu->cpsr.c << 31);
+        }
+    }
+    return 0;
+}
+
 void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
-    word op2;
-    bool shiftr = false;
+    word op1, op2;
+
     word z, c = cpu->cpsr.c, n, v = cpu->cpsr.v;
     if (instr.data_proc.i) {
         if (cpu->cpsr.t) {
@@ -103,77 +139,65 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
         } else {
             op2 = instr.data_proc.op2 & 0xff;
             word shift_amt = instr.data_proc.op2 >> 8;
-            shift_amt *= 2;
             if (shift_amt) {
+                shift_amt *= 2;
                 c = (op2 >> (shift_amt - 1)) & 1;
                 op2 = (op2 >> shift_amt) | (op2 << (32 - shift_amt));
             }
         }
+        op1 = cpu->r[instr.data_proc.rn];
+        cpu_fetch_instr(cpu);
     } else {
+        word rm = instr.data_proc.op2 & 0b1111;
         word shift = instr.data_proc.op2 >> 4;
-        word shift_type = (shift >> 1) & 0b11;
-        word shift_amt;
+
         if (shift & 1) {
             cpu_fetch_instr(cpu);
-            shiftr = true;
-            word rs = shift >> 4;
-            shift_amt = cpu->r[rs] & 0xff;
             cpu_internal_cycle(cpu);
-        } else {
-            shift_amt = shift >> 3;
-        }
-        word rm = instr.data_proc.op2 & 0b1111;
-        op2 = cpu->r[rm];
+            op2 = cpu->r[rm];
 
-        if (!(shift_amt == 0 && shiftr)) {
-            switch (shift_type) {
-                case S_LSL:
-                    if (shift_amt > 32) c = 0;
-                    else if (shift_amt > 0) c = (op2 >> (32 - shift_amt)) & 1;
-                    if (shift_amt >= 32) {
+            word rs = shift >> 4;
+            word shift_amt = cpu->r[rs] & 0xff;
+
+            if (shift_amt >= 32) {
+                switch ((shift >> 1) & 0b11) {
+                    case S_LSL:
+                        if (shift_amt == 32) c = op2 & 1;
+                        else c = 0;
                         op2 = 0;
-                    } else {
-                        op2 <<= shift_amt;
-                    }
-                    break;
-                case S_LSR:
-                    if (shift_amt == 0) shift_amt = 32;
-                    if (shift_amt > 32) c = 0;
-                    else c = (op2 >> (shift_amt - 1)) & 1;
-                    if (shift_amt >= 32) {
+                        break;
+                    case S_LSR:
+                        if (shift_amt == 32) c = op2 >> 31;
+                        else c = 0;
                         op2 = 0;
-                    } else {
-                        op2 >>= shift_amt;
-                    }
-                    break;
-                case S_ASR:
-                    if (shift_amt == 0) shift_amt = 32;
-                    if (shift_amt > 32) shift_amt = 32;
-                    sword sop2 = op2;
-                    c = (sop2 >> (shift_amt - 1)) & 1;
-                    if (shift_amt == 32) {
-                        sop2 = (c) ? -1 : 0;
-                    } else {
-                        sop2 >>= shift_amt;
-                    }
-                    op2 = sop2;
-                    break;
-                case S_ROR:
-                    if (shift_amt == 0) {
-                        c = op2 & 1;
-                        op2 >>= 1;
-                        op2 |= cpu->cpsr.c << 31;
-                    } else {
+                        break;
+                    case S_ASR:
+                        if (op2 >> 31) {
+                            c = 1;
+                            op2 = -1;
+                        } else {
+                            c = 0;
+                            op2 = 0;
+                        }
+                        break;
+                    case S_ROR:
+                        shift_amt %= 32;
                         c = (op2 >> (shift_amt - 1)) & 1;
                         op2 = (op2 >> shift_amt) | (op2 << (32 - shift_amt));
-                    }
-                    break;
+                        break;
+                }
+            } else if (shift_amt > 0) {
+                op2 = arm_shifter(cpu, (shift & 0b111) | shift_amt << 3, op2, &c);
             }
+
+            op1 = cpu->r[instr.data_proc.rn];
+        } else {
+            op2 = arm_shifter(cpu, shift, cpu->r[rm], &c);
+            op1 = cpu->r[instr.data_proc.rn];
+            cpu_fetch_instr(cpu);
         }
     }
-    word op1 = cpu->r[instr.data_proc.rn];
     if (instr.data_proc.rn == 15 && instr.data_proc.rd != 15) op1 &= ~0b10;
-    if (!shiftr) cpu_fetch_instr(cpu);
 
     word res = 0;
     bool arith = false;
@@ -449,6 +473,7 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
     }
 
     if (instr.half_transi.rd == 15 && instr.half_transi.l) cpu_flush(cpu);
+    if (!instr.half_transi.l) cpu->master->next_rom_addr = -1;
 }
 
 void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
@@ -458,38 +483,9 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
     if (instr.single_trans.i) {
         word rm = instr.single_trans.offset & 0b1111;
         offset = cpu->r[rm];
-        word shift = instr.single_trans.offset >> 4;
-        word shift_type = (shift >> 1) & 0b11;
-        word shift_amt = shift >> 3;
-        switch (shift_type) {
-            case S_LSL:
-                offset <<= shift_amt;
-                break;
-            case S_LSR:
-                if (shift_amt == 0) {
-                    offset = 0;
-                } else {
-                    offset >>= shift_amt;
-                }
-                break;
-            case S_ASR:
-                if (shift_amt == 0) {
-                    offset = (offset >> 31) ? -1 : 0;
-                } else {
-                    sword soff = offset;
-                    soff >>= shift_amt;
-                    offset = soff;
-                }
-                break;
-            case S_ROR:
-                if (shift_amt == 0) {
-                    offset >>= 1;
-                    offset |= cpu->cpsr.c << 31;
-                } else {
-                    offset = (offset >> shift_amt) | (offset << (32 - shift_amt));
-                }
-                break;
-        }
+        byte shift = instr.single_trans.offset >> 4;
+        word carry;
+        offset = arm_shifter(cpu, shift, offset, &carry);
     } else {
         offset = instr.single_trans.offset;
     }
@@ -535,6 +531,7 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
     }
 
     if (instr.single_trans.rd == 15 && instr.single_trans.l) cpu_flush(cpu);
+    if (!instr.single_trans.l) cpu->master->next_rom_addr = -1;
 }
 
 void exec_arm_undefined(Arm7TDMI* cpu, ArmInstr instr) {
@@ -616,6 +613,8 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr) {
         cpu->cpsr.m = mode;
         cpu_update_mode(cpu, M_USER);
     }
+
+    if (!instr.block_trans.l) cpu->master->next_rom_addr = -1;
 }
 
 void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr) {

@@ -35,10 +35,7 @@ void cpu_fetch_instr(Arm7TDMI* cpu) {
 }
 
 void cpu_flush(Arm7TDMI* cpu) {
-    if (dbg && cpu->pc > 0x0fffffff) {
-        print_cpu_state(cpu);
-        raise(SIGINT);
-    }
+    cpu->master->next_rom_addr = -1;
     if (cpu->cpsr.t) {
         cpu->pc &= ~1;
         cpu->cur_instr = thumb_lookup[cpu_fetchh(cpu, cpu->pc)];
@@ -210,7 +207,7 @@ word cpu_fetchw(Arm7TDMI* cpu, word addr) {
 
 void cpu_internal_cycle(Arm7TDMI* cpu) {
     tick_components(cpu->master, 1);
-    if (!cpu->master->io.waitcnt.prefetch) cpu->master->next_rom_addr = 0;
+    if (!cpu->master->io.waitcnt.prefetch) cpu->master->next_rom_addr = -1;
 }
 
 char* mode_name(CpuMode m) {

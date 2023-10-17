@@ -130,6 +130,12 @@ void dma_transw(DMAController* dmac, int i, word daddr, word saddr) {
 }
 
 void dma_update_active(DMAController* dmac) {
-    dmac->any_active =
-        dmac->dma[0].active || dmac->dma[1].active || dmac->dma[2].active || dmac->dma[3].active;
+    for (int i = 0; i < 4; i++) {
+        if (dmac->dma[i].active) {
+            dmac->any_active = true;
+            dmac->active_dma = i;
+            return;
+        }
+    }
+    dmac->any_active = false;
 }
