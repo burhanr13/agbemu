@@ -1,3 +1,3 @@
 # agbemu
 
-A Game Boy Advance Emulator. Currently the CPU, Graphics and most internal components are done with minor exceptions. Games I have tested work very well. Also reasonably accurate and passes a nontrivial amount of test ROMs. Games that require EEPROM will not work as that is currently unimplemented. Also no audio, mosaic, or serial yet.
+A mostly complete and somewhat accurate Game Boy Advance Emulator. Supports all the graphics subsystem except for mosaic and all of audio except for wave ram banking. Passes many test roms including ARMWrestler, JSMolka's gba-tests, and a sizable portion of the mGBA test suite including all of the memory tests and almost all timing tests that do not require the prefetcher. It runs all games I have tested without any issue.
