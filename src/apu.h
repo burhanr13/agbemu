@@ -29,7 +29,7 @@ typedef struct {
     dword cycles;
     hword apu_div;
 
-    shword sample_buf[SAMPLE_BUF_LEN];
+    float sample_buf[SAMPLE_BUF_LEN];
     int sample_ind;
     bool samples_full;
 
@@ -71,8 +71,9 @@ typedef struct {
     byte ch4_len_counter;
 
     sbyte fifo_a[32];
-    sbyte fifo_a_size;
-    byte fifo_b[32];
+    sbyte fifo_b[32];
+
+    byte fifo_a_size;
     byte fifo_b_size;
 } APU;
 
