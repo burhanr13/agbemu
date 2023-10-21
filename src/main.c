@@ -18,6 +18,14 @@ bool filter;
 bool pause;
 bool mute;
 
+const char usage[] = "agbemu [options] <romfile>\n"
+                     "-b -- boot from the bios\n"
+                     "-f -- apply color filter\n"
+                     "-u -- run at uncapped speed\n"
+                     "-l -- print error messages\n"
+                     "-d -- for use inside GDB\n"
+                     "-B <addr> -- set a breakpoint\n";
+
 GBA* gba;
 Cartridge* cart;
 byte* bios;
@@ -50,15 +58,15 @@ void read_args(int argc, char** argv) {
                         lg = true;
                         dbg = true;
                         break;
-                    case 'b':
+                    case 'B':
                         if (*(f + 1) || i + 1 == argc || sscanf(argv[i + 1], "0x%x", &bkpt) < 1) {
-                            printf("Provide valid hex address with -b\n");
+                            printf("Provide valid hex address with -B\n");
                         }
                         break;
                     case 'u':
                         uncap = true;
                         break;
-                    case 'B':
+                    case 'b':
                         bootbios = true;
                         break;
                     case 'f':
@@ -158,7 +166,7 @@ int main(int argc, char** argv) {
 
     read_args(argc, argv);
     if (!romfile) {
-        printf("Usage: agbemu [options] <romfile>\n");
+        printf(usage);
         return 0;
     }
 
