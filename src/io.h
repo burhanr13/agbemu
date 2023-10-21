@@ -385,20 +385,15 @@ typedef struct _IO {
                     hword l : 1;
                     hword unused : 6;
                 };
+                struct {
+                    hword keys : 10;
+                    hword _unused : 6;
+                };
             } keyinput;
             union {
                 hword h;
                 struct {
-                    hword a : 1;
-                    hword b : 1;
-                    hword select : 1;
-                    hword start : 1;
-                    hword right : 1;
-                    hword left : 1;
-                    hword up : 1;
-                    hword down : 1;
-                    hword r : 1;
-                    hword l : 1;
+                    hword keys : 10;
                     hword unused : 4;
                     hword irq_enable : 1;
                     hword irq_cond : 1;

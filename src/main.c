@@ -228,11 +228,11 @@ int main(int argc, char** argv) {
     while (running) {
         Uint64 cur_time;
         Uint64 elapsed;
-        bool play_audio = !(pause || mute || uncap) && (gba->io.nr52 & (1 << 7));
+        bool play_audio = !(pause || mute || uncap || gba->stop) && (gba->io.nr52 & (1 << 7));
 
-        if (!pause) {
+        if (!(pause || gba->stop)) {
             do {
-                while (!gba->ppu.frame_complete) {
+                while (!gba->stop && !gba->ppu.frame_complete) {
                     gba_step(gba);
                     if (gba->apu.samples_full) {
                         if (play_audio) {
@@ -270,6 +270,7 @@ int main(int argc, char** argv) {
         }
         update_input_keyboard(gba);
         if (controller) update_input_controller(gba, controller);
+        update_keypad_irq(gba);
 
         cur_time = SDL_GetPerformanceCounter();
         elapsed = cur_time - prev_time;

@@ -486,6 +486,8 @@ void tick_components(GBA* gba, int cycles) {
 }
 
 void gba_step(GBA* gba) {
+    if (gba->stop) return;
+
     if (gba->dmac.any_active) {
         dma_step(&gba->dmac, gba->dmac.active_dma);
         return;
@@ -504,6 +506,20 @@ void gba_step(GBA* gba) {
     while (!(gba->ppu.frame_complete || gba->apu.samples_full || gba->dmac.any_active ||
              (gba->io.ie.h & gba->io.ifl.h)))
         run_next_event(&gba->sched);
+}
+
+void update_keypad_irq(GBA* gba) {
+    if (gba->io.keycnt.irq_cond) {
+        if ((~gba->io.keyinput.keys & gba->io.keycnt.keys) == gba->io.keycnt.keys) {
+            if (gba->io.keycnt.irq_enable) gba->io.ifl.keypad = 1;
+            gba->stop = false;
+        }
+    } else {
+        if (~gba->io.keyinput.keys & gba->io.keycnt.keys) {
+            if (gba->io.keycnt.irq_enable) gba->io.ifl.keypad = 1;
+            gba->stop = false;
+        }
+    }
 }
 
 void log_error(GBA* gba, char* mess, word addr) {
