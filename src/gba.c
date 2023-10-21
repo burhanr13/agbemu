@@ -501,7 +501,9 @@ void gba_step(GBA* gba) {
         cpu_step(&gba->cpu);
         return;
     }
-    run_next_event(&gba->sched);
+    while (!(gba->ppu.frame_complete || gba->apu.samples_full || gba->dmac.any_active ||
+             (gba->io.ie.h & gba->io.ifl.h)))
+        run_next_event(&gba->sched);
 }
 
 void log_error(GBA* gba, char* mess, word addr) {

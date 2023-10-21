@@ -226,8 +226,10 @@ int main(int argc, char** argv) {
             do {
                 while (!gba->ppu.frame_complete) {
                     gba_step(gba);
-                    if (play_audio && gba->apu.samples_full) {
-                        SDL_QueueAudio(audio, gba->apu.sample_buf, sizeof gba->apu.sample_buf);
+                    if (gba->apu.samples_full) {
+                        if (play_audio) {
+                            SDL_QueueAudio(audio, gba->apu.sample_buf, sizeof gba->apu.sample_buf);
+                        }
                         gba->apu.samples_full = false;
                     }
                 }

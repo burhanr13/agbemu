@@ -26,19 +26,19 @@ void apu_disable(APU* apu) {
     remove_event(&apu->master->sched, EVENT_APU_DIV_TICK);
 }
 
-shword get_sample_ch1(APU* apu) {
+static inline shword get_sample_ch1(APU* apu) {
     return (duty_cycles[(apu->master->io.nr11 & NRX1_DUTY) >> 6] & (1 << (apu->ch1_duty_index & 7)))
                ? apu->ch1_volume
                : -apu->ch1_volume;
 }
 
-shword get_sample_ch2(APU* apu) {
+static inline shword get_sample_ch2(APU* apu) {
     return (duty_cycles[(apu->master->io.nr21 & NRX1_DUTY) >> 6] & (1 << (apu->ch2_duty_index & 7)))
                ? apu->ch2_volume
                : -apu->ch2_volume;
 }
 
-shword get_sample_ch3(APU* apu) {
+static inline shword get_sample_ch3(APU* apu) {
     byte wvram_index = (apu->ch3_sample_index & 0b00011110) >> 1;
     shword sample = apu->waveram[wvram_index];
     if (apu->ch3_sample_index & 1) {
@@ -59,7 +59,7 @@ shword get_sample_ch3(APU* apu) {
     }
 }
 
-shword get_sample_ch4(APU* apu) {
+static inline shword get_sample_ch4(APU* apu) {
     return (apu->ch4_lfsr & 1) ? apu->ch4_volume : -apu->ch4_volume;
 }
 
@@ -160,6 +160,7 @@ void apu_div_tick(APU* apu) {
             if (apu->ch1_len_counter == 64) {
                 apu->ch1_len_counter = 0;
                 apu->ch1_enable = false;
+                remove_event(&apu->master->sched, EVENT_APU_CH1_REL);
             }
         }
 
@@ -168,6 +169,7 @@ void apu_div_tick(APU* apu) {
             if (apu->ch2_len_counter == 64) {
                 apu->ch2_len_counter = 0;
                 apu->ch2_enable = false;
+                remove_event(&apu->master->sched, EVENT_APU_CH2_REL);
             }
         }
 
@@ -175,6 +177,7 @@ void apu_div_tick(APU* apu) {
             apu->ch3_len_counter++;
             if (apu->ch3_len_counter == 0) {
                 apu->ch3_enable = false;
+                remove_event(&apu->master->sched, EVENT_APU_CH3_REL);
             }
         }
 
@@ -183,6 +186,7 @@ void apu_div_tick(APU* apu) {
             if (apu->ch4_len_counter == 64) {
                 apu->ch4_len_counter = 0;
                 apu->ch4_enable = false;
+                remove_event(&apu->master->sched, EVENT_APU_CH4_REL);
             }
         }
     }
@@ -197,7 +201,10 @@ void apu_div_tick(APU* apu) {
                 new_wvlen -= del_wvlen;
             } else {
                 new_wvlen += del_wvlen;
-                if (new_wvlen > 2047) apu->ch1_enable = false;
+                if (new_wvlen > 2047) {
+                    apu->ch1_enable = false;
+                    remove_event(&apu->master->sched, EVENT_APU_CH1_REL);
+                }
             }
             if (apu->master->io.nr10 & NR10_SLOP) apu->ch1_wavelen = new_wvlen;
         }
