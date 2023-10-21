@@ -483,9 +483,6 @@ void bus_writew(GBA* gba, word addr, word w) {
 
 void tick_components(GBA* gba, int cycles) {
     run_scheduler(&gba->sched, cycles);
-    for (int i = 0; i < cycles; i++) {
-        tick_apu(&gba->apu);
-    }
 }
 
 void gba_step(GBA* gba) {
@@ -504,12 +501,7 @@ void gba_step(GBA* gba) {
         cpu_step(&gba->cpu);
         return;
     }
-    dword cur_time = gba->cycles;
     run_next_event(&gba->sched);
-    dword elapsed = gba->cycles - cur_time;
-    for (int i = 0; i < elapsed; i++) {
-        tick_apu(&gba->apu);
-    }
 }
 
 void log_error(GBA* gba, char* mess, word addr) {

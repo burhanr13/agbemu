@@ -2,8 +2,13 @@
 
 #include <stdio.h>
 
+#include "apu.h"
 #include "gba.h"
 #include "ppu.h"
+#include "timer.h"
+
+void (*apu_events[])(APU*) = {apu_new_sample, ch1_reload, ch2_reload,
+                              ch3_reload,     ch4_reload, apu_div_tick};
 
 void run_scheduler(Scheduler* sched, int cycles) {
     dword end_time = sched->master->cycles + cycles;
@@ -30,6 +35,8 @@ void run_next_event(Scheduler* sched) {
         on_hdraw(&sched->master->ppu);
     } else if (e.type == EVENT_PPU_HBLANK) {
         on_hblank(&sched->master->ppu);
+    } else {
+        apu_events[e.type - EVENT_APU_SAMPLE](&sched->master->apu);
     }
 }
 

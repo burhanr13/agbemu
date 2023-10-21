@@ -105,7 +105,6 @@ void io_writeh(IO* io, word addr, hword data) {
             data >>= 8;
             if ((io->nr12 & 0b11111000) && (data & NRX4_TRIGGER)) {
                 io->master->apu.ch1_enable = true;
-                io->master->apu.ch1_counter = io->master->apu.ch1_wavelen;
                 io->master->apu.ch1_duty_index = 0;
                 io->master->apu.ch1_env_counter = 0;
                 io->master->apu.ch1_env_pace = io->nr12 & NRX2_PACE;
@@ -113,6 +112,8 @@ void io_writeh(IO* io, word addr, hword data) {
                 io->master->apu.ch1_volume = (io->nr12 & NRX2_VOL) >> 4;
                 io->master->apu.ch1_sweep_pace = (io->nr10 & NR10_PACE) >> 4;
                 io->master->apu.ch1_sweep_counter = 0;
+                remove_event(&io->master->sched, EVENT_APU_CH1_REL);
+                ch1_reload(&io->master->apu);
             }
             io->nr14 |= data & NRX4_LEN_ENABLE;
             break;
@@ -129,18 +130,20 @@ void io_writeh(IO* io, word addr, hword data) {
             data >>= 8;
             if ((io->nr22 & 0b11111000) && (data & NRX4_TRIGGER)) {
                 io->master->apu.ch2_enable = true;
-                io->master->apu.ch2_counter = io->master->apu.ch2_wavelen;
                 io->master->apu.ch2_duty_index = 0;
                 io->master->apu.ch2_env_counter = 0;
                 io->master->apu.ch2_env_pace = io->nr22 & NRX2_PACE;
                 io->master->apu.ch2_env_dir = io->nr22 & NRX2_DIR;
                 io->master->apu.ch2_volume = (io->nr22 & NRX2_VOL) >> 4;
+                remove_event(&io->master->sched, EVENT_APU_CH2_REL);
+                ch2_reload(&io->master->apu);
             }
             io->nr24 |= data & NRX4_LEN_ENABLE;
             break;
         case SOUND3CNT_L:
             if (!(data & 0b10000000)) io->master->apu.ch3_enable = false;
-            io->nr30 = data & 0b10000000;
+            if ((io->nr30 & (1 << 6)) != (data & (1 << 6))) waveram_swap(&io->master->apu);
+            io->nr30 = data & 0b11100000;
             break;
         case SOUND3CNT_H:
             io->master->apu.ch3_len_counter = data;
@@ -153,8 +156,9 @@ void io_writeh(IO* io, word addr, hword data) {
             data >>= 8;
             if ((io->nr30 & 0b10000000) && (data & NRX4_TRIGGER)) {
                 io->master->apu.ch3_enable = true;
-                io->master->apu.ch3_counter = io->master->apu.ch3_wavelen;
                 io->master->apu.ch3_sample_index = 0;
+                remove_event(&io->master->sched, EVENT_APU_CH3_REL);
+                ch3_reload(&io->master->apu);
             }
             io->nr34 |= data & NRX4_LEN_ENABLE;
             break;
@@ -169,24 +173,36 @@ void io_writeh(IO* io, word addr, hword data) {
             data >>= 8;
             if ((io->nr42 & 0b11111000) && (data & NRX4_TRIGGER)) {
                 io->master->apu.ch4_enable = true;
-                io->master->apu.ch4_counter = 0;
                 io->master->apu.ch4_lfsr = 0;
                 io->master->apu.ch4_env_counter = 0;
                 io->master->apu.ch4_env_pace = io->nr42 & NRX2_PACE;
                 io->master->apu.ch4_env_dir = io->nr42 & NRX2_DIR;
                 io->master->apu.ch4_volume = (io->nr42 & NRX2_VOL) >> 4;
+                remove_event(&io->master->sched, EVENT_APU_CH4_REL);
+                ch4_reload(&io->master->apu);
             }
             io->nr44 = data & NRX4_LEN_ENABLE;
             break;
         case SOUNDCNT_H:
             io->soundcnth.h = data;
-            if(io->soundcnth.cha_reset) {
+            if (io->soundcnth.cha_reset) {
                 io->soundcnth.cha_reset = 0;
                 io->master->apu.fifo_a_size = 0;
             }
             if (io->soundcnth.chb_reset) {
                 io->soundcnth.chb_reset = 0;
                 io->master->apu.fifo_b_size = 0;
+            }
+            break;
+        case SOUNDCNT_X:
+            if(data & (1<<7)){
+                if(!io->nr52) {
+                    io->nr52 = 1 << 7;
+                    apu_enable(&io->master->apu);
+                }
+            } else {
+                io->nr52 = 0;
+                apu_disable(&io->master->apu);
             }
             break;
         case DMA0CNT_H:

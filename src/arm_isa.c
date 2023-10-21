@@ -199,91 +199,91 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
     }
     if (instr.data_proc.rn == 15 && instr.data_proc.rd != 15) op1 &= ~0b10;
 
-    word res = 0;
-    bool arith = false;
-    word car = 0;
-    word tmp;
-    bool save = true;
-    switch (instr.data_proc.opcode) {
-        case A_AND:
-            res = op1 & op2;
-            break;
-        case A_EOR:
-            res = op1 ^ op2;
-            break;
-        case A_SUB:
-            arith = true;
-            op2 = ~op2;
-            car = 1;
-            break;
-        case A_RSB:
-            arith = true;
-            tmp = op1;
-            op1 = op2;
-            op2 = ~tmp;
-            car = 1;
-            break;
-        case A_ADD:
-            arith = true;
-            break;
-        case A_ADC:
-            arith = true;
-            car = cpu->cpsr.c;
-            break;
-        case A_SBC:
-            arith = true;
-            op2 = ~op2;
-            car = cpu->cpsr.c;
-            break;
-        case A_RSC:
-            arith = true;
-            tmp = op1;
-            op1 = op2;
-            op2 = ~tmp;
-            car = cpu->cpsr.c;
-            break;
-        case A_TST:
-            res = op1 & op2;
-            save = false;
-            break;
-        case A_TEQ:
-            res = op1 ^ op2;
-            save = false;
-            break;
-        case A_CMP:
-            arith = true;
-            op2 = ~op2;
-            car = 1;
-            save = false;
-            break;
-        case A_CMN:
-            arith = true;
-            save = false;
-            break;
-        case A_ORR:
-            res = op1 | op2;
-            break;
-        case A_MOV:
-            res = op2;
-            break;
-        case A_BIC:
-            res = op1 & ~op2;
-            break;
-        case A_MVN:
-            res = ~op2;
-            break;
-    }
-
-    if (arith) {
-        res = op1 + op2;
-        c = (op1 > res) || (res > res + car);
-        res += car;
-        v = (op1 >> 31) == (op2 >> 31) && (op1 >> 31) != (res >> 31);
-    }
-    z = (res == 0) ? 1 : 0;
-    n = (res >> 31) & 1;
-
     if (instr.data_proc.s) {
+        word res = 0;
+        bool arith = false;
+        word car = 0;
+        word tmp;
+        bool save = true;
+        switch (instr.data_proc.opcode) {
+            case A_AND:
+                res = op1 & op2;
+                break;
+            case A_EOR:
+                res = op1 ^ op2;
+                break;
+            case A_SUB:
+                arith = true;
+                op2 = ~op2;
+                car = 1;
+                break;
+            case A_RSB:
+                arith = true;
+                tmp = op1;
+                op1 = op2;
+                op2 = ~tmp;
+                car = 1;
+                break;
+            case A_ADD:
+                arith = true;
+                break;
+            case A_ADC:
+                arith = true;
+                car = cpu->cpsr.c;
+                break;
+            case A_SBC:
+                arith = true;
+                op2 = ~op2;
+                car = cpu->cpsr.c;
+                break;
+            case A_RSC:
+                arith = true;
+                tmp = op1;
+                op1 = op2;
+                op2 = ~tmp;
+                car = cpu->cpsr.c;
+                break;
+            case A_TST:
+                res = op1 & op2;
+                save = false;
+                break;
+            case A_TEQ:
+                res = op1 ^ op2;
+                save = false;
+                break;
+            case A_CMP:
+                arith = true;
+                op2 = ~op2;
+                car = 1;
+                save = false;
+                break;
+            case A_CMN:
+                arith = true;
+                save = false;
+                break;
+            case A_ORR:
+                res = op1 | op2;
+                break;
+            case A_MOV:
+                res = op2;
+                break;
+            case A_BIC:
+                res = op1 & ~op2;
+                break;
+            case A_MVN:
+                res = ~op2;
+                break;
+        }
+
+        if (arith) {
+            res = op1 + op2;
+            c = (op1 > res) || (res > res + car);
+            res += car;
+            v = (op1 >> 31) == (op2 >> 31) && (op1 >> 31) != (res >> 31);
+        }
+        z = (res == 0) ? 1 : 0;
+        n = (res >> 31) & 1;
+
         if (instr.data_proc.rd == 15) {
             CpuMode mode = cpu->cpsr.m;
             if (!(mode == M_USER || mode == M_SYSTEM)) {
@@ -296,10 +296,58 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
             cpu->cpsr.c = c;
             cpu->cpsr.v = v;
         }
-    }
-
-    if (save) {
-        cpu->r[instr.data_proc.rd] = res;
+        if (save) {
+            cpu->r[instr.data_proc.rd] = res;
+            if (instr.data_proc.rd == 15) cpu_flush(cpu);
+        }
+    } else {
+        word rd = instr.data_proc.rd;
+        switch (instr.data_proc.opcode) {
+            case A_AND:
+                cpu->r[rd] = op1 & op2;
+                break;
+            case A_EOR:
+                cpu->r[rd] = op1 ^ op2;
+                break;
+            case A_SUB:
+                cpu->r[rd] = op1 - op2;
+                break;
+            case A_RSB:
+                cpu->r[rd] = op2 - op1;
+                break;
+            case A_ADD:
+                cpu->r[rd] = op1 + op2;
+                break;
+            case A_ADC:
+                cpu->r[rd] = op1 + op2 + cpu->cpsr.c;
+                break;
+            case A_SBC:
+                cpu->r[rd] = op1 - op2 - 1 + cpu->cpsr.c;
+                break;
+            case A_RSC:
+                cpu->r[rd] = op2 - op1 - 1 + cpu->cpsr.c;
+                break;
+            case A_TST:
+                return;
+            case A_TEQ:
+                return;
+            case A_CMP:
+                return;
+            case A_CMN:
+                return;
+            case A_ORR:
+                cpu->r[rd] = op1 | op2;
+                break;
+            case A_MOV:
+                cpu->r[rd] = op2;
+                break;
+            case A_BIC:
+                cpu->r[rd] = op1 & ~op2;
+                break;
+            case A_MVN:
+                cpu->r[rd] = ~op2;
+                break;
+        }
         if (instr.data_proc.rd == 15) cpu_flush(cpu);
     }
 }

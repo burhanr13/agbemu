@@ -3,10 +3,10 @@
 
 #include "types.h"
 
-#define APU_DIV_RATE 32768
+#define APU_DIV_PERIOD 32768
 
 #define SAMPLE_FREQ 32768
-#define SAMPLE_RATE ((1 << 24) / SAMPLE_FREQ)
+#define SAMPLE_PERIOD ((1 << 24) / SAMPLE_FREQ)
 #define SAMPLE_BUF_LEN 1024
 
 enum { NRX1_LEN = 0b00111111, NRX1_DUTY = 0b11000000 };
@@ -26,7 +26,6 @@ typedef struct _GBA GBA;
 typedef struct {
     GBA* master;
 
-    dword cycles;
     hword apu_div;
 
     float sample_buf[SAMPLE_BUF_LEN];
@@ -34,7 +33,6 @@ typedef struct {
     bool samples_full;
 
     bool ch1_enable;
-    hword ch1_counter;
     hword ch1_wavelen;
     byte ch1_duty_index;
     byte ch1_env_counter;
@@ -46,7 +44,6 @@ typedef struct {
     byte ch1_sweep_counter;
 
     bool ch2_enable;
-    hword ch2_counter;
     hword ch2_wavelen;
     byte ch2_duty_index;
     byte ch2_env_counter;
@@ -56,13 +53,12 @@ typedef struct {
     byte ch2_len_counter;
 
     bool ch3_enable;
-    hword ch3_counter;
     hword ch3_wavelen;
     byte ch3_sample_index;
     byte ch3_len_counter;
+    byte waveram[0x10];
 
     bool ch4_enable;
-    int ch4_counter;
     hword ch4_lfsr;
     byte ch4_env_counter;
     byte ch4_env_pace;
@@ -77,11 +73,25 @@ typedef struct {
     byte fifo_b_size;
 } APU;
 
+void apu_enable(APU* apu);
+void apu_disable(APU* apu);
+
+void apu_new_sample(APU* apu);
+
+void ch1_reload(APU* apu);
+void ch2_reload(APU* apu);
+void ch3_reload(APU* apu);
+void ch4_reload(APU* apu);
+
+void waveram_swap(APU* apu);
+
 void fifo_a_push(APU* apu, word samples);
 void fifo_a_pop(APU* apu);
 
 void fifo_b_push(APU* apu, word samples);
 void fifo_b_pop(APU* apu);
+
+void apu_div_tick(APU* apu);
 
 void tick_apu(APU* apu);
 
