@@ -252,6 +252,10 @@ void io_writeh(IO* io, word addr, hword data) {
         case IF:
             io->ifl.h &= ~data;
             break;
+        case WAITCNT:
+            io->waitcnt.w = data;
+            update_cart_waits(io->master);
+            break;
         case POSTFLG:
             io_writeb(io, addr, data);
             io_writeb(io, addr | 1, data >> 8);

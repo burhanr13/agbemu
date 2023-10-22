@@ -53,6 +53,8 @@ typedef struct _GBA {
 
     Cartridge* cart;
     word next_rom_addr;
+    int cart_n_waits[4];
+    int cart_s_waits[3];
 
     union {
         byte* b;
@@ -104,6 +106,8 @@ typedef struct _GBA {
 void init_gba(GBA* gba, Cartridge* cart, byte* bios);
 
 byte* load_bios(char* filename);
+
+void update_cart_waits(GBA* gba);
 
 int get_waitstates(GBA* gba, word addr, DataWidth d);
 
