@@ -67,6 +67,11 @@ void dma_activate(DMAController* dmac, int i) {
 }
 
 void update_addr(word* addr, int adcnt, int wsize) {
+    if (*addr >> 24 >= R_ROM0 && *addr >> 24 < R_SRAM) {
+        *addr += wsize;
+        return;
+    }
+
     switch (adcnt) {
         case DMA_ADCNT_INC:
         case DMA_ADCNT_INR:
@@ -113,8 +118,7 @@ void dma_transh(DMAController* dmac, int i, word daddr, word saddr) {
     hword data = bus_readh(dmac->master, saddr);
     if (dmac->master->openbus) data = dmac->dma[i].bus_val;
     else {
-        dmac->dma[i].bus_val &= 0xffff0000;
-        dmac->dma[i].bus_val |= data;
+        dmac->dma[i].bus_val = data * 0x00010001;
     }
     tick_components(dmac->master, get_waitstates(dmac->master, daddr, D_HWORD));
     bus_writeh(dmac->master, daddr, data);
