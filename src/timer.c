@@ -9,13 +9,13 @@ const int RATES[4] = {0, 6, 8, 10};
 
 void update_timer_count(TimerController* tmc, int i) {
     if (!tmc->master->io.tm[i].cnt.enable || tmc->master->io.tm[i].cnt.countup) {
-        tmc->set_time[i] = tmc->master->cycles;
+        tmc->set_time[i] = tmc->master->sched.now;
         return;
     }
 
     int rate = RATES[tmc->master->io.tm[i].cnt.rate];
-    tmc->counter[i] += (tmc->master->cycles >> rate) - (tmc->set_time[i] >> rate);
-    tmc->set_time[i] = tmc->master->cycles;
+    tmc->counter[i] += (tmc->master->sched.now >> rate) - (tmc->set_time[i] >> rate);
+    tmc->set_time[i] = tmc->master->sched.now;
 }
 
 void update_timer_reload(TimerController* tmc, int i) {
@@ -31,13 +31,13 @@ void update_timer_reload(TimerController* tmc, int i) {
 
 void enable_timer(TimerController* tmc, int i) {
     tmc->counter[i] = tmc->master->io.tm[i].reload;
-    tmc->set_time[i] = tmc->master->cycles;
+    tmc->set_time[i] = tmc->master->sched.now;
     update_timer_reload(tmc, i);
 }
 
 void reload_timer(TimerController* tmc, int i) {
     tmc->counter[i] = tmc->master->io.tm[i].reload;
-    tmc->set_time[i] = tmc->master->cycles;
+    tmc->set_time[i] = tmc->master->sched.now;
     update_timer_reload(tmc, i);
 
     if (tmc->master->io.tm[i].cnt.irq) tmc->master->io.ifl.timer |= 1 << i;

@@ -14,6 +14,7 @@ typedef enum {
     EVENT_TM3_ENA,
     EVENT_PPU_HDRAW,
     EVENT_PPU_HBLANK,
+    EVENT_PPU_HBLANK_FLG,
     EVENT_APU_SAMPLE,
     EVENT_APU_CH1_REL,
     EVENT_APU_CH2_REL,
@@ -32,6 +33,8 @@ typedef struct _GBA GBA;
 
 typedef struct {
     GBA* master;
+
+    dword now;
 
     Event event_queue[EVENT_MAX];
     int n_events;

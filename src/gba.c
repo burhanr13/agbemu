@@ -16,8 +16,6 @@
 
 extern bool lg, dbg, bootbios;
 
-const int CART_WAITS[4] = {5, 4, 3, 9};
-
 void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
     memset(gba, 0, sizeof *gba);
     memset(&cart->st, 0, sizeof cart->st);
@@ -73,6 +71,7 @@ int get_waitstates(GBA* gba, word addr, DataWidth d) {
         if (d == D_WORD && (region == R_EWRAM || region == R_PRAM || region == R_VRAM)) waits *= 2;
         return waits;
     } else if (region < 16) {
+        const int CART_WAITS[4] = {5, 4, 3, 9};
         switch (region) {
             case R_ROM0:
             case R_ROM0EX: {

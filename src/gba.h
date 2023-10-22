@@ -54,8 +54,6 @@ typedef struct _GBA {
     Cartridge* cart;
     word next_rom_addr;
 
-    dword cycles;
-
     union {
         byte* b;
         hword* h;

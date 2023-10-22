@@ -107,5 +107,6 @@ void draw_scanline(PPU* ppu);
 void on_hdraw(PPU* ppu);
 void on_vblank(PPU* ppu);
 void on_hblank(PPU* ppu);
+void set_hblank_flags(PPU* ppu);
 
 #endif

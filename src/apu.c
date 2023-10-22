@@ -10,9 +10,9 @@
 byte duty_cycles[] = {0b11111110, 0b01111110, 0b01111000, 0b10000001};
 
 void apu_enable(APU* apu) {
-    add_event(&apu->master->sched, &(Event){apu->master->cycles + SAMPLE_PERIOD, EVENT_APU_SAMPLE});
+    add_event(&apu->master->sched, &(Event){apu->master->sched.now + SAMPLE_PERIOD, EVENT_APU_SAMPLE});
     add_event(&apu->master->sched,
-              &(Event){apu->master->cycles + APU_DIV_PERIOD, EVENT_APU_DIV_TICK});
+              &(Event){apu->master->sched.now + APU_DIV_PERIOD, EVENT_APU_DIV_TICK});
 }
 
 void apu_disable(APU* apu) {
@@ -112,19 +112,19 @@ void apu_new_sample(APU* apu) {
         apu->sample_ind = 0;
     }
 
-    add_event(&apu->master->sched, &(Event){apu->master->cycles + SAMPLE_PERIOD, EVENT_APU_SAMPLE});
+    add_event(&apu->master->sched, &(Event){apu->master->sched.now + SAMPLE_PERIOD, EVENT_APU_SAMPLE});
 }
 
 void ch1_reload(APU* apu) {
     apu->ch1_duty_index++;
     dword next_rel = (2048 - apu->ch1_wavelen) * 16;
-    add_event(&apu->master->sched, &(Event){apu->master->cycles + next_rel, EVENT_APU_CH1_REL});
+    add_event(&apu->master->sched, &(Event){apu->master->sched.now + next_rel, EVENT_APU_CH1_REL});
 }
 
 void ch2_reload(APU* apu) {
     apu->ch2_duty_index++;
     dword next_rel = (2048 - apu->ch2_wavelen) * 16;
-    add_event(&apu->master->sched, &(Event){apu->master->cycles + next_rel, EVENT_APU_CH2_REL});
+    add_event(&apu->master->sched, &(Event){apu->master->sched.now + next_rel, EVENT_APU_CH2_REL});
 }
 
 void ch3_reload(APU* apu) {
@@ -133,7 +133,7 @@ void ch3_reload(APU* apu) {
         waveram_swap(apu);
     }
     dword next_rel = (2048 - apu->ch3_wavelen) * 8;
-    add_event(&apu->master->sched, &(Event){apu->master->cycles + next_rel, EVENT_APU_CH3_REL});
+    add_event(&apu->master->sched, &(Event){apu->master->sched.now + next_rel, EVENT_APU_CH3_REL});
 }
 
 void ch4_reload(APU* apu) {
@@ -148,7 +148,7 @@ void ch4_reload(APU* apu) {
     if (apu->master->io.nr43 & NR43_DIV) {
         rate *= apu->master->io.nr43 & NR43_DIV;
     }
-    add_event(&apu->master->sched, &(Event){apu->master->cycles + 32 * rate, EVENT_APU_CH4_REL});
+    add_event(&apu->master->sched, &(Event){apu->master->sched.now + 32 * rate, EVENT_APU_CH4_REL});
 }
 
 void apu_div_tick(APU* apu) {
@@ -248,7 +248,7 @@ void apu_div_tick(APU* apu) {
     }
 
     add_event(&apu->master->sched,
-              &(Event){apu->master->cycles + APU_DIV_PERIOD, EVENT_APU_DIV_TICK});
+              &(Event){apu->master->sched.now + APU_DIV_PERIOD, EVENT_APU_DIV_TICK});
 }
 
 void waveram_swap(APU* apu) {

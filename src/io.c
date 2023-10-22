@@ -195,8 +195,8 @@ void io_writeh(IO* io, word addr, hword data) {
             }
             break;
         case SOUNDCNT_X:
-            if(data & (1<<7)){
-                if(!io->nr52) {
+            if (data & (1 << 7)) {
+                if (!io->nr52) {
                     io->nr52 = 1 << 7;
                     apu_enable(&io->master->apu);
                 }
@@ -231,10 +231,23 @@ void io_writeh(IO* io, word addr, hword data) {
             io->tm[i].cnt.h = data;
             update_timer_reload(&io->master->tmc, i);
             if (!prev_ena && io->tm[i].cnt.enable) {
-                add_event(&io->master->sched, &(Event){io->master->cycles + 1, EVENT_TM0_ENA + i});
+                add_event(&io->master->sched,
+                          &(Event){io->master->sched.now + 1, EVENT_TM0_ENA + i});
             }
+            break;
         }
+        case SIOCNT:
+            if (data & (1 << 7)) {
+                data &= ~(1 << 7);
+                if (data & (1 << 14)) io->ifl.serial = 1;
+            }
+            io->h[addr >> 1] = data;
+            break;
         case KEYINPUT:
+            break;
+        case KEYCNT:
+            io->keycnt.h = data;
+            update_keypad_irq(io->master);
             break;
         case IF:
             io->ifl.h &= ~data;

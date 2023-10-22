@@ -47,9 +47,8 @@ ArmExecFunc arm_decode_instr(ArmInstr instr) {
 }
 
 bool eval_cond(Arm7TDMI* cpu, ArmInstr instr) {
+    if (instr.cond == C_AL) return true;
     switch (instr.cond) {
-        case C_AL:
-            return true;
         case C_EQ:
             return cpu->cpsr.z;
         case C_NE:
