@@ -323,8 +323,8 @@ void render_obj_line(PPU* ppu, int i) {
                     ppu->draw_obj = true;
                     ppu->layerlines[LOBJ][sx] = col;
                     ppu->objdotattrs[sx].semitrans = (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
-                    ppu->objdotattrs[sx].mosaic = o.mosaic;
                 }
+                ppu->objdotattrs[sx].mosaic = o.mosaic;
                 ppu->objdotattrs[sx].priority = o.priority;
                 if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
             }
@@ -373,8 +373,8 @@ void render_obj_line(PPU* ppu, int i) {
                             ppu->draw_obj = true;
                             ppu->layerlines[LOBJ][sx] = col & ~(1 << 15);
                             ppu->objdotattrs[sx].semitrans = (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
-                            ppu->objdotattrs[sx].mosaic = o.mosaic;
                         }
+                        ppu->objdotattrs[sx].mosaic = o.mosaic;
                         ppu->objdotattrs[sx].priority = o.priority;
                         if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
                     }
@@ -432,8 +432,8 @@ void render_obj_line(PPU* ppu, int i) {
                             ppu->draw_obj = true;
                             ppu->layerlines[LOBJ][sx] = col & ~(1 << 15);
                             ppu->objdotattrs[sx].semitrans = (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
-                            ppu->objdotattrs[sx].mosaic = o.mosaic;
                         }
+                        ppu->objdotattrs[sx].mosaic = o.mosaic;
                         ppu->objdotattrs[sx].priority = o.priority;
                         if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
                     }
@@ -502,12 +502,18 @@ void hmosaic_bg(PPU* ppu, int bg) {
 void hmosaic_obj(PPU* ppu) {
     byte mos_ct = -1;
     byte mos_x = 0;
+    bool prev_mos = false;
     for (int x = 0; x < GBA_SCREEN_W; x++) {
-        if (ppu->objdotattrs[x].mosaic) ppu->layerlines[LOBJ][x] = ppu->layerlines[LOBJ][mos_x];
         if (++mos_ct == ppu->master->io.mosaic.obj_h) {
             mos_ct = -1;
-            mos_x = x + 1;
+            mos_x = x;
+            prev_mos = ppu->objdotattrs[x].mosaic;
         }
+        if(!ppu->objdotattrs[x].mosaic || !prev_mos) {
+            mos_x = x;
+            prev_mos = ppu->objdotattrs[x].mosaic;
+        }
+        ppu->layerlines[LOBJ][x] = ppu->layerlines[LOBJ][mos_x];
     }
 }
 
