@@ -175,10 +175,10 @@ hword bus_readh(GBA* gba, word addr) {
     switch (region) {
         case R_BIOS:
             if (addr < BIOS_SIZE) {
-                if (gba->dmac.any_active) {
-                    gba->openbus = true;
-                    return 0;
-                }
+                // if (gba->dmac.any_active) {
+                //     gba->openbus = true;
+                //     return 0;
+                // }
                 if (gba->cpu.pc < BIOS_SIZE) {
                     gba->last_bios_val = gba->bios.w[addr >> 2];
                     return gba->bios.h[addr >> 1];
@@ -240,10 +240,10 @@ word bus_readw(GBA* gba, word addr) {
     switch (region) {
         case R_BIOS:
             if (addr < BIOS_SIZE) {
-                if (gba->dmac.any_active) {
-                    gba->openbus = true;
-                    return 0;
-                }
+                // if (gba->dmac.any_active) {
+                //     gba->openbus = true;
+                //     return 0;
+                // }
                 if (gba->cpu.pc < BIOS_SIZE) {
                     word data = gba->bios.w[addr >> 2];
                     gba->last_bios_val = data;
