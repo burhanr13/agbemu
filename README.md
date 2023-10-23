@@ -44,4 +44,4 @@ Hotkeys are as follows:
 - [GBATEK](https://www.problemkaputt.de/gbatek.htm)
 - [Tonc](https://www.coranac.com/tonc/text/toc.htm)
 - [mGBA](https://github.com/mgba-emu/mgba)
-- [EmuDev Discord Server](https://discord.gg/NUB95UKh)
+- [EmuDev Discord Server](https://discord.gg/dkmJAes)
