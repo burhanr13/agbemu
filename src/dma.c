@@ -116,7 +116,7 @@ void dma_step(DMAController* dmac, int i) {
 void dma_transh(DMAController* dmac, int i, word daddr, word saddr) {
     tick_components(dmac->master, get_waitstates(dmac->master, saddr, D_HWORD));
     hword data = bus_readh(dmac->master, saddr);
-    if (dmac->master->openbus) data = dmac->dma[i].bus_val;
+    if (dmac->master->openbus || saddr < BIOS_SIZE) data = dmac->dma[i].bus_val;
     else {
         dmac->dma[i].bus_val = data * 0x00010001;
     }
@@ -127,7 +127,7 @@ void dma_transh(DMAController* dmac, int i, word daddr, word saddr) {
 void dma_transw(DMAController* dmac, int i, word daddr, word saddr) {
     tick_components(dmac->master, get_waitstates(dmac->master, saddr, D_WORD));
     word data = bus_readw(dmac->master, saddr);
-    if (dmac->master->openbus) data = dmac->dma[i].bus_val;
+    if (dmac->master->openbus || saddr < BIOS_SIZE) data = dmac->dma[i].bus_val;
     else dmac->dma[i].bus_val = data;
     tick_components(dmac->master, get_waitstates(dmac->master, daddr, D_WORD));
     bus_writew(dmac->master, daddr, data);
