@@ -23,7 +23,12 @@ void render_bg_line_text(PPU* ppu, int bg) {
     word map_start = ppu->master->io.bgcnt[bg].tilemap_base * 0x800;
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
 
-    hword sy = (ppu->ly + ppu->master->io.bgtext[bg].vofs) % 512;
+    hword sy;
+    if (ppu->master->io.bgcnt[bg].mosaic) {
+        sy = (ppu->bgmos_y + ppu->master->io.bgtext[bg].vofs) % 512;
+    } else {
+        sy = (ppu->ly + ppu->master->io.bgtext[bg].vofs) % 512;
+    }
     hword scy = sy >> 8;
     hword ty = (sy >> 3) & 0b11111;
     hword fy = sy & 0b111;
@@ -131,8 +136,14 @@ void render_bg_line_aff(PPU* ppu, int bg, int mode) {
     word tile_start = ppu->master->io.bgcnt[bg].tile_base * 0x4000;
     word bm_start = (ppu->master->io.dispcnt.frame_sel) ? 0xa000 : 0x0000;
 
-    sword x0 = ppu->bgaffintr[bg - 2].x;
-    sword y0 = ppu->bgaffintr[bg - 2].y;
+    sword x0, y0;
+    if (ppu->master->io.bgcnt[bg].mosaic) {
+        x0 = ppu->bgaffintr[bg - 2].mosx;
+        y0 = ppu->bgaffintr[bg - 2].mosy;
+    } else {
+        x0 = ppu->bgaffintr[bg - 2].x;
+        y0 = ppu->bgaffintr[bg - 2].y;
+    }
 
     hword size = 1 << (7 + ppu->master->io.bgcnt[bg].size);
 
@@ -237,7 +248,13 @@ void render_obj_line(PPU* ppu, int i) {
         } else return;
     }
 
-    byte yofs = ppu->ly - (byte) o.y;
+    byte yofs;
+    if (o.mosaic) {
+        yofs = ppu->objmos_y - (byte) o.y;
+        ppu->obj_mos = true;
+    } else {
+        yofs = ppu->ly - (byte) o.y;
+    }
     if (yofs >= h) return;
     word tile_start = o.tilenum * 32;
 
@@ -306,6 +323,7 @@ void render_obj_line(PPU* ppu, int i) {
                     ppu->draw_obj = true;
                     ppu->layerlines[LOBJ][sx] = col;
                     ppu->objdotattrs[sx].semitrans = (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
+                    ppu->objdotattrs[sx].mosaic = o.mosaic;
                 }
                 ppu->objdotattrs[sx].priority = o.priority;
                 if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
@@ -355,6 +373,7 @@ void render_obj_line(PPU* ppu, int i) {
                             ppu->draw_obj = true;
                             ppu->layerlines[LOBJ][sx] = col & ~(1 << 15);
                             ppu->objdotattrs[sx].semitrans = (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
+                            ppu->objdotattrs[sx].mosaic = o.mosaic;
                         }
                         ppu->objdotattrs[sx].priority = o.priority;
                         if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
@@ -413,6 +432,7 @@ void render_obj_line(PPU* ppu, int i) {
                             ppu->draw_obj = true;
                             ppu->layerlines[LOBJ][sx] = col & ~(1 << 15);
                             ppu->objdotattrs[sx].semitrans = (o.mode == OBJ_MODE_SEMITRANS) ? 1 : 0;
+                            ppu->objdotattrs[sx].mosaic = o.mosaic;
                         }
                         ppu->objdotattrs[sx].priority = o.priority;
                         if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
@@ -463,6 +483,30 @@ void render_windows(PPU* ppu) {
         byte x2 = ppu->master->io.winh[i].x2;
         for (byte x = x1; x != x2; x++) {
             if (x < GBA_SCREEN_W) ppu->window[x] = i;
+        }
+    }
+}
+
+void hmosaic_bg(PPU* ppu, int bg) {
+    byte mos_ct = -1;
+    byte mos_x = 0;
+    for (int x = 0; x < GBA_SCREEN_W; x++) {
+        ppu->layerlines[bg][x] = ppu->layerlines[bg][mos_x];
+        if (++mos_ct == ppu->master->io.mosaic.bg_h) {
+            mos_ct = -1;
+            mos_x = x + 1;
+        }
+    }
+}
+
+void hmosaic_obj(PPU* ppu) {
+    byte mos_ct = -1;
+    byte mos_x = 0;
+    for (int x = 0; x < GBA_SCREEN_W; x++) {
+        if (ppu->objdotattrs[x].mosaic) ppu->layerlines[LOBJ][x] = ppu->layerlines[LOBJ][mos_x];
+        if (++mos_ct == ppu->master->io.mosaic.obj_h) {
+            mos_ct = -1;
+            mos_x = x + 1;
         }
     }
 }
@@ -660,12 +704,19 @@ void draw_scanline(PPU* ppu) {
     ppu->draw_bg[2] = false;
     ppu->draw_bg[3] = false;
     ppu->draw_obj = false;
+    ppu->obj_mos = false;
 
     if (ppu->master->io.dispcnt.win_enable || ppu->master->io.dispcnt.winobj_enable)
         memset(ppu->window, WOUT, GBA_SCREEN_W);
     render_bgs(ppu);
     render_objs(ppu);
     render_windows(ppu);
+
+    if (ppu->master->io.bgcnt[0].mosaic) hmosaic_bg(ppu, 0);
+    if (ppu->master->io.bgcnt[1].mosaic) hmosaic_bg(ppu, 1);
+    if (ppu->master->io.bgcnt[2].mosaic) hmosaic_bg(ppu, 2);
+    if (ppu->master->io.bgcnt[3].mosaic) hmosaic_bg(ppu, 3);
+    if (ppu->obj_mos) hmosaic_obj(ppu);
 
     compose_lines(ppu);
 }
@@ -721,6 +772,15 @@ void on_vblank(PPU* ppu) {
     ppu->bgaffintr[0].y = ppu->master->io.bgaff[0].y;
     ppu->bgaffintr[1].x = ppu->master->io.bgaff[1].x;
     ppu->bgaffintr[1].y = ppu->master->io.bgaff[1].y;
+    ppu->bgaffintr[0].mosx = ppu->bgaffintr[0].x;
+    ppu->bgaffintr[0].mosy = ppu->bgaffintr[0].y;
+    ppu->bgaffintr[1].mosx = ppu->bgaffintr[1].x;
+    ppu->bgaffintr[1].mosy = ppu->bgaffintr[1].y;
+
+    ppu->bgmos_y = 0;
+    ppu->bgmos_ct = -1;
+    ppu->objmos_y = 0;
+    ppu->objmos_ct = -1;
 
     for (int i = 0; i < 4; i++) {
         if (ppu->master->io.dma[i].cnt.start == DMA_ST_VBLANK) dma_activate(&ppu->master->dmac, i);
@@ -738,6 +798,19 @@ void on_hblank(PPU* ppu) {
     ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
     ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
     ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
+
+    if (++ppu->bgmos_ct == ppu->master->io.mosaic.bg_v) {
+        ppu->bgmos_ct = -1;
+        ppu->bgmos_y = ppu->ly + 1;
+        ppu->bgaffintr[0].mosx = ppu->bgaffintr[0].x;
+        ppu->bgaffintr[0].mosy = ppu->bgaffintr[0].y;
+        ppu->bgaffintr[1].mosx = ppu->bgaffintr[1].x;
+        ppu->bgaffintr[1].mosy = ppu->bgaffintr[1].y;
+    }
+    if (++ppu->objmos_ct == ppu->master->io.mosaic.obj_v) {
+        ppu->objmos_ct = -1;
+        ppu->objmos_y = ppu->ly + 1;
+    }
 
     for (int i = 0; i < 4; i++) {
         if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK) dma_activate(&ppu->master->dmac, i);

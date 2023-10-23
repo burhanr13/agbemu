@@ -69,7 +69,8 @@ typedef struct {
     byte priority : 2;
     byte semitrans : 1;
     byte obj0 : 1;
-    byte pad : 4;
+    byte mosaic : 1;
+    byte pad : 3;
 } ObjDotAttr;
 
 typedef struct _GBA GBA;
@@ -87,11 +88,19 @@ typedef struct {
     struct {
         word x;
         word y;
+        word mosx;
+        word mosy;
     } bgaffintr[2];
+
+    byte bgmos_y;
+    byte bgmos_ct;
+    byte objmos_y;
+    byte objmos_ct;
 
     bool draw_bg[4];
     bool draw_obj;
     bool in_win[2];
+    bool obj_mos;
 
     int obj_cycles;
 

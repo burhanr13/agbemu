@@ -205,6 +205,12 @@ typedef struct _IO {
             };
             union {
                 word w;
+                struct {
+                    word bg_h : 4;
+                    word bg_v : 4;
+                    word obj_h : 4;
+                    word obj_v : 4;
+                };
             } mosaic;
             union {
                 hword h;
