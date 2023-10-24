@@ -100,6 +100,7 @@ void dma_step(DMAController* dmac, int i) {
         update_addr(&dmac->dma[i].dptr, dmac->master->io.dma[i].cnt.dadcnt,
                     2 << dmac->master->io.dma[i].cnt.wsize);
     dmac->dma[i].ct--;
+    dmac->dma[i].initial = false;
     if (dmac->dma[i].ct == 0) {
         dmac->dma[i].active = false;
         dma_update_active(dmac);
@@ -114,22 +115,26 @@ void dma_step(DMAController* dmac, int i) {
 }
 
 void dma_transh(DMAController* dmac, int i, word daddr, word saddr) {
-    tick_components(dmac->master, get_waitstates(dmac->master, saddr, D_HWORD));
+    tick_components(dmac->master,
+                    get_waitstates(dmac->master, saddr, false, !dmac->dma[i].initial));
     hword data = bus_readh(dmac->master, saddr);
     if (dmac->master->openbus || saddr < BIOS_SIZE) data = dmac->dma[i].bus_val;
     else {
         dmac->dma[i].bus_val = data * 0x00010001;
     }
-    tick_components(dmac->master, get_waitstates(dmac->master, daddr, D_HWORD));
+    tick_components(dmac->master,
+                    get_waitstates(dmac->master, daddr, false, !dmac->dma[i].initial));
     bus_writeh(dmac->master, daddr, data);
 }
 
 void dma_transw(DMAController* dmac, int i, word daddr, word saddr) {
-    tick_components(dmac->master, get_waitstates(dmac->master, saddr, D_WORD));
+    tick_components(dmac->master,
+                    get_waitstates(dmac->master, saddr, true, !dmac->dma[i].initial));
     word data = bus_readw(dmac->master, saddr);
     if (dmac->master->openbus || saddr < BIOS_SIZE) data = dmac->dma[i].bus_val;
     else dmac->dma[i].bus_val = data;
-    tick_components(dmac->master, get_waitstates(dmac->master, daddr, D_WORD));
+    tick_components(dmac->master,
+                    get_waitstates(dmac->master, daddr, true, !dmac->dma[i].initial));
     bus_writew(dmac->master, daddr, data);
 }
 

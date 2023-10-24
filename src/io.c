@@ -232,7 +232,7 @@ void io_writeh(IO* io, word addr, hword data) {
             update_timer_reload(&io->master->tmc, i);
             if (!prev_ena && io->tm[i].cnt.enable) {
                 add_event(&io->master->sched,
-                          &(Event){io->master->sched.now + 1, EVENT_TM0_ENA + i});
+                          &(Event){io->master->sched.now + 2, EVENT_TM0_ENA + i});
             }
             break;
         }
@@ -255,6 +255,7 @@ void io_writeh(IO* io, word addr, hword data) {
         case WAITCNT:
             io->waitcnt.w = data;
             update_cart_waits(io->master);
+            io->master->prefetcher_cycles = 0;
             break;
         case POSTFLG:
             io_writeb(io, addr, data);

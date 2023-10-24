@@ -49,7 +49,6 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
         gba->io.soundbias.bias = 0x200;
     }
 
-    gba->next_rom_addr = -1;
     update_cart_waits(gba);
 
     add_event(&gba->sched, &(Event){0, EVENT_PPU_HDRAW});
@@ -75,13 +74,53 @@ void update_cart_waits(GBA* gba) {
     gba->cart_s_waits[2] = gba->io.waitcnt.rom0s ? 2 : 9;
 }
 
-int get_waitstates(GBA* gba, word addr, DataWidth d) {
+int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
     word region = addr >> 24;
-    word rom_addr = addr % (1 << 25);
+    gba->prefetch_free_read = false;
     if (region < 8) {
         int waits = 1;
         if (region == R_EWRAM) waits = 3;
-        if (d == D_WORD && (region == R_EWRAM || region == R_PRAM || region == R_VRAM)) waits *= 2;
+        if (w && (region == R_EWRAM || region == R_PRAM || region == R_VRAM)) {
+            waits += waits;
+        }
+        gba->prefetcher_cycles += waits;
+        return waits;
+    } else if (region < 16) {
+        int i = (region >> 1) & 0b11;
+        if (i == 3) return gba->cart_n_waits[3];
+
+        gba->next_prefetch_addr = 0;
+        gba->prefetcher_cycles = 0;
+        if (addr % 0x20000 == 0) seq = false;
+
+        int n_waits = gba->cart_n_waits[i];
+        int s_waits = gba->cart_s_waits[i];
+        int total = 0;
+
+        if (seq) {
+            total += s_waits;
+        } else {
+            total += n_waits;
+        }
+        if (w) {
+            total += s_waits;
+        }
+        return total;
+    } else return 1;
+}
+
+int get_fetch_waitstates(GBA* gba, word addr, bool w, bool seq) {
+    if (!gba->io.waitcnt.prefetch) return get_waitstates(gba, addr, w, seq);
+    word region = addr >> 24;
+    word rom_addr = addr % (1 << 25);
+    if (region < 8) {
+        gba->prefetch_free_read = false;
+        int waits = 1;
+        if (region == R_EWRAM) waits = 3;
+        if (w && (region == R_EWRAM || region == R_PRAM || region == R_VRAM)) {
+            waits += waits;
+        }
+        gba->prefetcher_cycles += waits;
         return waits;
     } else if (region < 16) {
         int i = (region >> 1) & 0b11;
@@ -89,14 +128,44 @@ int get_waitstates(GBA* gba, word addr, DataWidth d) {
         int n_waits = gba->cart_n_waits[i];
         int s_waits = gba->cart_s_waits[i];
         int total = 0;
-        if (rom_addr == gba->next_rom_addr) {
-            if (gba->io.waitcnt.prefetch) s_waits = 1;
-            total += s_waits;
+        if (rom_addr == gba->next_prefetch_addr) {
+            if (gba->prefetch_free_read) {
+                gba->prefetch_free_read = false;
+                total--;
+            }
+            if (gba->prefetcher_cycles < s_waits) {
+                total += s_waits - gba->prefetcher_cycles;
+                gba->prefetcher_cycles = 0;
+            } else {
+                total += 1;
+                gba->prefetch_free_read = true;
+                gba->prefetcher_cycles -= s_waits;
+            }
+            gba->next_prefetch_addr = rom_addr + 2;
+            if (w) {
+                if (gba->prefetch_free_read) {
+                    gba->prefetch_free_read = false;
+                    total--;
+                }
+                if (gba->prefetcher_cycles < s_waits) {
+                    total += s_waits - gba->prefetcher_cycles;
+                    gba->prefetcher_cycles = 0;
+                } else {
+                    total += 1;
+                    gba->prefetch_free_read = true;
+                    gba->prefetcher_cycles -= s_waits;
+                }
+                gba->next_prefetch_addr += 2;
+            }
         } else {
+            gba->prefetcher_cycles = 0;
+            gba->prefetch_free_read = false;
             total += n_waits;
-        }
-        if (d == D_WORD) {
-            total += s_waits;
+            gba->next_prefetch_addr = rom_addr + 2;
+            if (w) {
+                total += s_waits;
+                gba->next_prefetch_addr += 2;
+            }
         }
         return total;
     } else return 1;
@@ -152,7 +221,6 @@ byte bus_readb(GBA* gba, word addr) {
                 (rom_addr & gba->cart->eeprom_mask) == gba->cart->eeprom_mask) {
                 return cart_read_eeprom(gba->cart);
             }
-            gba->next_rom_addr = (rom_addr & ~1) + 2;
             if (rom_addr < gba->cart->rom_size) {
                 return gba->cart->rom.b[rom_addr];
             } else return read_rom_oob(addr);
@@ -213,7 +281,6 @@ hword bus_readh(GBA* gba, word addr) {
                 (rom_addr & gba->cart->eeprom_mask) == gba->cart->eeprom_mask) {
                 return cart_read_eeprom(gba->cart);
             }
-            gba->next_rom_addr = (rom_addr & ~1) + 2;
             if (rom_addr < gba->cart->rom_size) {
                 return gba->cart->rom.h[rom_addr >> 1];
             } else return read_rom_oob(addr & ~1);
@@ -277,7 +344,6 @@ word bus_readw(GBA* gba, word addr) {
                 dat |= cart_read_eeprom(gba->cart) << 16;
                 return dat;
             }
-            gba->next_rom_addr = (rom_addr & ~0b11) + 4;
             if (rom_addr < gba->cart->rom_size) {
                 return gba->cart->rom.w[rom_addr >> 2];
             } else return read_rom_oob((addr & ~0b11) + 2) << 16 | read_rom_oob(addr & ~0b11);

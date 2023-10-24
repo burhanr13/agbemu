@@ -11,7 +11,6 @@
 #include "timer.h"
 #include "types.h"
 
-typedef enum { D_BYTE, D_HWORD, D_WORD } DataWidth;
 
 enum {
     BIOS_SIZE = 0x4000,   // 16kb
@@ -52,9 +51,12 @@ typedef struct _GBA {
     Scheduler sched;
 
     Cartridge* cart;
-    word next_rom_addr;
+
     int cart_n_waits[4];
     int cart_s_waits[3];
+    word next_prefetch_addr;
+    int prefetcher_cycles;
+    bool prefetch_free_read;
 
     union {
         byte* b;
@@ -109,7 +111,8 @@ byte* load_bios(char* filename);
 
 void update_cart_waits(GBA* gba);
 
-int get_waitstates(GBA* gba, word addr, DataWidth d);
+int get_waitstates(GBA* gba, word addr, bool w, bool seq);
+int get_fetch_waitstates(GBA* gba, word addr, bool w, bool seq);
 
 byte bus_readb(GBA* gba, word addr);
 hword bus_readh(GBA* gba, word addr);

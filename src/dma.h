@@ -18,6 +18,7 @@ typedef struct {
         hword ct;
         bool active;
         bool sound;
+        bool initial;
     } dma[4];
     bool any_active;
     byte active_dma;

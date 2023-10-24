@@ -58,6 +58,8 @@ typedef struct _Arm7TDMI {
 
     word bus_val;
 
+    bool next_seq;
+
 } Arm7TDMI;
 
 void cpu_step(Arm7TDMI* cpu);
@@ -71,12 +73,15 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr);
 word cpu_readb(Arm7TDMI* cpu, word addr, bool sx);
 word cpu_readh(Arm7TDMI* cpu, word addr, bool sx);
 word cpu_readw(Arm7TDMI* cpu, word addr);
+word cpu_readm(Arm7TDMI* cpu, word addr, int i);
+
 void cpu_writeb(Arm7TDMI* cpu, word addr, byte b);
 void cpu_writeh(Arm7TDMI* cpu, word addr, hword h);
 void cpu_writew(Arm7TDMI* cpu, word addr, word w);
+void cpu_writem(Arm7TDMI* cpu, word addr, int i, word w);
 
-hword cpu_fetchh(Arm7TDMI* cpu, word addr);
-word cpu_fetchw(Arm7TDMI* cpu, word addr);
+hword cpu_fetchh(Arm7TDMI* cpu, word addr, bool seq);
+word cpu_fetchw(Arm7TDMI* cpu, word addr, bool seq);
 
 void cpu_internal_cycle(Arm7TDMI* cpu);
 
