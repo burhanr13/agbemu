@@ -248,14 +248,14 @@ void render_obj_line(PPU* ppu, int i) {
         } else return;
     }
 
-    byte yofs;
+    byte yofs = ppu->ly - (byte) o.y;
+    if (yofs >= h) return;
+
     if (o.mosaic) {
         yofs = ppu->objmos_y - (byte) o.y;
         ppu->obj_mos = true;
-    } else {
-        yofs = ppu->ly - (byte) o.y;
     }
-    if (yofs >= h) return;
+    
     word tile_start = o.tilenum * 32;
 
     if (ppu->master->io.dispcnt.bg_mode > 2 && tile_start < 0x4000) return;
