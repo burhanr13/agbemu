@@ -199,13 +199,8 @@ hword cpu_fetchh(Arm7TDMI* cpu, word addr, bool seq) {
     else {
         word reg = addr >> 24;
         if (reg == R_BIOS || reg == R_IWRAM || reg == R_OAM) {
-            if (addr & 1) {
-                cpu->bus_val &= 0x0000ffff;
-                cpu->bus_val |= data << 16;
-            } else {
-                cpu->bus_val &= 0xffff0000;
-                cpu->bus_val |= data;
-            }
+            cpu->bus_val &= 0x0000ffff << (16 * (~addr & 1));
+            cpu->bus_val |= data << (16 * (addr & 1));
         } else cpu->bus_val = data * 0x00010001;
     }
     return data;
@@ -222,7 +217,7 @@ word cpu_fetchw(Arm7TDMI* cpu, word addr, bool seq) {
 void cpu_internal_cycle(Arm7TDMI* cpu) {
     tick_components(cpu->master, 1);
     cpu->master->prefetcher_cycles++;
-    cpu->next_seq = cpu->master->io.waitcnt.prefetch;
+    if (cpu->pc >= 0x8000000) cpu->next_seq = cpu->master->io.waitcnt.prefetch;
 }
 
 char* mode_name(CpuMode m) {

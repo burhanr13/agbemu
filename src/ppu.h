@@ -65,14 +65,6 @@ enum { LBG0, LBG1, LBG2, LBG3, LOBJ, LBD, LMAX };
 
 enum { EFF_NONE, EFF_ALPHA, EFF_BINC, EFF_BDEC };
 
-typedef struct {
-    byte priority : 2;
-    byte semitrans : 1;
-    byte obj0 : 1;
-    byte mosaic : 1;
-    byte pad : 3;
-} ObjDotAttr;
-
 typedef struct _GBA GBA;
 
 typedef struct {
@@ -82,7 +74,12 @@ typedef struct {
     byte ly;
 
     hword layerlines[LMAX][GBA_SCREEN_W];
-    ObjDotAttr objdotattrs[GBA_SCREEN_W];
+    struct {
+        byte priority : 2;
+        byte semitrans : 1;
+        byte mosaic : 1;
+        byte pad : 4;
+    } objdotattrs[GBA_SCREEN_W];
     byte window[GBA_SCREEN_W];
 
     struct {

@@ -302,7 +302,7 @@ void io_writeh(IO* io, word addr, hword data) {
             update_timer_reload(&io->master->tmc, i);
             if (!prev_ena && io->tm[i].cnt.enable) {
                 add_event(&io->master->sched,
-                          &(Event){io->master->sched.now + 2, EVENT_TM0_ENA + i});
+                          &(Event){io->master->sched.now + 3, EVENT_TM0_ENA + i});
             }
             if (i == 0) io->tm[i].cnt.countup = 0;
             break;
@@ -329,6 +329,7 @@ void io_writeh(IO* io, word addr, hword data) {
             break;
         case WAITCNT:
             io->waitcnt.w = data;
+            io->waitcnt.gamepaktype = 0;
             update_cart_waits(io->master);
             io->master->prefetcher_cycles = 0;
             io->master->next_prefetch_addr = -1;

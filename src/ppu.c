@@ -317,7 +317,7 @@ void render_obj_line(PPU* ppu, int i) {
                 if (ppu->master->io.dispcnt.winobj_enable && !(col & (1 << 15))) {
                     ppu->window[sx] = WOBJ;
                 }
-            } else if ((!ppu->objdotattrs[x].obj0 && o.priority < ppu->objdotattrs[sx].priority) ||
+            } else if (o.priority < ppu->objdotattrs[sx].priority ||
                        (ppu->layerlines[LOBJ][sx] & (1 << 15))) {
                 if (!(col & (1 << 15))) {
                     ppu->draw_obj = true;
@@ -326,7 +326,6 @@ void render_obj_line(PPU* ppu, int i) {
                 }
                 ppu->objdotattrs[sx].mosaic = o.mosaic;
                 ppu->objdotattrs[sx].priority = o.priority;
-                if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
             }
         }
     } else {
@@ -365,8 +364,7 @@ void render_obj_line(PPU* ppu, int i) {
                         if (ppu->master->io.dispcnt.winobj_enable && col_ind) {
                             ppu->window[sx] = WOBJ;
                         }
-                    } else if ((!ppu->objdotattrs[x].obj0 &&
-                                o.priority < ppu->objdotattrs[sx].priority) ||
+                    } else if (o.priority < ppu->objdotattrs[sx].priority ||
                                (ppu->layerlines[LOBJ][sx] & (1 << 15))) {
                         if (col_ind) {
                             hword col = ppu->master->pram.h[0x100 + col_ind];
@@ -376,7 +374,6 @@ void render_obj_line(PPU* ppu, int i) {
                         }
                         ppu->objdotattrs[sx].mosaic = o.mosaic;
                         ppu->objdotattrs[sx].priority = o.priority;
-                        if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
                     }
                 }
 
@@ -423,8 +420,7 @@ void render_obj_line(PPU* ppu, int i) {
                         if (ppu->master->io.dispcnt.winobj_enable && col_ind) {
                             ppu->window[sx] = WOBJ;
                         }
-                    } else if ((!ppu->objdotattrs[x].obj0 &&
-                                o.priority < ppu->objdotattrs[sx].priority) ||
+                    } else if (o.priority < ppu->objdotattrs[sx].priority ||
                                (ppu->layerlines[LOBJ][sx] & (1 << 15))) {
                         if (col_ind) {
                             col_ind |= o.palette << 4;
@@ -435,7 +431,6 @@ void render_obj_line(PPU* ppu, int i) {
                         }
                         ppu->objdotattrs[sx].mosaic = o.mosaic;
                         ppu->objdotattrs[sx].priority = o.priority;
-                        if (i == 0) ppu->objdotattrs[sx].obj0 = 1;
                     }
                 }
                 row >>= 4;
@@ -504,12 +499,8 @@ void hmosaic_obj(PPU* ppu) {
     byte mos_x = 0;
     bool prev_mos = false;
     for (int x = 0; x < GBA_SCREEN_W; x++) {
-        if (++mos_ct == ppu->master->io.mosaic.obj_h) {
+        if (++mos_ct == ppu->master->io.mosaic.obj_h || !ppu->objdotattrs[x].mosaic || !prev_mos) {
             mos_ct = -1;
-            mos_x = x;
-            prev_mos = ppu->objdotattrs[x].mosaic;
-        }
-        if (!ppu->objdotattrs[x].mosaic || !prev_mos) {
             mos_x = x;
             prev_mos = ppu->objdotattrs[x].mosaic;
         }
