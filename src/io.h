@@ -97,7 +97,7 @@ enum {
     TM3CNT_L = 0x10c,
     TM3CNT_H = 0x10e,
 
-    // serial
+    // serial control
     SIOCNT = 0x128,
 
     // key control

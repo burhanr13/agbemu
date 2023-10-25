@@ -509,7 +509,7 @@ void hmosaic_obj(PPU* ppu) {
             mos_x = x;
             prev_mos = ppu->objdotattrs[x].mosaic;
         }
-        if(!ppu->objdotattrs[x].mosaic || !prev_mos) {
+        if (!ppu->objdotattrs[x].mosaic || !prev_mos) {
             mos_x = x;
             prev_mos = ppu->objdotattrs[x].mosaic;
         }
@@ -817,7 +817,6 @@ void on_hblank(PPU* ppu) {
         ppu->objmos_ct = -1;
         ppu->objmos_y = ppu->ly + 1;
     }
-
     for (int i = 0; i < 4; i++) {
         if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK) dma_activate(&ppu->master->dmac, i);
     }

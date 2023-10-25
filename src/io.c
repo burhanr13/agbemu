@@ -42,6 +42,10 @@ hword io_readh(IO* io, word addr) {
         io->master->openbus = true;
         return 0;
     }
+    if (SOUNDBIAS + 4 <= addr && addr < WAVERAM) {
+        io->master->openbus = true;
+        return 0;
+    }
     if (FIFO_A <= addr && addr < TM0CNT_L) {
         switch (addr) {
             case DMA0CNT_H:
@@ -59,11 +63,26 @@ hword io_readh(IO* io, word addr) {
                 return 0;
         }
     }
-    if (IME + 4 <= addr && addr < POSTFLG) {
+    if (TM3CNT_H < addr && addr < 0x120) {
+        io->master->openbus = true;
+        return 0;
+    }
+    if (0x15c <= addr && addr < IE) {
+        io->master->openbus = true;
+        return 0;
+    }
+    if (IME + 4 <= addr) {
+        if ((addr & ~0b11) == POSTFLG) {
+            return io->h[addr >> 1];
+        }
         io->master->openbus = true;
         return 0;
     }
     switch (addr) {
+        case SOUND1CNT_X:
+        case SOUND2CNT_H:
+        case SOUND3CNT_X:
+            return io->h[addr >> 1] & ~NRX34_WVLEN;
         case TM0CNT_L:
         case TM1CNT_L:
         case TM2CNT_L:
@@ -79,15 +98,8 @@ hword io_readh(IO* io, word addr) {
 void io_writeh(IO* io, word addr, hword data) {
     if ((addr & ~0b11) == BG2X || (addr & ~0b11) == BG2Y || (addr & ~0b11) == BG3X ||
         (addr & ~0b11) == BG3Y || (addr & ~0b11) == FIFO_A || (addr & ~0b11) == FIFO_B) {
-        word w;
-        if (addr & 0b10) {
-            w = data << 16;
-            w |= io->h[(addr >> 1) & ~1];
-        } else {
-            w = data;
-            w |= io->h[(addr >> 1) | 1] << 16;
-        }
-        io_writew(io, addr & ~0b11, w);
+        io->h[addr >> 1] = data;
+        io_writew(io, addr & ~0b11, io->w[addr >> 2]);
         return;
     }
     switch (addr) {
@@ -95,9 +107,36 @@ void io_writeh(IO* io, word addr, hword data) {
             io->dispstat.h &= 0b111;
             io->dispstat.h |= data & ~0b111;
             break;
+        case BG0CNT:
+            io->bgcnt[0].h = data;
+            io->bgcnt[0].overflow = 0;
+            break;
+        case BG1CNT:
+            io->bgcnt[1].h = data;
+            io->bgcnt[1].overflow = 0;
+            break;
+        case WININ:
+            io->winin = data;
+            io->wincnt[0].unused = 0;
+            io->wincnt[1].unused = 0;
+            break;
+        case WINOUT:
+            io->winout = data;
+            io->wincnt[2].unused = 0;
+            io->wincnt[3].unused = 0;
+            break;
+        case BLDCNT:
+            io->bldcnt.h = data;
+            io->bldcnt.unused = 0;
+            break;
+        case BLDALPHA:
+            io->bldalpha.h = data;
+            io->bldalpha.unused1 = 0;
+            io->bldalpha.unused2 = 0;
+            break;
         case SOUND1CNT_L:
             if ((data & NR10_PACE) == 0) io->master->apu.ch1_sweep_pace = 0;
-            io->nr10 = data;
+            io->nr10 = data & 0b01111111;
             break;
         case SOUND1CNT_H:
             io->master->apu.ch1_len_counter = data & NRX1_LEN;
@@ -124,12 +163,16 @@ void io_writeh(IO* io, word addr, hword data) {
             }
             io->nr14 |= data & NRX4_LEN_ENABLE;
             break;
+        case SOUND1CNT_X + 2:
+            break;
         case SOUND2CNT_L:
             io->master->apu.ch2_len_counter = data & NRX1_LEN;
             io->nr21 = data & NRX1_DUTY;
             data >>= 8;
             if (!(data & 0b11111000)) io->master->apu.ch2_enable = false;
             io->nr22 = data;
+            break;
+        case SOUND2CNT_L + 2:
             break;
         case SOUND2CNT_H:
             io->master->apu.ch2_wavelen = data & NRX34_WVLEN;
@@ -147,6 +190,8 @@ void io_writeh(IO* io, word addr, hword data) {
             }
             io->nr24 |= data & NRX4_LEN_ENABLE;
             break;
+        case SOUND2CNT_H + 2:
+            break;
         case SOUND3CNT_L:
             if (!(data & 0b10000000)) io->master->apu.ch3_enable = false;
             if ((io->nr30 & (1 << 6)) != (data & (1 << 6))) waveram_swap(&io->master->apu);
@@ -155,7 +200,7 @@ void io_writeh(IO* io, word addr, hword data) {
         case SOUND3CNT_H:
             io->master->apu.ch3_len_counter = data;
             data >>= 8;
-            io->nr32 = data & 0b01100000;
+            io->nr32 = data & 0b11100000;
             break;
         case SOUND3CNT_X:
             io->master->apu.ch3_wavelen = data & NRX34_WVLEN;
@@ -169,11 +214,15 @@ void io_writeh(IO* io, word addr, hword data) {
             }
             io->nr34 |= data & NRX4_LEN_ENABLE;
             break;
+        case SOUND3CNT_X + 2:
+            break;
         case SOUND4CNT_L:
             io->master->apu.ch4_len_counter = data & NRX1_LEN;
             data >>= 8;
             if (!(data & 0b11111000)) io->master->apu.ch4_enable = false;
             io->nr42 = data;
+            break;
+        case SOUND4CNT_L + 2:
             break;
         case SOUND4CNT_H:
             io->nr43 = data;
@@ -190,6 +239,13 @@ void io_writeh(IO* io, word addr, hword data) {
             }
             io->nr44 = data & NRX4_LEN_ENABLE;
             break;
+        case SOUND4CNT_H + 2:
+            break;
+        case SOUNDCNT_L:
+            io->nr50 = data & 0b01110111;
+            data >>= 8;
+            io->nr51 = data;
+            break;
         case SOUNDCNT_H:
             io->soundcnth.h = data;
             if (io->soundcnth.cha_reset) {
@@ -200,6 +256,7 @@ void io_writeh(IO* io, word addr, hword data) {
                 io->soundcnth.chb_reset = 0;
                 io->master->apu.fifo_b_size = 0;
             }
+            io->soundcnth.unused = 0;
             break;
         case SOUNDCNT_X:
             if (data & (1 << 7)) {
@@ -212,6 +269,10 @@ void io_writeh(IO* io, word addr, hword data) {
                 apu_disable(&io->master->apu);
             }
             break;
+        case SOUNDCNT_X + 2:
+            break;
+        case SOUNDBIAS + 2:
+            break;
         case DMA0CNT_H:
         case DMA1CNT_H:
         case DMA2CNT_H:
@@ -219,6 +280,8 @@ void io_writeh(IO* io, word addr, hword data) {
             int i = (addr - DMA0CNT_H) / (DMA1CNT_H - DMA0CNT_H);
             bool prev_ena = io->dma[i].cnt.enable;
             io->dma[i].cnt.h = data;
+            io->dma[i].cnt.unused = 0;
+            if (i < 3) io->dma[i].cnt.drq = 0;
             if (!prev_ena && io->dma[i].cnt.enable) {
                 dma_enable(&io->master->dmac, i);
             }
@@ -257,6 +320,10 @@ void io_writeh(IO* io, word addr, hword data) {
             io->keycnt.h = data;
             update_keypad_irq(io->master);
             break;
+        case 0x136:
+        case 0x142:
+        case 0x15a:
+            break;
         case IF:
             io->ifl.h &= ~data;
             break;
@@ -267,9 +334,15 @@ void io_writeh(IO* io, word addr, hword data) {
             io->master->next_prefetch_addr = -1;
             io->master->prefetch_free_read = false;
             break;
+        case WAITCNT + 2:
+            break;
+        case IME + 2:
+            break;
         case POSTFLG:
             io_writeb(io, addr, data);
             io_writeb(io, addr | 1, data >> 8);
+        case POSTFLG + 2:
+            break;
         default:
             io->h[addr >> 1] = data;
     }
