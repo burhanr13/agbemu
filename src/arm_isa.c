@@ -444,13 +444,14 @@ void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr) {
 void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {
     word addr = cpu->r[instr.swap.rn];
     cpu_fetch_instr(cpu);
-    cpu_internal_cycle(cpu);
     if (instr.swap.b) {
         byte data = cpu_readb(cpu, addr, false);
+        cpu_internal_cycle(cpu);
         cpu_writeb(cpu, addr, cpu->r[instr.swap.rm]);
         cpu->r[instr.swap.rd] = data;
     } else {
         word data = cpu_readw(cpu, addr);
+        cpu_internal_cycle(cpu);
         cpu_writew(cpu, addr, cpu->r[instr.swap.rm]);
         cpu->r[instr.swap.rd] = data;
     }
@@ -481,7 +482,6 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
 
     if (instr.half_transi.s) {
         if (instr.half_transi.l) {
-            cpu_internal_cycle(cpu);
             if (instr.half_transi.w || !instr.half_transi.p) {
                 cpu->r[instr.half_transi.rn] = wback;
             }
@@ -490,15 +490,16 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
             } else {
                 cpu->r[instr.half_transi.rd] = cpu_readb(cpu, addr, true);
             }
+            cpu_internal_cycle(cpu);
             if (instr.half_transi.rd == 15) cpu_flush(cpu);
         }
     } else if (instr.half_transi.h) {
         if (instr.half_transi.l) {
-            cpu_internal_cycle(cpu);
             if (instr.half_transi.w || !instr.half_transi.p) {
                 cpu->r[instr.half_transi.rn] = wback;
             }
             cpu->r[instr.half_transi.rd] = cpu_readh(cpu, addr, false);
+            cpu_internal_cycle(cpu);
             if (instr.half_transi.rd == 15) cpu_flush(cpu);
         } else {
             cpu_writeh(cpu, addr, cpu->r[instr.half_transi.rd]);
@@ -532,11 +533,11 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
 
     if (instr.single_trans.b) {
         if (instr.single_trans.l) {
-            cpu_internal_cycle(cpu);
             if (instr.single_trans.w || !instr.single_trans.p) {
                 cpu->r[instr.single_trans.rn] = wback;
             }
             cpu->r[instr.single_trans.rd] = cpu_readb(cpu, addr, false);
+            cpu_internal_cycle(cpu);
             if (instr.single_trans.rd == 15) cpu_flush(cpu);
         } else {
             cpu_writeb(cpu, addr, cpu->r[instr.single_trans.rd]);
@@ -547,11 +548,11 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
         }
     } else {
         if (instr.single_trans.l) {
-            cpu_internal_cycle(cpu);
             if (instr.single_trans.w || !instr.single_trans.p) {
                 cpu->r[instr.single_trans.rn] = wback;
             }
             cpu->r[instr.single_trans.rd] = cpu_readw(cpu, addr);
+            cpu_internal_cycle(cpu);
             if (instr.single_trans.rd == 15) cpu_flush(cpu);
         } else {
             cpu_writew(cpu, addr, cpu->r[instr.single_trans.rd]);
@@ -605,11 +606,11 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr) {
     }
 
     if (instr.block_trans.l) {
-        cpu_internal_cycle(cpu);
         if (instr.block_trans.w) cpu->r[instr.block_trans.rn] = wback;
         for (int i = 0; i < rcount; i++) {
             cpu->r[rlist[i]] = cpu_readm(cpu, addr, i);
         }
+        cpu_internal_cycle(cpu);
         if ((instr.block_trans.rlist & (1 << 15)) || !instr.block_trans.rlist) {
             if (instr.block_trans.s) {
                 CpuMode mode = cpu->cpsr.m;

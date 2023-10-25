@@ -10,6 +10,7 @@ typedef struct {
 
     dword set_time[4];
     hword counter[4];
+    hword ena_count[4];
 } TimerController;
 
 void update_timer_count(TimerController* tmc, int i);

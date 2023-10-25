@@ -299,12 +299,14 @@ void io_writeh(IO* io, word addr, hword data) {
             bool prev_ena = io->tm[i].cnt.enable;
             update_timer_count(&io->master->tmc, i);
             io->tm[i].cnt.h = data;
-            update_timer_reload(&io->master->tmc, i);
-            if (!prev_ena && io->tm[i].cnt.enable) {
-                add_event(&io->master->sched,
-                          &(Event){io->master->sched.now + 3, EVENT_TM0_ENA + i});
-            }
             if (i == 0) io->tm[i].cnt.countup = 0;
+            if (!prev_ena && io->tm[i].cnt.enable) {
+                io->master->tmc.ena_count[i] = io->tm[i].reload;
+                add_event(&io->master->sched,
+                          &(Event){io->master->sched.now + 2, EVENT_TM0_ENA + i});
+            } else {
+                update_timer_reload(&io->master->tmc, i);
+            }
             break;
         }
         case SIOCNT:
