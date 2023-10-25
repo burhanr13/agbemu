@@ -1,6 +1,6 @@
 # agbemu
 
-A complete and somewhat accurate Game Boy Advance Emulator. Supports all of the graphics and audio subsystems, passes many test roms including AGS Aging Cartridge, ARMWrestler, JSMolka's gba-tests, and a sizable portion of the mGBA test suite including all of the memory and DMA tests and most timing tests. It runs all games I have tested without any issue.
+A somewhat accurate Game Boy Advance Emulator. Supports all of the graphics and audio subsystems, passes many test roms including AGS Aging Cartridge, ARMWrestler, JSMolka's gba-tests, and a sizable portion of the mGBA test suite including all of the memory and DMA tests and most timing tests. It runs all games I have tested without any issue.
 
 ## Building
 
