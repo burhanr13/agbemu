@@ -35,11 +35,14 @@ void io_writeb(IO* io, word addr, byte data) {
 }
 
 hword io_readh(IO* io, word addr) {
-    if ((BG0HOFS <= addr && addr <= BLDY)) {
+    if (BG0HOFS <= addr && addr < SOUND1CNT_L) {
+        if (addr == WININ || addr == WINOUT || addr == BLDCNT || addr == BLDALPHA) {
+            return io->h[addr >> 1];
+        }
         io->master->openbus = true;
         return 0;
     }
-    if (DMA0SAD <= addr && addr <= DMA3CNT_H) {
+    if (FIFO_A <= addr && addr < TM0CNT_L) {
         switch (addr) {
             case DMA0CNT_H:
             case DMA1CNT_H:
@@ -55,6 +58,10 @@ hword io_readh(IO* io, word addr) {
                 io->master->openbus = true;
                 return 0;
         }
+    }
+    if (IME + 4 <= addr && addr < POSTFLG) {
+        io->master->openbus = true;
+        return 0;
     }
     switch (addr) {
         case TM0CNT_L:
