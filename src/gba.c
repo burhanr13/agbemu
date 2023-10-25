@@ -70,8 +70,8 @@ void update_cart_waits(GBA* gba) {
     gba->cart_n_waits[2] = CART_WAITS[gba->io.waitcnt.rom2];
     gba->cart_n_waits[3] = CART_WAITS[gba->io.waitcnt.sram];
     gba->cart_s_waits[0] = gba->io.waitcnt.rom0s ? 2 : 3;
-    gba->cart_s_waits[1] = gba->io.waitcnt.rom0s ? 2 : 5;
-    gba->cart_s_waits[2] = gba->io.waitcnt.rom0s ? 2 : 9;
+    gba->cart_s_waits[1] = gba->io.waitcnt.rom1s ? 2 : 5;
+    gba->cart_s_waits[2] = gba->io.waitcnt.rom2s ? 2 : 9;
 }
 
 int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
@@ -89,7 +89,7 @@ int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
         int i = (region >> 1) & 0b11;
         if (i == 3) return gba->cart_n_waits[3];
 
-        gba->next_prefetch_addr = 0;
+        gba->next_prefetch_addr = -1;
         gba->prefetcher_cycles = 0;
         if (addr % 0x20000 == 0) seq = false;
 
@@ -125,6 +125,7 @@ int get_fetch_waitstates(GBA* gba, word addr, bool w, bool seq) {
     } else if (region < 16) {
         int i = (region >> 1) & 0b11;
         if (i == 3) return gba->cart_n_waits[3];
+
         int n_waits = gba->cart_n_waits[i];
         int s_waits = gba->cart_s_waits[i];
         int total = 0;

@@ -234,6 +234,7 @@ void io_writeh(IO* io, word addr, hword data) {
                 add_event(&io->master->sched,
                           &(Event){io->master->sched.now + 2, EVENT_TM0_ENA + i});
             }
+            if (i == 0) io->tm[i].cnt.countup = 0;
             break;
         }
         case SIOCNT:
@@ -256,6 +257,8 @@ void io_writeh(IO* io, word addr, hword data) {
             io->waitcnt.w = data;
             update_cart_waits(io->master);
             io->master->prefetcher_cycles = 0;
+            io->master->next_prefetch_addr = -1;
+            io->master->prefetch_free_read = false;
             break;
         case POSTFLG:
             io_writeb(io, addr, data);
