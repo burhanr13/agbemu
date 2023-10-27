@@ -12,6 +12,7 @@
 word bkpt;
 bool lg, dbg;
 char* romfile;
+char* biosfile = "bios.bin";
 bool uncap;
 bool bootbios;
 bool filter;
@@ -19,7 +20,7 @@ bool pause;
 bool mute;
 
 const char usage[] = "agbemu [options] <romfile>\n"
-                     "-b -- boot from the bios\n"
+                     "-b <biosfile> -- specify bios file path\n"
                      "-f -- apply color filter\n"
                      "-u -- run at uncapped speed\n"
                      "-l -- print error messages\n"
@@ -68,6 +69,9 @@ void read_args(int argc, char** argv) {
                         break;
                     case 'b':
                         bootbios = true;
+                        if (!*(f + 1) && i + 1 < argc) {
+                            biosfile = argv[i + 1];
+                        }
                         break;
                     case 'f':
                         filter = true;
@@ -177,11 +181,11 @@ int main(int argc, char** argv) {
         printf("Invalid rom file\n");
         return -1;
     }
-    bios = load_bios("bios.bin");
+    bios = load_bios(biosfile);
     if (!bios) {
         free(gba);
         destroy_cartridge(cart);
-        printf("No bios found. Make sure 'bios.bin' in current directory.\n");
+        printf("Invalid or missing bios file.\n");
         return -1;
     }
 

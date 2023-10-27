@@ -5,13 +5,14 @@ A somewhat accurate Game Boy Advance Emulator. Supports all of the graphics and 
 ## Building
 
 This project requires SDL2 as a dependency to build and run. 
-To build use `make` or `make debug` to build
-a debug version or `make release` for the optimized release version.
+To build use `make` or `make debug` to build a debug version 
+or `make release` for the optimized release version.
 I have tested on both Ubuntu and MacOS.
 
 ## Usage
 
-You need a GBA bios binary to run the emulator. You can dump an official one or use an open source replacement. Name the file `bios.bin` and keep it in the same directory as the executable.
+You need a GBA bios binary to run the emulator. You can dump an official one or use an open source replacement. Pass the file path in the command line with `-b` or leave it out and it will use the
+file `bios.bin` which should be in the current directory by default.
 
 To run a game just run the executable with the path to the ROM as the only command line argument, or use no arguments to see other command line options.
 
