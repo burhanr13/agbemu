@@ -335,7 +335,7 @@ void io_writeh(IO* io, word addr, hword data) {
             update_cart_waits(io->master);
             io->master->prefetcher_cycles = 0;
             io->master->next_prefetch_addr = -1;
-            io->master->prefetch_free_read = false;
+            io->master->prefetcher_free_read = false;
             break;
         case WAITCNT + 2:
             break;

@@ -1,8 +1,8 @@
 #ifndef GBA_H
 #define GBA_H
 
-#include "arm7tdmi.h"
 #include "apu.h"
+#include "arm7tdmi.h"
 #include "cartridge.h"
 #include "dma.h"
 #include "io.h"
@@ -10,7 +10,6 @@
 #include "scheduler.h"
 #include "timer.h"
 #include "types.h"
-
 
 enum {
     BIOS_SIZE = 0x4000,   // 16kb
@@ -56,7 +55,7 @@ typedef struct _GBA {
     int cart_s_waits[3];
     word next_prefetch_addr;
     int prefetcher_cycles;
-    bool prefetch_free_read;
+    bool prefetcher_free_read;
 
     union {
         byte* b;

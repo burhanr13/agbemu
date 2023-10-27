@@ -154,7 +154,7 @@ word cpu_readh(Arm7TDMI* cpu, word addr, bool sx) {
 }
 
 word cpu_readw(Arm7TDMI* cpu, word addr) {
-    tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false));
+  tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false));
     word data = bus_readw(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
     if (addr & 0b11) {

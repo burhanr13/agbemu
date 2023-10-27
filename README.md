@@ -5,7 +5,7 @@ A somewhat accurate Game Boy Advance Emulator. Supports all of the graphics and 
 ## Building
 
 This project requires SDL2 as a dependency to build and run. 
-To build first `mkdir build` and then use `make` or `make debug` to build
+To build use `make` or `make debug` to build
 a debug version or `make release` for the optimized release version.
 I have tested on both Ubuntu and MacOS.
 
