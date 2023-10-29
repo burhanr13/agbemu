@@ -697,9 +697,14 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
                 user_trans = true;
             }
         }
-        fprintf(out, "%s%s%s%s%s %s%s, {", instr.block_trans.l ? "ldm" : "stm",
-                instr.block_trans.u ? "i" : "d", instr.block_trans.p ? "b" : "a", s ? "s" : "",
-                cond, reg_names[instr.block_trans.rn], instr.block_trans.w ? "!" : "");
+        if (instr.block_trans.rn == 13 && (instr.block_trans.u != instr.block_trans.p) &&
+            instr.block_trans.u == instr.block_trans.l && instr.block_trans.w) {
+            fprintf(out, "%s%s%s {", instr.block_trans.l ? "pop" : "push", s ? "s" : "", cond);
+        } else {
+            fprintf(out, "%s%s%s%s%s %s%s, {", instr.block_trans.l ? "ldm" : "stm",
+                    instr.block_trans.u ? "i" : "d", instr.block_trans.p ? "b" : "a", s ? "s" : "",
+                    cond, reg_names[instr.block_trans.rn], instr.block_trans.w ? "!" : "");
+        }
         hword rlist = instr.block_trans.rlist;
         for (int i = 0; i < 16; i++) {
             if (rlist & 1) {
@@ -841,40 +846,52 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
 
     } else {
 
-        if (instr.data_proc.opcode >> 2 == 0b10) {
-            fprintf(out, "%s%s %s", alu_names[instr.data_proc.opcode], cond,
-                    reg_names[instr.data_proc.rn]);
-        } else {
-            fprintf(out, "%s%s%s %s", alu_names[instr.data_proc.opcode],
-                    instr.data_proc.s ? "s" : "", cond, reg_names[instr.data_proc.rd]);
-            if (!(instr.data_proc.opcode == A_MOV || instr.data_proc.opcode == A_MVN)) {
-                fprintf(out, ", %s", reg_names[instr.data_proc.rn]);
-            }
-        }
-
-        if (instr.data_proc.i) {
-            word op2 = instr.data_proc.op2 & 0xff;
+        if (instr.data_proc.i && instr.data_proc.rn == 15 &&
+            (instr.data_proc.opcode == A_ADD || instr.data_proc.opcode == A_SUB)) {
+            fprintf(out, "adr%s%s %s, [", instr.data_proc.s ? "s" : "", cond,
+                    reg_names[instr.data_proc.rd]);
+            word offset = instr.data_proc.op2 & 0xff;
             word rot = (instr.data_proc.op2 >> 8) << 1;
-            fprintf(out, ", #0x%x", (op2 >> rot) | (op2 << (32 - rot)));
+            offset = (offset >> rot) | (offset << (32 - rot));
+            if (instr.data_proc.opcode == A_SUB) offset = -offset;
+            fprintf(out, "0x%x]", addr + 8 + offset);
         } else {
-            word rm = instr.data_proc.op2 & 0b1111;
-            word shift = instr.data_proc.op2 >> 4;
-            fprintf(out, ", %s", reg_names[rm]);
-            word shift_type = (shift >> 1) & 0b11;
-            if (shift & 1) {
-                word shift_reg = shift >> 4;
-                fprintf(out, ", %s %s", shift_names[shift_type], reg_names[shift_reg]);
-            } else if (shift) {
-                word shift_amt = (shift >> 3) & 0b11111;
-                if (!shift_amt) {
-                    if (shift_type == S_ROR) {
-                        shift_type = 4;
-                        shift_amt = 1;
-                    } else {
-                        shift_amt = 32;
-                    }
+
+            if (instr.data_proc.opcode >> 2 == 0b10) {
+                fprintf(out, "%s%s %s", alu_names[instr.data_proc.opcode], cond,
+                        reg_names[instr.data_proc.rn]);
+            } else {
+                fprintf(out, "%s%s%s %s", alu_names[instr.data_proc.opcode],
+                        instr.data_proc.s ? "s" : "", cond, reg_names[instr.data_proc.rd]);
+                if (!(instr.data_proc.opcode == A_MOV || instr.data_proc.opcode == A_MVN)) {
+                    fprintf(out, ", %s", reg_names[instr.data_proc.rn]);
                 }
-                fprintf(out, ", %s #%d", shift_names[shift_type], shift_amt);
+            }
+
+            if (instr.data_proc.i) {
+                word op2 = instr.data_proc.op2 & 0xff;
+                word rot = (instr.data_proc.op2 >> 8) << 1;
+                fprintf(out, ", #0x%x", (op2 >> rot) | (op2 << (32 - rot)));
+            } else {
+                word rm = instr.data_proc.op2 & 0b1111;
+                word shift = instr.data_proc.op2 >> 4;
+                fprintf(out, ", %s", reg_names[rm]);
+                word shift_type = (shift >> 1) & 0b11;
+                if (shift & 1) {
+                    word shift_reg = shift >> 4;
+                    fprintf(out, ", %s %s", shift_names[shift_type], reg_names[shift_reg]);
+                } else if (shift) {
+                    word shift_amt = (shift >> 3) & 0b11111;
+                    if (!shift_amt) {
+                        if (shift_type == S_ROR) {
+                            shift_type = 4;
+                            shift_amt = 1;
+                        } else {
+                            shift_amt = 32;
+                        }
+                    }
+                    fprintf(out, ", %s #%d", shift_names[shift_type], shift_amt);
+                }
             }
         }
     }
