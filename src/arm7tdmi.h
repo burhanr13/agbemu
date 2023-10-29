@@ -55,6 +55,7 @@ typedef struct _Arm7TDMI {
 
     ArmInstr cur_instr;
     ArmInstr next_instr;
+    word cur_instr_addr;
 
     word bus_val;
 

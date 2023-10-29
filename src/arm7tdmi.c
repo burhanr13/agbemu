@@ -12,14 +12,6 @@ extern word bkpt;
 extern bool lg, dbg;
 
 void cpu_step(Arm7TDMI* cpu) {
-    // if (lg) {
-    //     word cur_addr = (cpu->cpsr.t) ? (cpu->pc - 4) : (cpu->pc - 8);
-    //     if (cur_addr == bkpt) {
-    //         printf("Breakpoint at %08x hit\n", bkpt);
-    //         print_cpu_state(cpu);
-    //         if (dbg) raise(SIGINT);
-    //     }
-    // }
     arm_exec_instr(cpu);
 }
 
@@ -28,9 +20,11 @@ void cpu_fetch_instr(Arm7TDMI* cpu) {
     if (cpu->cpsr.t) {
         cpu->next_instr = thumb_lookup[cpu_fetchh(cpu, cpu->pc, cpu->next_seq)];
         cpu->pc += 2;
+        cpu->cur_instr_addr += 2;
     } else {
         cpu->next_instr.w = cpu_fetchw(cpu, cpu->pc, cpu->next_seq);
         cpu->pc += 4;
+        cpu->cur_instr_addr += 4;
     }
     cpu->next_seq = true;
 }
@@ -38,12 +32,14 @@ void cpu_fetch_instr(Arm7TDMI* cpu) {
 void cpu_flush(Arm7TDMI* cpu) {
     if (cpu->cpsr.t) {
         cpu->pc &= ~1;
+        cpu->cur_instr_addr = cpu->pc;
         cpu->cur_instr = thumb_lookup[cpu_fetchh(cpu, cpu->pc, false)];
         cpu->pc += 2;
         cpu->next_instr = thumb_lookup[cpu_fetchh(cpu, cpu->pc, true)];
         cpu->pc += 2;
     } else {
         cpu->pc &= ~0b11;
+        cpu->cur_instr_addr = cpu->pc;
         cpu->cur_instr.w = cpu_fetchw(cpu, cpu->pc, false);
         cpu->pc += 4;
         cpu->next_instr.w = cpu_fetchw(cpu, cpu->pc, true);
@@ -122,7 +118,7 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
     cpu->spsr = spsr;
     cpu->lr = cpu->pc;
     if (cpu->cpsr.t) {
-        if (intr == I_SWI) cpu->lr -= 2;
+        if (intr == I_SWI || intr == I_UND) cpu->lr -= 2;
     } else cpu->lr -= 4;
     cpu_fetch_instr(cpu);
     cpu->cpsr.t = 0;
@@ -154,7 +150,7 @@ word cpu_readh(Arm7TDMI* cpu, word addr, bool sx) {
 }
 
 word cpu_readw(Arm7TDMI* cpu, word addr) {
-  tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false));
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false));
     word data = bus_readw(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
     if (addr & 0b11) {

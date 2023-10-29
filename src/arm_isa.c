@@ -32,11 +32,8 @@ ArmExecFunc arm_decode_instr(ArmInstr instr) {
         return exec_arm_multiply;
     } else if (instr.multiply_long.c1 == 0b00001 && instr.multiply_long.c2 == 0b1001) {
         return exec_arm_multiply_long;
-    } else if (instr.half_transr.c1 == 0b000 && instr.half_transr.i == 0 &&
-               instr.half_transr.c3 == 1 && instr.half_transr.c4 == 1) {
-        return exec_arm_half_trans;
-    } else if (instr.half_transi.c1 == 0b000 && instr.half_transi.i == 1 &&
-               instr.half_transi.c2 == 1 && instr.half_transi.c3 == 1) {
+    } else if (instr.half_trans.c1 == 0b000 && instr.half_trans.c2 == 1 &&
+               instr.half_trans.c3 == 1) {
         return exec_arm_half_trans;
     } else if (instr.psr_trans.c1 == 0b00 && instr.psr_trans.c2 == 0b10 &&
                instr.psr_trans.c3 == 0) {
@@ -371,37 +368,6 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
     }
 }
 
-void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
-    cpu_fetch_instr(cpu);
-    cpu_internal_cycle(cpu);
-    sword op = cpu->r[instr.multiply_long.rs];
-    for (int i = 1; i <= 4; i++) {
-        cpu_internal_cycle(cpu);
-        op >>= 8;
-        if (op == 0 || (op == -1 && instr.multiply_long.u)) break;
-    }
-    dword res;
-    if (instr.multiply_long.u) {
-        sdword sres;
-        sres = (sdword) ((sword) cpu->r[instr.multiply_long.rm]) *
-               (sdword) ((sword) cpu->r[instr.multiply_long.rs]);
-        res = sres;
-    } else {
-        res = (dword) cpu->r[instr.multiply_long.rm] * (dword) cpu->r[instr.multiply_long.rs];
-    }
-    if (instr.multiply_long.a) {
-        cpu_internal_cycle(cpu);
-        res += (dword) cpu->r[instr.multiply_long.rdlo] |
-               ((dword) cpu->r[instr.multiply_long.rdhi] << 32);
-    }
-    if (instr.multiply_long.s) {
-        cpu->cpsr.z = (res == 0) ? 1 : 0;
-        cpu->cpsr.n = (res >> 63) & 1;
-    }
-    cpu->r[instr.multiply_long.rdlo] = res;
-    cpu->r[instr.multiply_long.rdhi] = res >> 32;
-}
-
 void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr) {
     if (instr.psr_trans.op) {
         word op2;
@@ -441,6 +407,37 @@ void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr) {
     cpu_fetch_instr(cpu);
 }
 
+void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
+    cpu_fetch_instr(cpu);
+    cpu_internal_cycle(cpu);
+    sword op = cpu->r[instr.multiply_long.rs];
+    for (int i = 1; i <= 4; i++) {
+        cpu_internal_cycle(cpu);
+        op >>= 8;
+        if (op == 0 || (op == -1 && instr.multiply_long.u)) break;
+    }
+    dword res;
+    if (instr.multiply_long.u) {
+        sdword sres;
+        sres = (sdword) ((sword) cpu->r[instr.multiply_long.rm]) *
+               (sdword) ((sword) cpu->r[instr.multiply_long.rs]);
+        res = sres;
+    } else {
+        res = (dword) cpu->r[instr.multiply_long.rm] * (dword) cpu->r[instr.multiply_long.rs];
+    }
+    if (instr.multiply_long.a) {
+        cpu_internal_cycle(cpu);
+        res += (dword) cpu->r[instr.multiply_long.rdlo] |
+               ((dword) cpu->r[instr.multiply_long.rdhi] << 32);
+    }
+    if (instr.multiply_long.s) {
+        cpu->cpsr.z = (res == 0) ? 1 : 0;
+        cpu->cpsr.n = (res >> 63) & 1;
+    }
+    cpu->r[instr.multiply_long.rdlo] = res;
+    cpu->r[instr.multiply_long.rdhi] = res >> 32;
+}
+
 void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr) {
     word addr = cpu->r[instr.swap.rn];
     cpu_fetch_instr(cpu);
@@ -467,44 +464,45 @@ void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr) {
 }
 
 void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
-    word addr = cpu->r[instr.half_transi.rn];
+    word addr = cpu->r[instr.half_trans.rn];
     word offset;
-    if (instr.half_transi.i) {
-        offset = instr.half_transi.offlo | (instr.half_transi.offhi << 4);
+    if (instr.half_trans.i) {
+        offset = instr.half_trans.offlo | (instr.half_trans.offhi << 4);
     } else {
-        offset = cpu->r[instr.half_transr.rm];
+        offset = cpu->r[instr.half_trans.offlo];
     }
     cpu_fetch_instr(cpu);
+    offset = instr.half_trans.offlo | (instr.half_trans.offhi << 4);
 
-    if (!instr.half_transi.u) offset = -offset;
+    if (!instr.half_trans.u) offset = -offset;
     word wback = addr + offset;
-    if (instr.half_transi.p) addr = wback;
+    if (instr.half_trans.p) addr = wback;
 
-    if (instr.half_transi.s) {
-        if (instr.half_transi.l) {
-            if (instr.half_transi.w || !instr.half_transi.p) {
-                cpu->r[instr.half_transi.rn] = wback;
+    if (instr.half_trans.s) {
+        if (instr.half_trans.l) {
+            if (instr.half_trans.w || !instr.half_trans.p) {
+                cpu->r[instr.half_trans.rn] = wback;
             }
-            if (instr.half_transi.h) {
-                cpu->r[instr.half_transi.rd] = cpu_readh(cpu, addr, true);
+            if (instr.half_trans.h) {
+                cpu->r[instr.half_trans.rd] = cpu_readh(cpu, addr, true);
             } else {
-                cpu->r[instr.half_transi.rd] = cpu_readb(cpu, addr, true);
+                cpu->r[instr.half_trans.rd] = cpu_readb(cpu, addr, true);
             }
             cpu_internal_cycle(cpu);
-            if (instr.half_transi.rd == 15) cpu_flush(cpu);
+            if (instr.half_trans.rd == 15) cpu_flush(cpu);
         }
-    } else if (instr.half_transi.h) {
-        if (instr.half_transi.l) {
-            if (instr.half_transi.w || !instr.half_transi.p) {
-                cpu->r[instr.half_transi.rn] = wback;
+    } else if (instr.half_trans.h) {
+        if (instr.half_trans.l) {
+            if (instr.half_trans.w || !instr.half_trans.p) {
+                cpu->r[instr.half_trans.rn] = wback;
             }
-            cpu->r[instr.half_transi.rd] = cpu_readh(cpu, addr, false);
+            cpu->r[instr.half_trans.rd] = cpu_readh(cpu, addr, false);
             cpu_internal_cycle(cpu);
-            if (instr.half_transi.rd == 15) cpu_flush(cpu);
+            if (instr.half_trans.rd == 15) cpu_flush(cpu);
         } else {
-            cpu_writeh(cpu, addr, cpu->r[instr.half_transi.rd]);
-            if (instr.half_transi.w || !instr.half_transi.p) {
-                cpu->r[instr.half_transi.rn] = wback;
+            cpu_writeh(cpu, addr, cpu->r[instr.half_trans.rd]);
+            if (instr.half_trans.w || !instr.half_trans.p) {
+                cpu->r[instr.half_trans.rn] = wback;
             }
             cpu->next_seq = false;
         }
@@ -665,4 +663,220 @@ void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr) {
 
 void exec_arm_sw_intr(Arm7TDMI* cpu, ArmInstr instr) {
     cpu_handle_interrupt(cpu, I_SWI);
+}
+
+void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
+
+    static char* reg_names[16] = {"r0", "r1", "r2",  "r3",  "r4",  "r5", "r6", "r7",
+                                  "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"};
+    static char* cond_names[16] = {"eq", "ne", "hs", "lo", "mi", "pl", "vs", "vc",
+                                   "hi", "ls", "ge", "lt", "gt", "le", "",   ""};
+    static char* alu_names[16] = {"and", "eor", "sub", "rsb", "add", "adc", "sbc", "rsc",
+                                  "tst", "teq", "cmp", "cmn", "orr", "mov", "bic", "mvn"};
+    static char* shift_names[5] = {"lsl", "lsr", "asr", "ror", "rrx"};
+
+    char* cond = cond_names[instr.cond];
+
+    if (instr.sw_intr.c1 == 0b1111) {
+
+        fprintf(out, "swi%s 0x%x", cond, instr.sw_intr.arg);
+
+    } else if (instr.branch.c1 == 0b101) {
+
+        word off = instr.branch.offset;
+        if (off & (1 << 23)) off |= 0xff000000;
+        fprintf(out, "b%s 0x%x", cond, addr + 8 + (off << 2));
+
+    } else if (instr.block_trans.c1 == 0b100) {
+
+        bool user_trans = false, s = false;
+        if (instr.block_trans.s) {
+            if ((instr.block_trans.rlist & (1 << 15)) && instr.block_trans.l) {
+                s = true;
+            } else {
+                user_trans = true;
+            }
+        }
+        fprintf(out, "%s%s%s%s%s %s%s, {", instr.block_trans.l ? "ldm" : "stm",
+                instr.block_trans.u ? "i" : "d", instr.block_trans.p ? "b" : "a", s ? "s" : "",
+                cond, reg_names[instr.block_trans.rn], instr.block_trans.w ? "!" : "");
+        hword rlist = instr.block_trans.rlist;
+        for (int i = 0; i < 16; i++) {
+            if (rlist & 1) {
+                fprintf(out, "%s", reg_names[i]);
+                rlist >>= 1;
+                if (rlist) {
+                    fprintf(out, ", ");
+                }
+            } else rlist >>= 1;
+        }
+        fprintf(out, "}%s", user_trans ? "^" : "");
+
+    } else if (instr.undefined.c1 == 0b011 && instr.undefined.c2 == 1) {
+
+        fprintf(out, "undefined");
+
+    } else if (instr.single_trans.c1 == 0b01) {
+
+        if (!instr.single_trans.i && instr.single_trans.rn == 15 && instr.single_trans.p) {
+            fprintf(out, "%s%s%s %s, [", instr.single_trans.l ? "ldr" : "str",
+                    instr.single_trans.b ? "b" : "", cond, reg_names[instr.single_trans.rd]);
+
+            word offset = instr.single_trans.offset;
+            if (!instr.single_trans.u) offset = -offset;
+            fprintf(out, "0x%x", addr + 8 + offset);
+            fprintf(out, "]%s", instr.single_trans.w ? "!" : "");
+        } else {
+            fprintf(out, "%s%s%s %s, [%s", instr.single_trans.l ? "ldr" : "str",
+                    instr.single_trans.b ? "b" : "", cond, reg_names[instr.single_trans.rd],
+                    reg_names[instr.single_trans.rn]);
+            if (!instr.single_trans.p) {
+                fprintf(out, "]");
+            }
+            if (instr.single_trans.i) {
+                word rm = instr.single_trans.offset & 0b1111;
+                word shift = instr.single_trans.offset >> 4;
+                fprintf(out, ", %s%s", instr.single_trans.u ? "" : "-", reg_names[rm]);
+                if (shift) {
+                    word shift_type = (shift >> 1) & 0b11;
+                    word shift_amt = (shift >> 3) & 0b11111;
+                    if (!shift_amt) {
+                        if (shift_type == S_ROR) {
+                            shift_type = 4;
+                            shift_amt = 1;
+                        } else {
+                            shift_amt = 32;
+                        }
+                    }
+                    fprintf(out, ", %s #%d", shift_names[shift_type], shift_amt);
+                }
+            } else if (instr.single_trans.offset) {
+                fprintf(out, ", #%s0x%x", instr.single_trans.u ? "" : "-",
+                        instr.single_trans.offset);
+            }
+            if (instr.single_trans.p) {
+                fprintf(out, "]%s", instr.single_trans.w ? "!" : "");
+            }
+        }
+
+    } else if (instr.branch_ex.c1 == 0b00010010 && instr.branch_ex.c3 == 0b0001) {
+
+        fprintf(out, "bx%s %s", cond, reg_names[instr.branch_ex.rn]);
+
+    } else if (instr.swap.c1 == 0b00010 && instr.swap.c2 == 0b00 && instr.swap.c4 == 0b1001) {
+
+        fprintf(out, "swap%s%s %s, %s, [%s]", instr.swap.b ? "b" : "", cond,
+                reg_names[instr.swap.rd], reg_names[instr.swap.rm], reg_names[instr.swap.rn]);
+
+    } else if (instr.multiply.c1 == 0b000000 && instr.multiply.c2 == 0b1001) {
+
+        if (instr.multiply.a) {
+            fprintf(out, "mla%s%s %s, %s, %s, %s", instr.multiply.s ? "s" : "", cond,
+                    reg_names[instr.multiply.rd], reg_names[instr.multiply.rm],
+                    reg_names[instr.multiply.rs], reg_names[instr.multiply.rn]);
+        } else {
+            fprintf(out, "mul%s%s %s, %s, %s", instr.multiply.s ? "s" : "", cond,
+                    reg_names[instr.multiply.rd], reg_names[instr.multiply.rm],
+                    reg_names[instr.multiply.rs]);
+        }
+
+    } else if (instr.multiply_long.c1 == 0b00001 && instr.multiply_long.c2 == 0b1001) {
+
+        fprintf(out, "%s%s%s%s %s, %s, %s, %s", instr.multiply_long.u ? "s" : "u",
+                instr.multiply_long.a ? "mlal" : "mull", instr.multiply_long.s ? "s" : "", cond,
+                reg_names[instr.multiply_long.rdlo], reg_names[instr.multiply_long.rdhi],
+                reg_names[instr.multiply_long.rm], reg_names[instr.multiply_long.rs]);
+
+    } else if (instr.half_trans.c1 == 0b000 && instr.half_trans.c2 == 1 &&
+               instr.half_trans.c3 == 1) {
+
+        if (instr.half_trans.i && instr.half_trans.rn == 15 && instr.half_trans.p) {
+            fprintf(out, "%s%s%s%s %s, [", instr.half_trans.l ? "ldr" : "str",
+                    instr.half_trans.s ? "s" : "", instr.half_trans.h ? "h" : "b", cond,
+                    reg_names[instr.half_trans.rd]);
+
+            word offset = instr.half_trans.offlo | (instr.half_trans.offhi << 4);
+            if (!instr.half_trans.u) offset = -offset;
+            fprintf(out, "0x%x", addr + 8 + offset);
+            fprintf(out, "]%s", instr.half_trans.w ? "!" : "");
+        } else {
+            fprintf(out, "%s%s%s%s %s, [%s", instr.half_trans.l ? "ldr" : "str",
+                    instr.half_trans.s ? "s" : "", instr.half_trans.h ? "h" : "b", cond,
+                    reg_names[instr.half_trans.rd], reg_names[instr.half_trans.rn]);
+            if (!instr.half_trans.p) {
+                fprintf(out, "]");
+            }
+            if (instr.half_trans.i) {
+                word offset = instr.half_trans.offlo | (instr.half_trans.offhi << 4);
+                if (offset) {
+                    fprintf(out, ", #%s0x%x", instr.half_trans.u ? "" : "-", offset);
+                }
+            } else {
+                fprintf(out, ", %s%s", instr.half_trans.u ? "" : "-",
+                        reg_names[instr.half_trans.offlo]);
+            }
+            if (instr.half_trans.p) {
+                fprintf(out, "]%s", instr.half_trans.w ? "!" : "");
+            }
+        }
+
+    } else if (instr.psr_trans.c1 == 0b00 && instr.psr_trans.c2 == 0b10 &&
+               instr.psr_trans.c3 == 0) {
+
+        if (instr.psr_trans.op) {
+            fprintf(out, "msr%s %s_%s%s, ", cond, instr.psr_trans.p ? "spsr" : "cpsr",
+                    instr.psr_trans.c ? "c" : "", instr.psr_trans.f ? "f" : "");
+            if (instr.psr_trans.i) {
+                word op2 = instr.psr_trans.op2 & 0xff;
+                word rot = (instr.psr_trans.op2 >> 8) << 1;
+                op2 = (op2 >> rot) | (op2 << (32 - rot));
+                fprintf(out, "#0x%x", op2);
+            } else {
+                fprintf(out, "%s", reg_names[instr.psr_trans.op2 & 0xf]);
+            }
+        } else {
+            fprintf(out, "mrs%s %s, %s", cond, reg_names[instr.psr_trans.rd],
+                    instr.psr_trans.p ? "spsr" : "cpsr");
+        }
+
+    } else {
+
+        if (instr.data_proc.opcode >> 2 == 0b10) {
+            fprintf(out, "%s%s %s", alu_names[instr.data_proc.opcode], cond,
+                    reg_names[instr.data_proc.rn]);
+        } else {
+            fprintf(out, "%s%s%s %s", alu_names[instr.data_proc.opcode],
+                    instr.data_proc.s ? "s" : "", cond, reg_names[instr.data_proc.rd]);
+            if (!(instr.data_proc.opcode == A_MOV || instr.data_proc.opcode == A_MVN)) {
+                fprintf(out, ", %s", reg_names[instr.data_proc.rn]);
+            }
+        }
+
+        if (instr.data_proc.i) {
+            word op2 = instr.data_proc.op2 & 0xff;
+            word rot = (instr.data_proc.op2 >> 8) << 1;
+            fprintf(out, ", #0x%x", (op2 >> rot) | (op2 << (32 - rot)));
+        } else {
+            word rm = instr.data_proc.op2 & 0b1111;
+            word shift = instr.data_proc.op2 >> 4;
+            fprintf(out, ", %s", reg_names[rm]);
+            word shift_type = (shift >> 1) & 0b11;
+            if (shift & 1) {
+                word shift_reg = shift >> 4;
+                fprintf(out, ", %s %s", shift_names[shift_type], reg_names[shift_reg]);
+            } else if (shift) {
+                word shift_amt = (shift >> 3) & 0b11111;
+                if (!shift_amt) {
+                    if (shift_type == S_ROR) {
+                        shift_type = 4;
+                        shift_amt = 1;
+                    } else {
+                        shift_amt = 32;
+                    }
+                }
+                fprintf(out, ", %s #%d", shift_names[shift_type], shift_amt);
+            }
+        }
+        
+    }
 }

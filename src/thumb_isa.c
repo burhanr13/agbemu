@@ -169,19 +169,19 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                 dec.single_trans.rd = instr.ldst_reg.rd;
                 dec.single_trans.offset = instr.ldst_reg.ro;
             } else {
-                dec.half_transr.c1 = 0b000;
-                dec.half_transr.p = 1;
-                dec.half_transr.u = 1;
-                dec.half_transr.i = 0;
-                dec.half_transr.w = 0;
-                dec.half_transr.l = instr.ldst_s.s | instr.ldst_s.h;
-                dec.half_transr.rn = instr.ldst_s.rb;
-                dec.half_transr.rd = instr.ldst_s.rd;
-                dec.half_transr.c3 = 1;
-                dec.half_transr.s = instr.ldst_s.s;
-                dec.half_transr.h = ~instr.ldst_s.s | instr.ldst_s.h;
-                dec.half_transr.c4 = 1;
-                dec.half_transr.rm = instr.ldst_s.ro;
+                dec.half_trans.c1 = 0b000;
+                dec.half_trans.p = 1;
+                dec.half_trans.u = 1;
+                dec.half_trans.i = 0;
+                dec.half_trans.w = 0;
+                dec.half_trans.l = instr.ldst_s.s | instr.ldst_s.h;
+                dec.half_trans.rn = instr.ldst_s.rb;
+                dec.half_trans.rd = instr.ldst_s.rd;
+                dec.half_trans.c2 = 1;
+                dec.half_trans.s = instr.ldst_s.s;
+                dec.half_trans.h = ~instr.ldst_s.s | instr.ldst_s.h;
+                dec.half_trans.c3 = 1;
+                dec.half_trans.offlo = instr.ldst_s.ro;
             }
             break;
         case 6:
@@ -199,20 +199,20 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
                 (instr.ldst_imm.b) ? instr.ldst_imm.offset : instr.ldst_imm.offset << 2;
             break;
         case 8:
-            dec.half_transi.c1 = 0b000;
-            dec.half_transi.p = 1;
-            dec.half_transi.u = 1;
-            dec.half_transi.i = 1;
-            dec.half_transi.w = 0;
-            dec.half_transi.l = instr.ldst_h.l;
-            dec.half_transi.rn = instr.ldst_h.rb;
-            dec.half_transi.rd = instr.ldst_h.rd;
-            dec.half_transi.offhi = instr.ldst_h.offset >> 3;
-            dec.half_transi.c2 = 1;
-            dec.half_transi.s = 0;
-            dec.half_transi.h = 1;
-            dec.half_transi.c3 = 1;
-            dec.half_transi.offlo = instr.ldst_h.offset << 1;
+            dec.half_trans.c1 = 0b000;
+            dec.half_trans.p = 1;
+            dec.half_trans.u = 1;
+            dec.half_trans.i = 1;
+            dec.half_trans.w = 0;
+            dec.half_trans.l = instr.ldst_h.l;
+            dec.half_trans.rn = instr.ldst_h.rb;
+            dec.half_trans.rd = instr.ldst_h.rd;
+            dec.half_trans.offhi = instr.ldst_h.offset >> 3;
+            dec.half_trans.c2 = 1;
+            dec.half_trans.s = 0;
+            dec.half_trans.h = 1;
+            dec.half_trans.c3 = 1;
+            dec.half_trans.offlo = instr.ldst_h.offset << 1;
             break;
         case 9:
             dec.single_trans.c1 = 0b01;

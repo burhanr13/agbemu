@@ -32,7 +32,11 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
 
     gba->bios.b = bios;
 
-    gba->cpu.cpsr.m = M_SYSTEM;
+    update_cart_waits(gba);
+
+    add_event(&gba->sched, &(Event){0, EVENT_PPU_HDRAW});
+
+    cpu_handle_interrupt(&gba->cpu, I_RESET);
 
     if (!bootbios) {
         gba->cpu.pc = 0x08000000;
@@ -48,10 +52,6 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
         gba->io.bgaff[1].pd = 1 << 8;
         gba->io.soundbias.bias = 0x200;
     }
-
-    update_cart_waits(gba);
-
-    add_event(&gba->sched, &(Event){0, EVENT_PPU_HDRAW});
 }
 
 byte* load_bios(char* filename) {

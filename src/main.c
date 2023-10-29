@@ -18,6 +18,7 @@ bool bootbios;
 bool filter;
 bool pause;
 bool mute;
+bool disasm;
 
 const char usage[] = "agbemu [options] <romfile>\n"
                      "-b <biosfile> -- specify bios file path\n"
@@ -75,6 +76,9 @@ void read_args(int argc, char** argv) {
                         break;
                     case 'f':
                         filter = true;
+                        break;
+                    case 'a':
+                        disasm = true;
                         break;
                     default:
                         printf("Invalid flag\n");
@@ -181,6 +185,20 @@ int main(int argc, char** argv) {
         printf("Invalid rom file\n");
         return -1;
     }
+
+    if (disasm) {
+        for (int i = 0; i < (cart->rom_size >> 2); i++) {
+            ArmInstr instr;
+            instr.w = cart->rom.w[i];
+            printf("0x%08x: 0x%08x  ", 0x8000000 + (i << 2), instr.w);
+            arm_disassemble((ArmInstr){cart->rom.w[i]}, 0x8000000 + (i << 2), stdout);
+            printf("\n");
+        }
+        free(gba);
+        destroy_cartridge(cart);
+        return 0;
+    }
+
     bios = load_bios(biosfile);
     if (!bios) {
         free(gba);
