@@ -685,7 +685,7 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
 
         word off = instr.branch.offset;
         if (off & (1 << 23)) off |= 0xff000000;
-        fprintf(out, "b%s 0x%x", cond, addr + 8 + (off << 2));
+        fprintf(out, "b%s%s 0x%x", instr.branch.l ? "l" : "", cond, addr + 8 + (off << 2));
 
     } else if (instr.block_trans.c1 == 0b100) {
 
@@ -877,6 +877,5 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
                 fprintf(out, ", %s #%d", shift_names[shift_type], shift_amt);
             }
         }
-        
     }
 }
