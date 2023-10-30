@@ -348,26 +348,6 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
     }
 }
 
-void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
-    cpu_fetch_instr(cpu);
-    sword op = cpu->r[instr.multiply.rs];
-    for (int i = 0; i < 4; i++) {
-        cpu_internal_cycle(cpu);
-        op >>= 8;
-        if (op == 0 || op == -1) break;
-    }
-    word res = cpu->r[instr.multiply.rm] * cpu->r[instr.multiply.rs];
-    if (instr.multiply.a) {
-        cpu_internal_cycle(cpu);
-        res += cpu->r[instr.multiply.rn];
-    }
-    cpu->r[instr.multiply.rd] = res;
-    if (instr.multiply.s) {
-        cpu->cpsr.z = (cpu->r[instr.multiply.rd] == 0) ? 1 : 0;
-        cpu->cpsr.n = (cpu->r[instr.multiply.rd] >> 31) & 1;
-    }
-}
-
 void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr) {
     if (instr.psr_trans.op) {
         word op2;
@@ -405,6 +385,26 @@ void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr) {
         cpu->r[instr.psr_trans.rd] = psr;
     }
     cpu_fetch_instr(cpu);
+}
+
+void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
+    cpu_fetch_instr(cpu);
+    sword op = cpu->r[instr.multiply.rs];
+    for (int i = 0; i < 4; i++) {
+        cpu_internal_cycle(cpu);
+        op >>= 8;
+        if (op == 0 || op == -1) break;
+    }
+    word res = cpu->r[instr.multiply.rm] * cpu->r[instr.multiply.rs];
+    if (instr.multiply.a) {
+        cpu_internal_cycle(cpu);
+        res += cpu->r[instr.multiply.rn];
+    }
+    cpu->r[instr.multiply.rd] = res;
+    if (instr.multiply.s) {
+        cpu->cpsr.z = (cpu->r[instr.multiply.rd] == 0) ? 1 : 0;
+        cpu->cpsr.n = (cpu->r[instr.multiply.rd] >> 31) & 1;
+    }
 }
 
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
@@ -472,7 +472,6 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
         offset = cpu->r[instr.half_trans.offlo];
     }
     cpu_fetch_instr(cpu);
-    offset = instr.half_trans.offlo | (instr.half_trans.offhi << 4);
 
     if (!instr.half_trans.u) offset = -offset;
     word wback = addr + offset;

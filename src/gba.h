@@ -126,6 +126,4 @@ void gba_step(GBA* gba);
 
 void update_keypad_irq(GBA* gba);
 
-void log_error(GBA* gba, char* mess, word addr);
-
 #endif

@@ -1,6 +1,5 @@
 #include "gba.h"
 
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +13,7 @@
 #include "timer.h"
 #include "types.h"
 
-extern bool lg, dbg, bootbios;
+extern bool bootbios;
 
 const int CART_WAITS[4] = {5, 4, 3, 9};
 
@@ -36,21 +35,23 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
 
     add_event(&gba->sched, &(Event){0, EVENT_PPU_HDRAW});
 
-    cpu_handle_interrupt(&gba->cpu, I_RESET);
-
     if (!bootbios) {
-        gba->cpu.pc = 0x08000000;
         gba->cpu.banked_sp[B_SVC] = 0x3007fe0;
         gba->cpu.banked_sp[B_IRQ] = 0x3007fa0;
         gba->cpu.sp = 0x3007f00;
-
-        gba->last_bios_val = 0xe129f000;
 
         gba->io.bgaff[0].pa = 1 << 8;
         gba->io.bgaff[0].pd = 1 << 8;
         gba->io.bgaff[1].pa = 1 << 8;
         gba->io.bgaff[1].pd = 1 << 8;
         gba->io.soundbias.bias = 0x200;
+
+        gba->last_bios_val = 0xe129f000;
+
+        gba->cpu.pc = 0x08000000;
+        cpu_flush(&gba->cpu);
+    } else {
+        cpu_handle_interrupt(&gba->cpu, I_RESET);
     }
 }
 
@@ -234,7 +235,6 @@ byte bus_readb(GBA* gba, word addr) {
             break;
     }
     gba->openbus = true;
-    log_error(gba, "invalid byte read", (region << 24) | addr);
     return 0;
 }
 
@@ -294,7 +294,6 @@ hword bus_readh(GBA* gba, word addr) {
             break;
     }
     gba->openbus = true;
-    log_error(gba, "invalid hword read", (region << 24) | addr);
     return 0;
 }
 
@@ -357,7 +356,6 @@ word bus_readw(GBA* gba, word addr) {
             break;
     }
     gba->openbus = true;
-    log_error(gba, "invalid word read", (region << 24) | addr);
     return 0;
 }
 
@@ -367,7 +365,6 @@ void bus_writeb(GBA* gba, word addr, byte b) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            log_error(gba, "invalid byte write to bios", (region << 24) | addr);
             break;
         case R_EWRAM:
             gba->ewram.b[addr % EWRAM_SIZE] = b;
@@ -407,7 +404,7 @@ void bus_writeb(GBA* gba, word addr, byte b) {
             cart_write_sram(gba->cart, addr, b);
             break;
         default:
-            log_error(gba, "invalid byte write", (region << 24) | addr);
+            break;
     }
 }
 
@@ -417,7 +414,6 @@ void bus_writeh(GBA* gba, word addr, hword h) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            log_error(gba, "invalid halfword write to bios", (region << 24) | addr);
             break;
         case R_EWRAM:
             gba->ewram.h[addr % EWRAM_SIZE >> 1] = h;
@@ -457,7 +453,7 @@ void bus_writeh(GBA* gba, word addr, hword h) {
             cart_write_sram(gba->cart, addr, h >> (8 * (addr & 1)));
             break;
         default:
-            log_error(gba, "invalid halfword write", (region << 24) | addr);
+            break;
     }
 }
 
@@ -467,7 +463,6 @@ void bus_writew(GBA* gba, word addr, word w) {
     addr %= 1 << 24;
     switch (region) {
         case R_BIOS:
-            log_error(gba, "invalid word write to bios", (region << 24) | addr);
             break;
         case R_EWRAM:
             gba->ewram.w[addr % EWRAM_SIZE >> 2] = w;
@@ -508,7 +503,7 @@ void bus_writew(GBA* gba, word addr, word w) {
             cart_write_sram(gba->cart, addr, w >> (8 * (addr & 0b11)));
             break;
         default:
-            log_error(gba, "invalid word write", (region << 24) | addr);
+            break;
     }
 }
 

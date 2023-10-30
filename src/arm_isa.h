@@ -173,9 +173,9 @@ ArmExecFunc arm_decode_instr(ArmInstr instr);
 void arm_exec_instr(Arm7TDMI* cpu);
 
 void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr);
+void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr);
-void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_swap(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_branch_ex(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr);
