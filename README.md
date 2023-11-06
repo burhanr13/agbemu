@@ -1,6 +1,6 @@
 # agbemu
 
-A somewhat accurate Game Boy Advance Emulator. Supports all of the graphics and audio subsystems, passes many test roms including AGS Aging Cartridge, ARMWrestler, JSMolka's gba-tests, and a sizable portion of the mGBA test suite including all of the memory and DMA tests and most timing tests. It runs all games I have tested without any issue.
+An accurate Game Boy Advance Emulator. Supports all of the graphics and audio subsystems, passes many test roms including the AGS Aging Cartridge, ARMWrestler, JSMolka's gba-tests, and a sizable portion of the mGBA test suite including all of the memory and DMA tests and most timing tests. It runs all games I have tested without any issue.
 
 ## Building
 
@@ -14,7 +14,7 @@ I have tested on both Ubuntu and MacOS.
 You need a GBA bios binary to run the emulator. You can dump an official one or use an open source replacement. Pass the file path in the command line with `-b` or leave it out and it will use the
 file `bios.bin` which should be in the current directory by default.
 
-To run a game just run the executable with the path to the ROM as the only command line argument, or use no arguments to see other command line options.
+To run a game just run the executable with the path to the ROM as the last command line argument, or use no arguments to see other command line options.
 
 The keyboard controls are as follows:
 
