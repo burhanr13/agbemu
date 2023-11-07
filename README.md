@@ -39,6 +39,7 @@ Hotkeys are as follows:
 | Reset | `R` |
 | Toggle color filter | `F` |
 | Toggle speedup | `Tab` |
+| Quit | `Esc` |
 
 ## Credits
 

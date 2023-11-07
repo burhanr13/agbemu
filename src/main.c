@@ -9,6 +9,7 @@
 #include "thumb_isa.h"
 #include "types.h"
 
+bool running;
 word bkpt;
 bool lg, dbg;
 char* romfile;
@@ -92,6 +93,9 @@ void read_args(int argc, char** argv) {
 
 void hotkey_press(SDL_KeyCode key) {
     switch (key) {
+        case SDLK_ESCAPE:
+            running = false;
+            break;
         case SDLK_p:
             pause = !pause;
             break;
@@ -246,7 +250,7 @@ int main(int argc, char** argv) {
     const Uint64 frame_ticks = SDL_GetPerformanceFrequency() / 60;
     Uint64 frame = 0;
 
-    bool running = true;
+    running = true;
     while (running) {
         Uint64 cur_time;
         Uint64 elapsed;

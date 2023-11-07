@@ -56,7 +56,7 @@ void reload_timer(TimerController* tmc, int i) {
     }
 
     if (tmc->master->io.tm[i].cnt.irq)
-        add_event(&tmc->master->sched, &(Event){tmc->master->sched.now + 4, EVENT_TM0_IRQ + i});
+        add_event(&tmc->master->sched, &(Event){tmc->master->sched.now + 3, EVENT_TM0_IRQ + i});
 
     if (i + 1 < 4 && tmc->master->io.tm[i + 1].cnt.enable &&
         tmc->master->io.tm[i + 1].cnt.countup) {
