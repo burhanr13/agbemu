@@ -25,6 +25,9 @@ typedef enum {
     EVENT_APU_CH3_REL,
     EVENT_APU_CH4_REL,
     EVENT_APU_DIV_TICK,
+    EVENT_IO_WRITEB,
+    EVENT_IO_WRITEH,
+    EVENT_IO_WRITEW,
     EVENT_MAX
 } EventType;
 

@@ -117,6 +117,8 @@ typedef struct _GBA GBA;
 
 typedef struct _IO {
     GBA* master;
+    word w_addr;
+    word w_data;
     union {
         byte b[IO_SIZE];
         hword h[IO_SIZE >> 1];

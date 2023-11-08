@@ -303,7 +303,7 @@ void io_writeh(IO* io, word addr, hword data) {
             if (!prev_ena && io->tm[i].cnt.enable) {
                 io->master->tmc.ena_count[i] = io->tm[i].reload;
                 add_event(&io->master->sched,
-                          &(Event){io->master->sched.now + 2, EVENT_TM0_ENA + i});
+                          &(Event){io->master->sched.now + 1, EVENT_TM0_ENA + i});
             } else {
                 update_timer_reload(&io->master->tmc, i);
             }

@@ -375,6 +375,9 @@ void bus_writeb(GBA* gba, word addr, byte b) {
         case R_IO:
             if (addr < IO_SIZE) {
                 io_writeb(&gba->io, addr, b);
+                // gba->io.w_addr = addr;
+                // gba->io.w_data = b;
+                // add_event(&gba->sched, &(Event){gba->sched.now + 1, EVENT_IO_WRITEB});
             }
             break;
         case R_PRAM:
@@ -423,7 +426,9 @@ void bus_writeh(GBA* gba, word addr, hword h) {
             break;
         case R_IO:
             if (addr < IO_SIZE) {
-                io_writeh(&gba->io, addr & ~1, h);
+                gba->io.w_addr = addr & ~1;
+                gba->io.w_data = h;
+                add_event(&gba->sched, &(Event){gba->sched.now + 1, EVENT_IO_WRITEH});
             }
             break;
         case R_PRAM:
@@ -472,7 +477,9 @@ void bus_writew(GBA* gba, word addr, word w) {
             break;
         case R_IO:
             if (addr < IO_SIZE) {
-                io_writew(&gba->io, addr & ~0b11, w);
+                gba->io.w_addr = addr & ~0b11;
+                gba->io.w_data = w;
+                add_event(&gba->sched, &(Event){gba->sched.now + 1, EVENT_IO_WRITEW});
             }
             break;
         case R_PRAM:

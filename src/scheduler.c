@@ -40,8 +40,14 @@ void run_next_event(Scheduler* sched) {
         on_hblank(&sched->master->ppu);
     } else if (e.type == EVENT_PPU_HBLANK_FLG) {
         set_hblank_flags(&sched->master->ppu);
-    } else {
+    } else if (e.type < EVENT_IO_WRITEB) {
         apu_events[e.type - EVENT_APU_SAMPLE](&sched->master->apu);
+    } else if (e.type == EVENT_IO_WRITEB) {
+        io_writeb(&sched->master->io, sched->master->io.w_addr, sched->master->io.w_data);
+    } else if (e.type == EVENT_IO_WRITEH) {
+        io_writeh(&sched->master->io, sched->master->io.w_addr, sched->master->io.w_data);
+    } else if (e.type == EVENT_IO_WRITEW) {
+        io_writew(&sched->master->io, sched->master->io.w_addr, sched->master->io.w_data);
     }
 }
 
