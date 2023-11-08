@@ -10,12 +10,10 @@ const char* help = "Debugger commands:\n"
                    "c -- continue emulation\n"
                    "n -- next instruction\n"
                    "i -- cpu state info\n"
-                   "rb <addr> -- read byte\n"
-                   "rh <addr> -- read halfword \n"
-                   "rw <addr> -- read word\n"
+                   "r<b/h/w> <addr> -- read from memory\n"
                    "r -- reset\n"
                    "q -- quit debugger\n"
-                   "h -- help";
+                   "h -- help\n";
 
 int read_num(char* str, word* res) {
     if (sscanf(str, "0x%x", res) < 1) {
@@ -89,7 +87,7 @@ void debugger_run() {
                     default:
                         printf("Reset emulation? ");
                         char ans[5];
-                        scanf("%4s\n", ans);
+                        fgets(ans, 5, stdin);
                         if (ans[0] == 'y') {
                             init_gba(agbemu.gba, agbemu.cart, agbemu.bios, agbemu.bootbios);
                             return;
