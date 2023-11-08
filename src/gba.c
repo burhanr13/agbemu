@@ -13,11 +13,9 @@
 #include "timer.h"
 #include "types.h"
 
-extern bool bootbios;
-
 const int CART_WAITS[4] = {5, 4, 3, 9};
 
-void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
+void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
     memset(gba, 0, sizeof *gba);
     memset(&cart->st, 0, sizeof cart->st);
     gba->cart = cart;
@@ -49,6 +47,7 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios) {
         gba->last_bios_val = 0xe129f000;
 
         gba->cpu.pc = 0x08000000;
+        gba->cpu.cpsr.m = M_SYSTEM;
         cpu_flush(&gba->cpu);
     } else {
         cpu_handle_interrupt(&gba->cpu, I_RESET);
@@ -546,12 +545,4 @@ void update_keypad_irq(GBA* gba) {
             gba->stop = false;
         }
     }
-}
-
-void log_error(GBA* gba, char* mess, word addr) {
-    // if (lg) {
-    //     printf("Error: %s, addr=0x%08x\n", mess, addr);
-    //     print_cpu_state(&gba->cpu);
-    //     if (dbg) raise(SIGINT);
-    // }
 }

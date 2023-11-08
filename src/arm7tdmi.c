@@ -238,15 +238,30 @@ char* mode_name(CpuMode m) {
 }
 
 void print_cpu_state(Arm7TDMI* cpu) {
-    for (int i = 0; i < 2; i++) {
+    static char* reg_names[16] = {"r0", "r1", "r2",  "r3",  "r4",  "r5", "r6", "r7",
+                                  "r8", "r9", "r10", "r11", "ip", "sp", "lr", "pc"};
+    for (int i = 0; i < 4; i++) {
         if (i == 0) printf("CPU ");
         else printf("    ");
-        for (int j = 0; j < 8; j++) {
-            printf("r%-2d=0x%08x ", 8 * i + j, cpu->r[8 * i + j]);
+        for (int j = 0; j < 4; j++) {
+            printf("%3s=0x%08x ", reg_names[4 * i + j], cpu->r[4 * i + j]);
         }
         printf("\n");
     }
     printf("    cpsr=%08x (n=%d,z=%d,c=%d,v=%d,i=%d,f=%d,t=%d,m=%s)\n", cpu->cpsr.w, cpu->cpsr.n,
            cpu->cpsr.z, cpu->cpsr.c, cpu->cpsr.v, cpu->cpsr.i, cpu->cpsr.v, cpu->cpsr.t,
            mode_name(cpu->cpsr.m));
+}
+
+void print_cur_instr(Arm7TDMI* cpu) {
+    if (cpu->cpsr.t) {
+        printf("%08x: %04x ", cpu->cur_instr_addr, cpu->cur_instr.w);
+        thumb_disassemble((ThumbInstr){bus_readh(cpu->master, cpu->cur_instr_addr)},
+                          cpu->cur_instr_addr, stdout);
+        printf("\n");
+    } else {
+        printf("%08x: %08x ", cpu->cur_instr_addr, cpu->cur_instr.w);
+        arm_disassemble(cpu->cur_instr, cpu->cur_instr_addr, stdout);
+        printf("\n");
+    }
 }

@@ -160,4 +160,6 @@ void thumb_generate_lookup();
 
 ArmInstr thumb_decode_instr(ThumbInstr instr);
 
+void thumb_disassemble(ThumbInstr instr, word addr, FILE* out);
+
 #endif

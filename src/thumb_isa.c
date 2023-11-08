@@ -306,3 +306,7 @@ ArmInstr thumb_decode_instr(ThumbInstr instr) {
 
     return dec;
 }
+
+void thumb_disassemble(ThumbInstr instr, word addr, FILE* out) {
+    arm_disassemble(thumb_lookup[instr.h], addr, out);
+}

@@ -104,7 +104,7 @@ typedef struct _GBA {
 
 } GBA;
 
-void init_gba(GBA* gba, Cartridge* cart, byte* bios);
+void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios);
 
 byte* load_bios(char* filename);
 

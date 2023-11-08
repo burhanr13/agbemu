@@ -87,5 +87,6 @@ word cpu_fetchw(Arm7TDMI* cpu, word addr, bool seq);
 void cpu_internal_cycle(Arm7TDMI* cpu);
 
 void print_cpu_state(Arm7TDMI* cpu);
+void print_cur_instr(Arm7TDMI* cpu);
 
 #endif

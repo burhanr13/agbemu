@@ -667,7 +667,7 @@ void exec_arm_sw_intr(Arm7TDMI* cpu, ArmInstr instr) {
 void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
 
     static char* reg_names[16] = {"r0", "r1", "r2",  "r3",  "r4",  "r5", "r6", "r7",
-                                  "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"};
+                                  "r8", "r9", "r10", "r11", "ip", "sp", "lr", "pc"};
     static char* cond_names[16] = {"eq", "ne", "hs", "lo", "mi", "pl", "vs", "vc",
                                    "hi", "ls", "ge", "lt", "gt", "le", "",   ""};
     static char* alu_names[16] = {"and", "eor", "sub", "rsb", "add", "adc", "sbc", "rsc",
