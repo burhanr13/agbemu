@@ -23,15 +23,20 @@ int read_num(char* str, word* res) {
 }
 
 void debugger_run() {
-    char buf[100];
+    static char prev_line[100];
+    static char buf[100];
 
     printf("agbemu Debugger\n");
     print_cpu_state(&agbemu.gba->cpu);
     print_cur_instr(&agbemu.gba->cpu);
 
     while (true) {
+        memcpy(prev_line, buf, sizeof buf);
         printf("> ");
         fgets(buf, 100, stdin);
+        if (buf[0] == '\n') {
+            memcpy(buf, prev_line, sizeof buf);
+        }
 
         char* com = strtok(buf, " \t\n");
         if (!(com && *com)) {
@@ -46,7 +51,7 @@ void debugger_run() {
                 agbemu.running = true;
                 return;
             case 'h':
-                printf("%s",help);
+                printf("%s", help);
                 break;
             case 'n':
                 gba_step(agbemu.gba);

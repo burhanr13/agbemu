@@ -45,10 +45,9 @@ int emulator_init(int argc, char** argv) {
     init_color_lookups();
     init_gba(agbemu.gba, agbemu.cart, agbemu.bios, agbemu.bootbios);
 
-    agbemu.romfilenodir = agbemu.romfile + strlen(agbemu.romfile);
-    while (agbemu.romfilenodir > agbemu.romfile && *(agbemu.romfilenodir - 1) != '/')
-        agbemu.romfilenodir--;
     agbemu.romfilenodir = strrchr(agbemu.romfile, '/');
+    if (agbemu.romfilenodir) agbemu.romfilenodir++;
+    else agbemu.romfilenodir = agbemu.romfile;
     return 0;
 }
 
