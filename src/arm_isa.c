@@ -688,20 +688,12 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
 
     } else if (instr.block_trans.c1 == 0b100) {
 
-        bool user_trans = false, s = false;
-        if (instr.block_trans.s) {
-            if ((instr.block_trans.rlist & (1 << 15)) && instr.block_trans.l) {
-                s = true;
-            } else {
-                user_trans = true;
-            }
-        }
         if (instr.block_trans.rn == 13 && (instr.block_trans.u != instr.block_trans.p) &&
             instr.block_trans.u == instr.block_trans.l && instr.block_trans.w) {
-            fprintf(out, "%s%s%s {", instr.block_trans.l ? "pop" : "push", s ? "s" : "", cond);
+            fprintf(out, "%s%s {", instr.block_trans.l ? "pop" : "push", cond);
         } else {
-            fprintf(out, "%s%s%s%s%s %s%s, {", instr.block_trans.l ? "ldm" : "stm",
-                    instr.block_trans.u ? "i" : "d", instr.block_trans.p ? "b" : "a", s ? "s" : "",
+            fprintf(out, "%s%s%s%s %s%s, {", instr.block_trans.l ? "ldm" : "stm",
+                    instr.block_trans.u ? "i" : "d", instr.block_trans.p ? "b" : "a",
                     cond, reg_names[instr.block_trans.rn], instr.block_trans.w ? "!" : "");
         }
         hword rlist = instr.block_trans.rlist;
@@ -714,7 +706,7 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
                 }
             } else rlist >>= 1;
         }
-        fprintf(out, "}%s", user_trans ? "^" : "");
+        fprintf(out, "}%s", instr.block_trans.s ? "^" : "");
 
     } else if (instr.undefined.c1 == 0b011 && instr.undefined.c2 == 1) {
 
