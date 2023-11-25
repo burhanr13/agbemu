@@ -97,6 +97,7 @@ typedef struct {
     bool draw_bg[4];
     bool draw_obj;
     bool in_win[2];
+    bool obj_semitrans;
     bool obj_mos;
 
     int obj_cycles;
