@@ -678,7 +678,7 @@ void draw_scanline(PPU* ppu) {
     compose_lines(ppu);
 }
 
-void on_hdraw(PPU* ppu) {
+void ppu_hdraw(PPU* ppu) {
     ppu->ly++;
     if (ppu->ly == LINES_H) {
         ppu->ly = 0;
@@ -694,7 +694,7 @@ void on_hdraw(PPU* ppu) {
 
     if (ppu->ly == GBA_SCREEN_H) {
         ppu->master->io.dispstat.vblank = 1;
-        on_vblank(ppu);
+        ppu_vblank(ppu);
     } else if (ppu->ly == LINES_H - 1) {
         ppu->master->io.dispstat.vblank = 0;
         ppu->frame_complete = true;
@@ -713,15 +713,21 @@ void on_hdraw(PPU* ppu) {
         }
     }
 
-    if (ppu->ly < GBA_SCREEN_H)
-        add_event(&ppu->master->sched, EVENT_PPU_HBLANK, ppu->master->sched.now + 4 * GBA_SCREEN_W);
+    if (ppu->ly < GBA_SCREEN_H) {
+        if (ppu->master->io.dispcnt.forced_blank) {
+            memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
+        } else {
+            draw_scanline(ppu);
+        }
+    }
 
-    add_event(&ppu->master->sched, EVENT_PPU_HBLANK_FLG, ppu->master->sched.now + 1006);
+    add_event(&ppu->master->sched, EVENT_PPU_HBLANK,
+              ppu->master->sched.now + 4 * GBA_SCREEN_W + 46);
 
     add_event(&ppu->master->sched, EVENT_PPU_HDRAW, ppu->master->sched.now + 4 * DOTS_W);
 }
 
-void on_vblank(PPU* ppu) {
+void ppu_vblank(PPU* ppu) {
     if (ppu->master->io.dispstat.vblank_irq) ppu->master->io.ifl.vblank = 1;
 
     ppu->bgaffintr[0].x = ppu->master->io.bgaff[0].x;
@@ -743,36 +749,32 @@ void on_vblank(PPU* ppu) {
     }
 }
 
-void on_hblank(PPU* ppu) {
-    if (ppu->master->io.dispcnt.forced_blank) {
-        memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
-    } else {
-        draw_scanline(ppu);
+void ppu_hblank(PPU* ppu) {
+
+    if (ppu->ly < GBA_SCREEN_H) {
+        ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
+        ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
+        ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
+        ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
+
+        if (++ppu->bgmos_ct == ppu->master->io.mosaic.bg_v) {
+            ppu->bgmos_ct = -1;
+            ppu->bgmos_y = ppu->ly + 1;
+            ppu->bgaffintr[0].mosx = ppu->bgaffintr[0].x;
+            ppu->bgaffintr[0].mosy = ppu->bgaffintr[0].y;
+            ppu->bgaffintr[1].mosx = ppu->bgaffintr[1].x;
+            ppu->bgaffintr[1].mosy = ppu->bgaffintr[1].y;
+        }
+        if (++ppu->objmos_ct == ppu->master->io.mosaic.obj_v) {
+            ppu->objmos_ct = -1;
+            ppu->objmos_y = ppu->ly + 1;
+        }
+        for (int i = 0; i < 4; i++) {
+            if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK)
+                dma_activate(&ppu->master->dmac, i);
+        }
     }
 
-    ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
-    ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
-    ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
-    ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
-
-    if (++ppu->bgmos_ct == ppu->master->io.mosaic.bg_v) {
-        ppu->bgmos_ct = -1;
-        ppu->bgmos_y = ppu->ly + 1;
-        ppu->bgaffintr[0].mosx = ppu->bgaffintr[0].x;
-        ppu->bgaffintr[0].mosy = ppu->bgaffintr[0].y;
-        ppu->bgaffintr[1].mosx = ppu->bgaffintr[1].x;
-        ppu->bgaffintr[1].mosy = ppu->bgaffintr[1].y;
-    }
-    if (++ppu->objmos_ct == ppu->master->io.mosaic.obj_v) {
-        ppu->objmos_ct = -1;
-        ppu->objmos_y = ppu->ly + 1;
-    }
-    for (int i = 0; i < 4; i++) {
-        if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK) dma_activate(&ppu->master->dmac, i);
-    }
-}
-
-void set_hblank_flags(PPU* ppu) {
     ppu->master->io.dispstat.hblank = 1;
     if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
 }
