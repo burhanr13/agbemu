@@ -26,7 +26,7 @@ void update_timer_reload(TimerController* tmc, int i) {
     int rate = RATES[tmc->master->io.tm[i].cnt.rate];
     dword rel_time =
         (tmc->set_time[i] + ((0x10000 - tmc->counter[i]) << rate)) & ~((1 << rate) - 1);
-    add_event(&tmc->master->sched, &(Event){rel_time, i});
+    add_event(&tmc->master->sched, i,rel_time);
 }
 
 void enable_timer(TimerController* tmc, int i) {
@@ -56,7 +56,7 @@ void reload_timer(TimerController* tmc, int i) {
     }
 
     if (tmc->master->io.tm[i].cnt.irq)
-        add_event(&tmc->master->sched, &(Event){tmc->master->sched.now + 3, EVENT_TM0_IRQ + i});
+        add_event(&tmc->master->sched, EVENT_TM0_IRQ + i,tmc->master->sched.now + 3);
 
     if (i + 1 < 4 && tmc->master->io.tm[i + 1].cnt.enable &&
         tmc->master->io.tm[i + 1].cnt.countup) {

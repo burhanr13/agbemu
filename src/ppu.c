@@ -714,12 +714,11 @@ void on_hdraw(PPU* ppu) {
     }
 
     if (ppu->ly < GBA_SCREEN_H)
-        add_event(&ppu->master->sched,
-                  &(Event){ppu->master->sched.now + 4 * GBA_SCREEN_W, EVENT_PPU_HBLANK});
+        add_event(&ppu->master->sched, EVENT_PPU_HBLANK, ppu->master->sched.now + 4 * GBA_SCREEN_W);
 
-    add_event(&ppu->master->sched, &(Event){ppu->master->sched.now + 1006, EVENT_PPU_HBLANK_FLG});
+    add_event(&ppu->master->sched, EVENT_PPU_HBLANK_FLG, ppu->master->sched.now + 1006);
 
-    add_event(&ppu->master->sched, &(Event){ppu->master->sched.now + 4 * DOTS_W, EVENT_PPU_HDRAW});
+    add_event(&ppu->master->sched, EVENT_PPU_HDRAW, ppu->master->sched.now + 4 * DOTS_W);
 }
 
 void on_vblank(PPU* ppu) {

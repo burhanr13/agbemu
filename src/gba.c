@@ -31,7 +31,7 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
 
     update_cart_waits(gba);
 
-    add_event(&gba->sched, &(Event){0, EVENT_PPU_HDRAW});
+    add_event(&gba->sched, EVENT_PPU_HDRAW,0);
 
     if (!bootbios) {
         gba->cpu.banked_sp[B_SVC] = 0x3007fe0;

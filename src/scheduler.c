@@ -45,11 +45,14 @@ void run_next_event(Scheduler* sched) {
     }
 }
 
-void add_event(Scheduler* sched, Event* e) {
+void add_event(Scheduler* sched, EventType t, dword time) {
     if (sched->n_events == EVENT_MAX) return;
 
     int i = sched->n_events;
-    sched->event_queue[sched->n_events++] = *e;
+    sched->event_queue[sched->n_events].type = t;
+    sched->event_queue[sched->n_events].time = time;
+    sched->n_events++;
+    
     while (i > 0 && sched->event_queue[i].time < sched->event_queue[i - 1].time) {
         Event tmp = sched->event_queue[i - 1];
         sched->event_queue[i - 1] = sched->event_queue[i];

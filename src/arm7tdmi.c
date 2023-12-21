@@ -8,9 +8,6 @@
 #include "thumb_isa.h"
 #include "types.h"
 
-extern word bkpt;
-extern bool lg, dbg;
-
 void cpu_step(Arm7TDMI* cpu) {
     arm_exec_instr(cpu);
 }

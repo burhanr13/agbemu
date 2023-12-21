@@ -47,7 +47,7 @@ typedef struct {
 void run_scheduler(Scheduler* sched, int cycles);
 void run_next_event(Scheduler* sched);
 
-void add_event(Scheduler* sched, Event* e);
+void add_event(Scheduler* sched, EventType t, dword time);
 void remove_event(Scheduler* sched, EventType t);
 
 #endif
