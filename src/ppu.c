@@ -1,5 +1,6 @@
 #include "ppu.h"
 
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -8,7 +9,7 @@
 #include "io.h"
 #include "scheduler.h"
 
-extern bool filter;
+extern pthread_mutex_t ppu_mutex;
 
 const int SCLAYOUT[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
@@ -678,6 +679,23 @@ void draw_scanline(PPU* ppu) {
     compose_lines(ppu);
 }
 
+void* ppu_thread_run(void* data) {
+    int lastline = -1;
+    PPU* ppu = data;
+    while (true) {
+        while(ppu->ly == lastline) {}
+        lastline = ppu->ly;
+        pthread_mutex_lock(&ppu_mutex);
+        if (ppu->master->io.dispcnt.forced_blank) {
+            memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
+        } else {
+            draw_scanline(ppu);
+        }
+        pthread_mutex_unlock(&ppu_mutex);
+    }
+    return NULL;
+}
+
 void ppu_hdraw(PPU* ppu) {
     ppu->ly++;
     if (ppu->ly == LINES_H) {
@@ -714,11 +732,7 @@ void ppu_hdraw(PPU* ppu) {
     }
 
     if (ppu->ly < GBA_SCREEN_H) {
-        if (ppu->master->io.dispcnt.forced_blank) {
-            memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
-        } else {
-            draw_scanline(ppu);
-        }
+        pthread_mutex_unlock(&ppu_mutex);
     }
 
     add_event(&ppu->master->sched, EVENT_PPU_HBLANK,
@@ -727,31 +741,10 @@ void ppu_hdraw(PPU* ppu) {
     add_event(&ppu->master->sched, EVENT_PPU_HDRAW, ppu->master->sched.now + 4 * DOTS_W);
 }
 
-void ppu_vblank(PPU* ppu) {
-    if (ppu->master->io.dispstat.vblank_irq) ppu->master->io.ifl.vblank = 1;
-
-    ppu->bgaffintr[0].x = ppu->master->io.bgaff[0].x;
-    ppu->bgaffintr[0].y = ppu->master->io.bgaff[0].y;
-    ppu->bgaffintr[1].x = ppu->master->io.bgaff[1].x;
-    ppu->bgaffintr[1].y = ppu->master->io.bgaff[1].y;
-    ppu->bgaffintr[0].mosx = ppu->bgaffintr[0].x;
-    ppu->bgaffintr[0].mosy = ppu->bgaffintr[0].y;
-    ppu->bgaffintr[1].mosx = ppu->bgaffintr[1].x;
-    ppu->bgaffintr[1].mosy = ppu->bgaffintr[1].y;
-
-    ppu->bgmos_y = 0;
-    ppu->bgmos_ct = -1;
-    ppu->objmos_y = 0;
-    ppu->objmos_ct = -1;
-
-    for (int i = 0; i < 4; i++) {
-        if (ppu->master->io.dma[i].cnt.start == DMA_ST_VBLANK) dma_activate(&ppu->master->dmac, i);
-    }
-}
-
 void ppu_hblank(PPU* ppu) {
-
     if (ppu->ly < GBA_SCREEN_H) {
+        pthread_mutex_lock(&ppu_mutex);
+
         ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
         ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
         ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
@@ -777,4 +770,26 @@ void ppu_hblank(PPU* ppu) {
 
     ppu->master->io.dispstat.hblank = 1;
     if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
+}
+
+void ppu_vblank(PPU* ppu) {
+    if (ppu->master->io.dispstat.vblank_irq) ppu->master->io.ifl.vblank = 1;
+
+    ppu->bgaffintr[0].x = ppu->master->io.bgaff[0].x;
+    ppu->bgaffintr[0].y = ppu->master->io.bgaff[0].y;
+    ppu->bgaffintr[1].x = ppu->master->io.bgaff[1].x;
+    ppu->bgaffintr[1].y = ppu->master->io.bgaff[1].y;
+    ppu->bgaffintr[0].mosx = ppu->bgaffintr[0].x;
+    ppu->bgaffintr[0].mosy = ppu->bgaffintr[0].y;
+    ppu->bgaffintr[1].mosx = ppu->bgaffintr[1].x;
+    ppu->bgaffintr[1].mosy = ppu->bgaffintr[1].y;
+
+    ppu->bgmos_y = 0;
+    ppu->bgmos_ct = -1;
+    ppu->objmos_y = 0;
+    ppu->objmos_ct = -1;
+
+    for (int i = 0; i < 4; i++) {
+        if (ppu->master->io.dma[i].cnt.start == DMA_ST_VBLANK) dma_activate(&ppu->master->dmac, i);
+    }
 }

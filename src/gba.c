@@ -31,8 +31,6 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
 
     update_cart_waits(gba);
 
-    add_event(&gba->sched, EVENT_PPU_HDRAW,0);
-
     if (!bootbios) {
         gba->cpu.banked_sp[B_SVC] = 0x3007fe0;
         gba->cpu.banked_sp[B_IRQ] = 0x3007fa0;
@@ -52,6 +50,8 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
     } else {
         cpu_handle_interrupt(&gba->cpu, I_RESET);
     }
+
+    add_event(&gba->sched, EVENT_PPU_HDRAW, 0);
 }
 
 byte* load_bios(char* filename) {

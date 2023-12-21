@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -11,6 +12,9 @@
 #include "gba.h"
 #include "thumb_isa.h"
 #include "types.h"
+
+pthread_t ppu_thread;
+pthread_mutex_t ppu_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 char wintitle[200];
 
@@ -56,6 +60,9 @@ int main(int argc, char** argv) {
         .freq = SAMPLE_FREQ, .format = AUDIO_F32, .channels = 2, .samples = SAMPLE_BUF_LEN / 2};
     SDL_AudioDeviceID audio = SDL_OpenAudioDevice(NULL, 0, &audio_spec, NULL, 0);
     SDL_PauseAudioDevice(audio, 0);
+
+    pthread_mutex_lock(&ppu_mutex);
+    pthread_create(&ppu_thread, NULL, ppu_thread_run, &agbemu.gba->ppu);
 
     Uint64 prev_time = SDL_GetPerformanceCounter();
     Uint64 prev_fps_update = prev_time;
@@ -144,6 +151,9 @@ int main(int argc, char** argv) {
     }
 
     emulator_quit();
+
+    pthread_cancel(ppu_thread);
+    pthread_mutex_destroy(&ppu_mutex);
 
     if (controller) SDL_GameControllerClose(controller);
 

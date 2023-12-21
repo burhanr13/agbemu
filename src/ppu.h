@@ -111,8 +111,10 @@ void render_windows(PPU* ppu);
 
 void draw_scanline(PPU* ppu);
 
+void* ppu_thread_run(void* ppu);
+
 void ppu_hdraw(PPU* ppu);
-void ppu_vblank(PPU* ppu);
 void ppu_hblank(PPU* ppu);
+void ppu_vblank(PPU* ppu);
 
 #endif
