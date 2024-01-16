@@ -10,6 +10,7 @@
 #include "scheduler.h"
 
 extern pthread_mutex_t ppu_mutex;
+extern pthread_cond_t ppu_cond;
 
 const int SCLAYOUT[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
@@ -680,18 +681,14 @@ void draw_scanline(PPU* ppu) {
 }
 
 void* ppu_thread_run(void* data) {
-    int lastline = -1;
     PPU* ppu = data;
     while (true) {
-        while(ppu->ly == lastline) {}
-        lastline = ppu->ly;
-        pthread_mutex_lock(&ppu_mutex);
+        pthread_cond_wait(&ppu_cond, &ppu_mutex);
         if (ppu->master->io.dispcnt.forced_blank) {
             memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
         } else {
             draw_scanline(ppu);
         }
-        pthread_mutex_unlock(&ppu_mutex);
     }
     return NULL;
 }
@@ -732,6 +729,7 @@ void ppu_hdraw(PPU* ppu) {
     }
 
     if (ppu->ly < GBA_SCREEN_H) {
+        pthread_cond_signal(&ppu_cond);
         pthread_mutex_unlock(&ppu_mutex);
     }
 

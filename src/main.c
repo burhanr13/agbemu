@@ -15,6 +15,7 @@
 
 pthread_t ppu_thread;
 pthread_mutex_t ppu_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t ppu_cond = PTHREAD_COND_INITIALIZER;
 
 char wintitle[200];
 
