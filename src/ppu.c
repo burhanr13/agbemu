@@ -653,6 +653,11 @@ void compose_lines(PPU* ppu) {
 }
 
 void draw_scanline(PPU* ppu) {
+    if (ppu->master->io.dispcnt.forced_blank) {
+        memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
+        return;
+    }
+
     for (int x = 0; x < GBA_SCREEN_W; x++) {
         ppu->layerlines[LBD][x] = ppu->master->pram.h[0];
     }
@@ -682,13 +687,16 @@ void draw_scanline(PPU* ppu) {
 
 void* ppu_thread_run(void* data) {
     PPU* ppu = data;
+    byte last_ly = 0;
     while (true) {
         pthread_cond_wait(&ppu_cond, &ppu_mutex);
-        if (ppu->master->io.dispcnt.forced_blank) {
-            memset(&ppu->screen[ppu->ly][0], 0xff, sizeof ppu->screen[0]);
-        } else {
+        byte end_ly = ppu->ly;
+        if (end_ly >= GBA_SCREEN_H) end_ly = GBA_SCREEN_H - 1;
+        for (ppu->ly = last_ly + 1; ppu->ly <= end_ly; ppu->ly++) {
             draw_scanline(ppu);
         }
+        ppu->ly = last_ly = end_ly;
+        if (last_ly == GBA_SCREEN_H - 1) last_ly = -1;
     }
     return NULL;
 }
