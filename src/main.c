@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/semaphore.h>
+#include <semaphore.h>
 
 #include "apu.h"
 #include "arm_isa.h"

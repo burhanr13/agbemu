@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/semaphore.h>
+#include <semaphore.h>
 
 #include "dma.h"
 #include "gba.h"
