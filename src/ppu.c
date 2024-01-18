@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/semaphore.h>
 
 #include "dma.h"
 #include "gba.h"
@@ -11,6 +12,7 @@
 
 extern pthread_mutex_t ppu_mutex;
 extern pthread_cond_t ppu_cond;
+extern sem_t ppu_sem;
 
 const int SCLAYOUT[4][2][2] = {
     {{0, 0}, {0, 0}}, {{0, 1}, {0, 1}}, {{0, 0}, {1, 1}}, {{0, 1}, {2, 3}}};
@@ -687,100 +689,96 @@ void draw_scanline(PPU* ppu) {
 
 void* ppu_thread_run(void* data) {
     PPU* ppu = data;
-    byte last_ly = 0;
     while (true) {
-        pthread_cond_wait(&ppu_cond, &ppu_mutex);
-        byte end_ly = ppu->ly;
-        if (end_ly >= GBA_SCREEN_H) end_ly = GBA_SCREEN_H - 1;
-        for (ppu->ly = last_ly + 1; ppu->ly <= end_ly; ppu->ly++) {
-            draw_scanline(ppu);
+        sem_wait(&ppu_sem);
+
+        ppu_check_window(ppu);
+        draw_scanline(ppu);
+        ppu_hblank(ppu);
+
+        if (++ppu->ly == GBA_SCREEN_H) {
+            ppu->ly = 0;
+            ppu_vblank(ppu);
+            ppu->frame_complete = true;
+            pthread_mutex_lock(&ppu_mutex);
+            pthread_cond_signal(&ppu_cond);
+            pthread_mutex_unlock(&ppu_mutex);
         }
-        ppu->ly = last_ly = end_ly;
-        if (last_ly == GBA_SCREEN_H - 1) last_ly = -1;
     }
     return NULL;
 }
 
-void ppu_hdraw(PPU* ppu) {
-    ppu->ly++;
-    if (ppu->ly == LINES_H) {
-        ppu->ly = 0;
-    }
-    ppu->master->io.vcount = ppu->ly;
-
-    ppu->master->io.dispstat.hblank = 0;
-
-    if (ppu->ly == ppu->master->io.dispstat.lyc) {
-        ppu->master->io.dispstat.vcounteq = 1;
-        if (ppu->master->io.dispstat.vcount_irq) ppu->master->io.ifl.vcounteq = 1;
-    } else ppu->master->io.dispstat.vcounteq = 0;
-
-    if (ppu->ly == GBA_SCREEN_H) {
-        ppu->master->io.dispstat.vblank = 1;
-        ppu_vblank(ppu);
-    } else if (ppu->ly == LINES_H - 1) {
-        ppu->master->io.dispstat.vblank = 0;
-        ppu->frame_complete = true;
-    }
-
+void ppu_check_window(PPU* ppu) {
     for (int i = 0; i < 2; i++) {
         if (ppu->ly == ppu->master->io.winv[i].y1) ppu->in_win[i] = true;
         if (ppu->ly == ppu->master->io.winv[i].y2) ppu->in_win[i] = false;
     }
+}
 
-    if (ppu->master->io.dma[3].cnt.start == DMA_ST_SPEC) {
-        if (2 <= ppu->ly && ppu->ly < 162) {
-            dma_activate(&ppu->master->dmac, 3);
-        } else if (ppu->ly == 162) {
-            ppu->master->io.dma[3].cnt.enable = 0;
+void lcd_hdraw(GBA* gba) {
+    if (++gba->io.vcount == LINES_H) {
+        gba->io.vcount = 0;
+    }
+
+    gba->io.dispstat.hblank = 0;
+
+    if (gba->io.vcount == gba->io.dispstat.lyc) {
+        gba->io.dispstat.vcounteq = 1;
+        if (gba->io.dispstat.vcount_irq) gba->io.ifl.vcounteq = 1;
+    } else gba->io.dispstat.vcounteq = 0;
+
+    if (gba->io.vcount < GBA_SCREEN_H) {
+        sem_post(&ppu_sem);
+    } else if (gba->io.vcount == GBA_SCREEN_H) {
+        lcd_vblank(gba);
+    } else if (gba->io.vcount == LINES_H - 1) {
+        gba->io.dispstat.vblank = 0;
+    }
+
+    if (gba->io.dma[3].cnt.start == DMA_ST_SPEC) {
+        if (2 <= gba->io.vcount && gba->io.vcount < 162) {
+            dma_activate(&gba->dmac, 3);
+        } else if (gba->io.vcount == 162) {
+            gba->io.dma[3].cnt.enable = 0;
         }
     }
 
-    if (ppu->ly < GBA_SCREEN_H) {
-        pthread_cond_signal(&ppu_cond);
-        pthread_mutex_unlock(&ppu_mutex);
-    }
-
-    add_event(&ppu->master->sched, EVENT_PPU_HBLANK,
-              ppu->master->sched.now + 4 * GBA_SCREEN_W + 46);
-
-    add_event(&ppu->master->sched, EVENT_PPU_HDRAW, ppu->master->sched.now + 4 * DOTS_W);
+    add_event(&gba->sched, EVENT_LCD_HBLANK, gba->sched.now + 4 * GBA_SCREEN_W + 46);
+    add_event(&gba->sched, EVENT_LCD_HDRAW, gba->sched.now + 4 * DOTS_W);
 }
 
 void ppu_hblank(PPU* ppu) {
-    if (ppu->ly < GBA_SCREEN_H) {
-        pthread_mutex_lock(&ppu_mutex);
+    ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
+    ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
+    ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
+    ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
 
-        ppu->bgaffintr[0].x += ppu->master->io.bgaff[0].pb;
-        ppu->bgaffintr[0].y += ppu->master->io.bgaff[0].pd;
-        ppu->bgaffintr[1].x += ppu->master->io.bgaff[1].pb;
-        ppu->bgaffintr[1].y += ppu->master->io.bgaff[1].pd;
+    if (++ppu->bgmos_ct == ppu->master->io.mosaic.bg_v) {
+        ppu->bgmos_ct = -1;
+        ppu->bgmos_y = ppu->ly + 1;
+        ppu->bgaffintr[0].mosx = ppu->bgaffintr[0].x;
+        ppu->bgaffintr[0].mosy = ppu->bgaffintr[0].y;
+        ppu->bgaffintr[1].mosx = ppu->bgaffintr[1].x;
+        ppu->bgaffintr[1].mosy = ppu->bgaffintr[1].y;
+    }
+    if (++ppu->objmos_ct == ppu->master->io.mosaic.obj_v) {
+        ppu->objmos_ct = -1;
+        ppu->objmos_y = ppu->ly + 1;
+    }
+}
 
-        if (++ppu->bgmos_ct == ppu->master->io.mosaic.bg_v) {
-            ppu->bgmos_ct = -1;
-            ppu->bgmos_y = ppu->ly + 1;
-            ppu->bgaffintr[0].mosx = ppu->bgaffintr[0].x;
-            ppu->bgaffintr[0].mosy = ppu->bgaffintr[0].y;
-            ppu->bgaffintr[1].mosx = ppu->bgaffintr[1].x;
-            ppu->bgaffintr[1].mosy = ppu->bgaffintr[1].y;
-        }
-        if (++ppu->objmos_ct == ppu->master->io.mosaic.obj_v) {
-            ppu->objmos_ct = -1;
-            ppu->objmos_y = ppu->ly + 1;
-        }
+void lcd_hblank(GBA* gba) {
+    if (gba->io.vcount < GBA_SCREEN_H) {
         for (int i = 0; i < 4; i++) {
-            if (ppu->master->io.dma[i].cnt.start == DMA_ST_HBLANK)
-                dma_activate(&ppu->master->dmac, i);
+            if (gba->io.dma[i].cnt.start == DMA_ST_HBLANK) dma_activate(&gba->dmac, i);
         }
     }
 
-    ppu->master->io.dispstat.hblank = 1;
-    if (ppu->master->io.dispstat.hblank_irq) ppu->master->io.ifl.hblank = 1;
+    gba->io.dispstat.hblank = 1;
+    if (gba->io.dispstat.hblank_irq) gba->io.ifl.hblank = 1;
 }
 
 void ppu_vblank(PPU* ppu) {
-    if (ppu->master->io.dispstat.vblank_irq) ppu->master->io.ifl.vblank = 1;
-
     ppu->bgaffintr[0].x = ppu->master->io.bgaff[0].x;
     ppu->bgaffintr[0].y = ppu->master->io.bgaff[0].y;
     ppu->bgaffintr[1].x = ppu->master->io.bgaff[1].x;
@@ -794,8 +792,19 @@ void ppu_vblank(PPU* ppu) {
     ppu->bgmos_ct = -1;
     ppu->objmos_y = 0;
     ppu->objmos_ct = -1;
+}
+
+void lcd_vblank(GBA* gba) {
+    gba->io.dispstat.vblank = 1;
+    if (gba->io.dispstat.vblank_irq) gba->io.ifl.vblank = 1;
 
     for (int i = 0; i < 4; i++) {
-        if (ppu->master->io.dma[i].cnt.start == DMA_ST_VBLANK) dma_activate(&ppu->master->dmac, i);
+        if (gba->io.dma[i].cnt.start == DMA_ST_VBLANK) dma_activate(&gba->dmac, i);
     }
+
+    pthread_mutex_lock(&ppu_mutex);
+    while (!gba->ppu.frame_complete) {
+        pthread_cond_wait(&ppu_cond, &ppu_mutex);
+    }
+    pthread_mutex_unlock(&ppu_mutex);
 }

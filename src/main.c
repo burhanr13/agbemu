@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/semaphore.h>
 
 #include "apu.h"
 #include "arm_isa.h"
@@ -16,6 +17,7 @@
 pthread_t ppu_thread;
 pthread_mutex_t ppu_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t ppu_cond = PTHREAD_COND_INITIALIZER;
+sem_t ppu_sem;
 
 char wintitle[200];
 
@@ -62,7 +64,7 @@ int main(int argc, char** argv) {
     SDL_AudioDeviceID audio = SDL_OpenAudioDevice(NULL, 0, &audio_spec, NULL, 0);
     SDL_PauseAudioDevice(audio, 0);
 
-    pthread_mutex_lock(&ppu_mutex);
+    sem_init(&ppu_sem, 0, 0);
     pthread_create(&ppu_thread, NULL, ppu_thread_run, &agbemu.gba->ppu);
 
     Uint64 prev_time = SDL_GetPerformanceCounter();
@@ -155,6 +157,8 @@ int main(int argc, char** argv) {
 
     pthread_cancel(ppu_thread);
     pthread_mutex_destroy(&ppu_mutex);
+    pthread_cond_destroy(&ppu_cond);
+    sem_destroy(&ppu_sem);
 
     if (controller) SDL_GameControllerClose(controller);
 

@@ -51,7 +51,7 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
         cpu_handle_interrupt(&gba->cpu, I_RESET);
     }
 
-    add_event(&gba->sched, EVENT_PPU_HDRAW, 0);
+    add_event(&gba->sched, EVENT_LCD_HDRAW, 0);
 }
 
 byte* load_bios(char* filename) {

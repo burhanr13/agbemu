@@ -32,12 +32,12 @@ void run_next_event(Scheduler* sched) {
         reload_timer(&sched->master->tmc, e.type);
     } else if (e.type < EVENT_TM0_IRQ) {
         enable_timer(&sched->master->tmc, e.type - EVENT_TM0_ENA);
-    } else if (e.type < EVENT_PPU_HDRAW) {
+    } else if (e.type < EVENT_LCD_HDRAW) {
         sched->master->io.ifl.timer |= 1 << (e.type - EVENT_TM0_IRQ);
-    } else if (e.type == EVENT_PPU_HDRAW) {
-        ppu_hdraw(&sched->master->ppu);
-    } else if (e.type == EVENT_PPU_HBLANK) {
-        ppu_hblank(&sched->master->ppu);
+    } else if (e.type == EVENT_LCD_HDRAW) {
+        lcd_hdraw(sched->master);
+    } else if (e.type == EVENT_LCD_HBLANK) {
+        lcd_hblank(sched->master);
     } else {
         apu_events[e.type - EVENT_APU_SAMPLE](&sched->master->apu);
     }
