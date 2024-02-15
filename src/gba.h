@@ -100,6 +100,7 @@ typedef struct _GBA {
     bool halt;
     bool stop;
 
+    bool bus_lock;
     bool openbus;
 
 } GBA;

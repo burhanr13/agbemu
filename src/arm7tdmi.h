@@ -81,6 +81,9 @@ void cpu_writeh(Arm7TDMI* cpu, word addr, hword h);
 void cpu_writew(Arm7TDMI* cpu, word addr, word w);
 void cpu_writem(Arm7TDMI* cpu, word addr, int i, word w);
 
+byte cpu_swapb(Arm7TDMI* cpu, word addr, byte data);
+word cpu_swapw(Arm7TDMI* cpu, word addr, word data);
+
 hword cpu_fetchh(Arm7TDMI* cpu, word addr, bool seq);
 word cpu_fetchw(Arm7TDMI* cpu, word addr, bool seq);
 

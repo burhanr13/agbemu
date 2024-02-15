@@ -207,6 +207,40 @@ word cpu_fetchw(Arm7TDMI* cpu, word addr, bool seq) {
     return data;
 }
 
+byte cpu_swapb(Arm7TDMI* cpu, word addr, byte b) {
+    cpu->master->bus_lock = true;
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr, false, false));
+    word data = bus_readb(cpu->master, addr);
+    if (cpu->master->openbus) data = (byte) cpu->bus_val;
+    cpu->bus_val = data;
+    cpu_internal_cycle(cpu);
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr, false, false));
+    bus_writeb(cpu->master, addr, b);
+    cpu->master->bus_lock = false;
+    return data;
+}
+
+word cpu_swapw(Arm7TDMI* cpu, word addr, word w) {
+    cpu->master->bus_lock = true;
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr, true, false));
+    word data = bus_readw(cpu->master, addr);
+    if (cpu->master->openbus) data = cpu->bus_val;
+    if (addr & 0b11) {
+        data =
+            (data >> (8 * (addr & 0b11))) | (data << (32 - 8 * (addr & 0b11)));
+    }
+    cpu->bus_val = data;
+    cpu_internal_cycle(cpu);
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr, true, false));
+    bus_writew(cpu->master, addr, w);
+    cpu->master->bus_lock = false;
+    return data;
+}
+
 void cpu_internal_cycle(Arm7TDMI* cpu) {
     tick_components(cpu->master, 1);
     cpu->master->prefetcher_cycles++;
