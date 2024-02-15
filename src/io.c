@@ -285,10 +285,6 @@ void io_writeh(IO* io, word addr, hword data) {
             if (!prev_ena && io->dma[i].cnt.enable) {
                 dma_enable(&io->master->dmac, i);
             }
-            if (!io->dma[i].cnt.enable) {
-                io->master->dmac.dma[i].active = false;
-                dma_update_active(&io->master->dmac);
-            }
             break;
         }
         case TM0CNT_H:

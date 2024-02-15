@@ -27,11 +27,13 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
     gba->io.master = gba;
     gba->sched.master = gba;
 
+    gba->dmac.active_dma = -1;
+
     gba->bios.b = bios;
 
     update_cart_waits(gba);
 
-    add_event(&gba->sched, EVENT_PPU_HDRAW,0);
+    add_event(&gba->sched, EVENT_PPU_HDRAW, 0);
 
     if (!bootbios) {
         gba->cpu.banked_sp[B_SVC] = 0x3007fe0;
@@ -347,7 +349,9 @@ word bus_readw(GBA* gba, word addr) {
             }
             if (rom_addr < gba->cart->rom_size) {
                 return gba->cart->rom.w[rom_addr >> 2];
-            } else return read_rom_oob((addr & ~0b11) + 2) << 16 | read_rom_oob(addr & ~0b11);
+            } else
+                return read_rom_oob((addr & ~0b11) + 2) << 16 |
+                       read_rom_oob(addr & ~0b11);
             break;
         case R_SRAM:
         case R_SRAMEX:
@@ -382,7 +386,8 @@ void bus_writeb(GBA* gba, word addr, byte b) {
         case R_VRAM:
             addr %= 0x20000;
             if (addr >= VRAM_SIZE) addr -= 0x8000;
-            if (addr < 0x10000 || (addr < 0x14000 && gba->io.dispcnt.bg_mode >= 3))
+            if (addr < 0x10000 ||
+                (addr < 0x14000 && gba->io.dispcnt.bg_mode >= 3))
                 gba->vram.h[addr >> 1] = b * 0x0101;
             break;
         case R_OAM:
@@ -513,10 +518,6 @@ void tick_components(GBA* gba, int cycles) {
 void gba_step(GBA* gba) {
     if (gba->stop) return;
 
-    if (gba->dmac.any_active) {
-        dma_step(&gba->dmac, gba->dmac.active_dma);
-        return;
-    }
     if (gba->io.ie.h & gba->io.ifl.h) {
         if (gba->halt || ((gba->io.ime & 1) && !gba->cpu.cpsr.i)) {
             gba->halt = false;
@@ -528,14 +529,15 @@ void gba_step(GBA* gba) {
         cpu_step(&gba->cpu);
         return;
     }
-    while (!(gba->ppu.frame_complete || gba->apu.samples_full || gba->dmac.any_active ||
+    while (!(gba->ppu.frame_complete || gba->apu.samples_full ||
              (gba->io.ie.h & gba->io.ifl.h)))
         run_next_event(&gba->sched);
 }
 
 void update_keypad_irq(GBA* gba) {
     if (gba->io.keycnt.irq_cond) {
-        if ((~gba->io.keyinput.keys & gba->io.keycnt.keys) == gba->io.keycnt.keys) {
+        if ((~gba->io.keyinput.keys & gba->io.keycnt.keys) ==
+            gba->io.keycnt.keys) {
             if (gba->io.keycnt.irq_enable) gba->io.ifl.keypad = 1;
             gba->stop = false;
         }

@@ -13,27 +13,32 @@ void (*apu_events[])(APU*) = {apu_new_sample, ch1_reload, ch2_reload,
 void run_scheduler(Scheduler* sched, int cycles) {
     dword end_time = sched->now + cycles;
     while (sched->n_events && sched->event_queue[0].time <= end_time) {
-        run_next_event(sched);
+        if (run_next_event(sched) > 0) {
+            end_time = sched->now + cycles;
+        }
     }
     sched->now = end_time;
 }
 
-void run_next_event(Scheduler* sched) {
-    if (sched->n_events == 0) return;
+int run_next_event(Scheduler* sched) {
+    if (sched->n_events == 0) return 0;
 
     Event e = sched->event_queue[0];
     sched->n_events--;
     for (int i = 0; i < sched->n_events; i++) {
         sched->event_queue[i] = sched->event_queue[i + 1];
     }
+
     sched->now = e.time;
 
     if (e.type < EVENT_TM0_ENA) {
         reload_timer(&sched->master->tmc, e.type);
     } else if (e.type < EVENT_TM0_IRQ) {
         enable_timer(&sched->master->tmc, e.type - EVENT_TM0_ENA);
-    } else if (e.type < EVENT_PPU_HDRAW) {
+    } else if (e.type < EVENT_DMA0) {
         sched->master->io.ifl.timer |= 1 << (e.type - EVENT_TM0_IRQ);
+    } else if (e.type < EVENT_PPU_HDRAW) {
+        dma_run(&sched->master->dmac, e.type - EVENT_DMA0);
     } else if (e.type == EVENT_PPU_HDRAW) {
         ppu_hdraw(&sched->master->ppu);
     } else if (e.type == EVENT_PPU_HBLANK) {
@@ -41,6 +46,7 @@ void run_next_event(Scheduler* sched) {
     } else {
         apu_events[e.type - EVENT_APU_SAMPLE](&sched->master->apu);
     }
+    return sched->now - e.time;
 }
 
 void add_event(Scheduler* sched, EventType t, dword time) {
@@ -51,7 +57,8 @@ void add_event(Scheduler* sched, EventType t, dword time) {
     sched->event_queue[sched->n_events].time = time;
     sched->n_events++;
 
-    while (i > 0 && sched->event_queue[i].time < sched->event_queue[i - 1].time) {
+    while (i > 0 &&
+           sched->event_queue[i].time < sched->event_queue[i - 1].time) {
         Event tmp = sched->event_queue[i - 1];
         sched->event_queue[i - 1] = sched->event_queue[i];
         sched->event_queue[i] = tmp;
@@ -73,12 +80,14 @@ void remove_event(Scheduler* sched, EventType t) {
 
 void print_scheduled_events(Scheduler* sched) {
     static char* event_names[EVENT_MAX] = {
-        "TM0 reload",     "TM1 reload",     "TM2 reload",     "TM3 reload",     "TM0 enable",
-        "TM1 enable",     "TM2 enable",     "TM3 enable",     "TM0 interrupt",  "TM1 interrupt",
-        "TM2 interrupt",  "TM3 interrupt",  "PPU hdraw",      "PPU hblank",     "APU sample",
-        "APU reload ch1", "APU reload ch2", "APU reload ch3", "APU reload ch4", "APU DIV tick"};
+        "TM0 reload",     "TM1 reload",     "TM2 reload",     "TM3 reload",
+        "TM0 enable",     "TM1 enable",     "TM2 enable",     "TM3 enable",
+        "TM0 interrupt",  "TM1 interrupt",  "TM2 interrupt",  "TM3 interrupt",
+        "PPU hdraw",      "PPU hblank",     "APU sample",     "APU reload ch1",
+        "APU reload ch2", "APU reload ch3", "APU reload ch4", "APU DIV tick"};
 
     for (int i = 0; i < sched->n_events; i++) {
-        printf("%ld => %s\n", sched->event_queue[i].time, event_names[sched->event_queue[i].type]);
+        printf("%ld => %s\n", sched->event_queue[i].time,
+               event_names[sched->event_queue[i].type]);
     }
 }

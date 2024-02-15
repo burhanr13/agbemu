@@ -16,6 +16,10 @@ typedef enum {
     EVENT_TM1_IRQ,
     EVENT_TM2_IRQ,
     EVENT_TM3_IRQ,
+    EVENT_DMA0,
+    EVENT_DMA1,
+    EVENT_DMA2,
+    EVENT_DMA3,
     EVENT_PPU_HDRAW,
     EVENT_PPU_HBLANK,
     EVENT_APU_SAMPLE,
@@ -44,7 +48,7 @@ typedef struct {
 } Scheduler;
 
 void run_scheduler(Scheduler* sched, int cycles);
-void run_next_event(Scheduler* sched);
+int run_next_event(Scheduler* sched);
 
 void add_event(Scheduler* sched, EventType t, dword time);
 void remove_event(Scheduler* sched, EventType t);
