@@ -15,7 +15,7 @@
 char wintitle[200];
 
 static inline void center_screen_in_window(int windowW, int windowH, SDL_Rect* dst) {
-    if (windowW > windowH) {
+    if (windowW > windowH * GBA_SCREEN_W / GBA_SCREEN_H) {
         dst->h = windowH;
         dst->y = 0;
         dst->w = dst->h * GBA_SCREEN_W / GBA_SCREEN_H;
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
 
     SDL_Window* window;
     SDL_Renderer* renderer;
-    SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 4, GBA_SCREEN_H * 4, SDL_WINDOW_RESIZABLE, &window,
+    SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 2, GBA_SCREEN_H * 2, SDL_WINDOW_RESIZABLE, &window,
                                 &renderer);
     snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", agbemu.romfilenodir, 0.0);
     SDL_SetWindowTitle(window, wintitle);

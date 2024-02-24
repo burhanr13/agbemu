@@ -100,7 +100,7 @@ typedef struct _GBA {
     bool halt;
     bool stop;
 
-    bool bus_lock;
+    int bus_locks;
     bool openbus;
 
 } GBA;
@@ -121,7 +121,10 @@ void bus_writeb(GBA* gba, word addr, byte b);
 void bus_writeh(GBA* gba, word addr, hword h);
 void bus_writew(GBA* gba, word addr, word w);
 
-void tick_components(GBA* gba, int cycles);
+void bus_lock(GBA* gba);
+void bus_unlock(GBA* gba, int dma_prio);
+
+void tick_components(GBA* gba, int cycles, bool mem);
 
 void gba_step(GBA* gba);
 

@@ -27,7 +27,7 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
     gba->io.master = gba;
     gba->sched.master = gba;
 
-    gba->dmac.active_dma = -1;
+    gba->dmac.active_dma = 4;
 
     gba->bios.b = bios;
 
@@ -511,8 +511,27 @@ void bus_writew(GBA* gba, word addr, word w) {
     }
 }
 
-void tick_components(GBA* gba, int cycles) {
-    run_scheduler(&gba->sched, cycles);
+void bus_lock(GBA* gba) {
+    gba->bus_locks++;
+}
+
+void bus_unlock(GBA* gba, int dma_prio) {
+    gba->bus_locks = 0;
+    for (int j = 0; j < dma_prio; j++) {
+        if (gba->dmac.dma[j].waiting) {
+            gba->dmac.dma[j].waiting = false;
+            dma_run(&gba->dmac, j);
+            break;
+        }
+    }
+}
+
+void tick_components(GBA* gba, int cycles, bool mem) {
+    if (mem) {
+        run_scheduler_mem(&gba->sched, cycles);
+    } else {
+        run_scheduler_internal(&gba->sched, cycles);
+    }
 }
 
 void gba_step(GBA* gba) {

@@ -47,7 +47,9 @@ typedef struct {
     int n_events;
 } Scheduler;
 
-void run_scheduler(Scheduler* sched, int cycles);
+void run_scheduler_mem(Scheduler* sched, int cycles);
+void run_scheduler_internal(Scheduler* sched, int cycles);
+
 int run_next_event(Scheduler* sched);
 
 void add_event(Scheduler* sched, EventType t, dword time);

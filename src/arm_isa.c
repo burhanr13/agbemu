@@ -154,7 +154,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
 
         if (shift & 1) {
             cpu_fetch_instr(cpu);
-            cpu_internal_cycle(cpu);
+            cpu_internal_cycle(cpu, 1);
             op2 = cpu->r[rm];
 
             word rs = shift >> 4;
@@ -396,16 +396,18 @@ void exec_arm_psr_trans(Arm7TDMI* cpu, ArmInstr instr) {
 void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
     cpu_fetch_instr(cpu);
     sword op = cpu->r[instr.multiply.rs];
+    int cycles = 0;
     for (int i = 0; i < 4; i++) {
-        cpu_internal_cycle(cpu);
         op >>= 8;
+        cycles++;
         if (op == 0 || op == -1) break;
     }
     word res = cpu->r[instr.multiply.rm] * cpu->r[instr.multiply.rs];
     if (instr.multiply.a) {
-        cpu_internal_cycle(cpu);
+        cycles++;
         res += cpu->r[instr.multiply.rn];
     }
+    cpu_internal_cycle(cpu, cycles);
     cpu->r[instr.multiply.rd] = res;
     if (instr.multiply.s) {
         cpu->cpsr.z = (cpu->r[instr.multiply.rd] == 0) ? 1 : 0;
@@ -415,10 +417,11 @@ void exec_arm_multiply(Arm7TDMI* cpu, ArmInstr instr) {
 
 void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
     cpu_fetch_instr(cpu);
-    cpu_internal_cycle(cpu);
+    cpu_internal_cycle(cpu, 1);
     sword op = cpu->r[instr.multiply_long.rs];
+    int cycles = 0;
     for (int i = 1; i <= 4; i++) {
-        cpu_internal_cycle(cpu);
+        cycles++;
         op >>= 8;
         if (op == 0 || (op == -1 && instr.multiply_long.u)) break;
     }
@@ -433,10 +436,11 @@ void exec_arm_multiply_long(Arm7TDMI* cpu, ArmInstr instr) {
               (dword) cpu->r[instr.multiply_long.rs];
     }
     if (instr.multiply_long.a) {
-        cpu_internal_cycle(cpu);
+        cycles++;
         res += (dword) cpu->r[instr.multiply_long.rdlo] |
                ((dword) cpu->r[instr.multiply_long.rdhi] << 32);
     }
+    cpu_internal_cycle(cpu, cycles);
     if (instr.multiply_long.s) {
         cpu->cpsr.z = (res == 0) ? 1 : 0;
         cpu->cpsr.n = (res >> 63) & 1;
@@ -488,7 +492,7 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
             } else {
                 cpu->r[instr.half_trans.rd] = cpu_readb(cpu, addr, true);
             }
-            cpu_internal_cycle(cpu);
+            cpu_internal_cycle(cpu, 1);
             if (instr.half_trans.rd == 15) cpu_flush(cpu);
         }
     } else if (instr.half_trans.h) {
@@ -497,7 +501,7 @@ void exec_arm_half_trans(Arm7TDMI* cpu, ArmInstr instr) {
                 cpu->r[instr.half_trans.rn] = wback;
             }
             cpu->r[instr.half_trans.rd] = cpu_readh(cpu, addr, false);
-            cpu_internal_cycle(cpu);
+            cpu_internal_cycle(cpu, 1);
             if (instr.half_trans.rd == 15) cpu_flush(cpu);
         } else {
             cpu_writeh(cpu, addr, cpu->r[instr.half_trans.rd]);
@@ -535,7 +539,7 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
                 cpu->r[instr.single_trans.rn] = wback;
             }
             cpu->r[instr.single_trans.rd] = cpu_readb(cpu, addr, false);
-            cpu_internal_cycle(cpu);
+            cpu_internal_cycle(cpu, 1);
             if (instr.single_trans.rd == 15) cpu_flush(cpu);
         } else {
             cpu_writeb(cpu, addr, cpu->r[instr.single_trans.rd]);
@@ -550,7 +554,7 @@ void exec_arm_single_trans(Arm7TDMI* cpu, ArmInstr instr) {
                 cpu->r[instr.single_trans.rn] = wback;
             }
             cpu->r[instr.single_trans.rd] = cpu_readw(cpu, addr);
-            cpu_internal_cycle(cpu);
+            cpu_internal_cycle(cpu, 1);
             if (instr.single_trans.rd == 15) cpu_flush(cpu);
         } else {
             cpu_writew(cpu, addr, cpu->r[instr.single_trans.rd]);
@@ -609,7 +613,7 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr) {
         for (int i = 0; i < rcount; i++) {
             cpu->r[rlist[i]] = cpu_readm(cpu, addr, i);
         }
-        cpu_internal_cycle(cpu);
+        cpu_internal_cycle(cpu, 1);
         if ((instr.block_trans.rlist & (1 << 15)) || !instr.block_trans.rlist) {
             if (instr.block_trans.s) {
                 CpuMode mode = cpu->cpsr.m;

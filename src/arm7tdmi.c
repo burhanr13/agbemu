@@ -125,16 +125,19 @@ void cpu_handle_interrupt(Arm7TDMI* cpu, CpuInterrupt intr) {
 }
 
 word cpu_readb(Arm7TDMI* cpu, word addr, bool sx) {
-    tick_components(cpu->master, get_waitstates(cpu->master, addr, false, false));
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr, false, false), true);
     word data = bus_readb(cpu->master, addr);
     if (cpu->master->openbus) data = (byte) cpu->bus_val;
     if (sx) data = (sbyte) data;
     cpu->bus_val = data;
+    bus_unlock(cpu->master, 4);
     return data;
 }
 
 word cpu_readh(Arm7TDMI* cpu, word addr, bool sx) {
-    tick_components(cpu->master, get_waitstates(cpu->master, addr, false, false));
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr, false, false), true);
     word data = bus_readh(cpu->master, addr);
     if (cpu->master->openbus) data = (hword) cpu->bus_val;
     if (addr & 1) {
@@ -143,50 +146,67 @@ word cpu_readh(Arm7TDMI* cpu, word addr, bool sx) {
         } else data = (data >> 8) | (data << 24);
     } else if (sx) data = (shword) data;
     cpu->bus_val = data;
+    bus_unlock(cpu->master, 4);
     return data;
 }
 
 word cpu_readw(Arm7TDMI* cpu, word addr) {
-    tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false));
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false),
+                    true);
     word data = bus_readw(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
     if (addr & 0b11) {
-        data = (data >> (8 * (addr & 0b11))) | (data << (32 - 8 * (addr & 0b11)));
+        data =
+            (data >> (8 * (addr & 0b11))) | (data << (32 - 8 * (addr & 0b11)));
     }
     cpu->bus_val = data;
+    bus_unlock(cpu->master, 4);
     return data;
 }
 
 word cpu_readm(Arm7TDMI* cpu, word addr, int i) {
-    tick_components(cpu->master, get_waitstates(cpu->master, addr + 4 * i, true, i != 0));
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr + 4 * i, true, i != 0),
+                    true);
     word data = bus_readw(cpu->master, addr + 4 * i);
     if (cpu->master->openbus) data = cpu->bus_val;
     else cpu->bus_val = data;
+    bus_unlock(cpu->master, 4);
     return data;
 }
 
 void cpu_writeb(Arm7TDMI* cpu, word addr, byte b) {
-    tick_components(cpu->master, get_waitstates(cpu->master, addr, false, false));
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr, false, false), true);
     bus_writeb(cpu->master, addr, b);
+    bus_unlock(cpu->master, 4);
 }
 
 void cpu_writeh(Arm7TDMI* cpu, word addr, hword h) {
-    tick_components(cpu->master, get_waitstates(cpu->master, addr, false, false));
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr, false, false), true);
     bus_writeh(cpu->master, addr, h);
+    bus_unlock(cpu->master, 4);
 }
 
 void cpu_writew(Arm7TDMI* cpu, word addr, word w) {
-    tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false));
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false),
+                    true);
     bus_writew(cpu->master, addr, w);
+    bus_unlock(cpu->master, 4);
 }
 
 void cpu_writem(Arm7TDMI* cpu, word addr, int i, word w) {
-    tick_components(cpu->master, get_waitstates(cpu->master, addr + 4 * i, true, i != 0));
+    tick_components(cpu->master,
+                    get_waitstates(cpu->master, addr + 4 * i, true, i != 0),
+                    true);
     bus_writew(cpu->master, addr + 4 * i, w);
+    bus_unlock(cpu->master, 4);
 }
 
 hword cpu_fetchh(Arm7TDMI* cpu, word addr, bool seq) {
-    tick_components(cpu->master, get_fetch_waitstates(cpu->master, addr, false, seq));
+    tick_components(cpu->master,
+                    get_fetch_waitstates(cpu->master, addr, false, seq), true);
     word data = bus_readh(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
     else {
@@ -196,36 +216,39 @@ hword cpu_fetchh(Arm7TDMI* cpu, word addr, bool seq) {
             cpu->bus_val |= data << (16 * (addr & 1));
         } else cpu->bus_val = data * 0x00010001;
     }
+    bus_unlock(cpu->master, 4);
     return data;
 }
 
 word cpu_fetchw(Arm7TDMI* cpu, word addr, bool seq) {
-    tick_components(cpu->master, get_fetch_waitstates(cpu->master, addr, true, seq));
+    tick_components(cpu->master,
+                    get_fetch_waitstates(cpu->master, addr, true, seq), true);
     word data = bus_readw(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
     else cpu->bus_val = data;
+    bus_unlock(cpu->master, 4);
     return data;
 }
 
 byte cpu_swapb(Arm7TDMI* cpu, word addr, byte b) {
-    cpu->master->bus_lock = true;
+    bus_lock(cpu->master);
     tick_components(cpu->master,
-                    get_waitstates(cpu->master, addr, false, false));
+                    get_waitstates(cpu->master, addr, false, false), true);
     word data = bus_readb(cpu->master, addr);
     if (cpu->master->openbus) data = (byte) cpu->bus_val;
     cpu->bus_val = data;
-    cpu_internal_cycle(cpu);
+    cpu_internal_cycle(cpu, 1);
     tick_components(cpu->master,
-                    get_waitstates(cpu->master, addr, false, false));
+                    get_waitstates(cpu->master, addr, false, false), true);
     bus_writeb(cpu->master, addr, b);
-    cpu->master->bus_lock = false;
+    bus_unlock(cpu->master, 4);
     return data;
 }
 
 word cpu_swapw(Arm7TDMI* cpu, word addr, word w) {
-    cpu->master->bus_lock = true;
-    tick_components(cpu->master,
-                    get_waitstates(cpu->master, addr, true, false));
+    bus_lock(cpu->master);
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false),
+                    true);
     word data = bus_readw(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
     if (addr & 0b11) {
@@ -233,17 +256,17 @@ word cpu_swapw(Arm7TDMI* cpu, word addr, word w) {
             (data >> (8 * (addr & 0b11))) | (data << (32 - 8 * (addr & 0b11)));
     }
     cpu->bus_val = data;
-    cpu_internal_cycle(cpu);
-    tick_components(cpu->master,
-                    get_waitstates(cpu->master, addr, true, false));
+    cpu_internal_cycle(cpu, 1);
+    tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false),
+                    true);
     bus_writew(cpu->master, addr, w);
-    cpu->master->bus_lock = false;
+    bus_unlock(cpu->master, 4);
     return data;
 }
 
-void cpu_internal_cycle(Arm7TDMI* cpu) {
-    tick_components(cpu->master, 1);
-    cpu->master->prefetcher_cycles++;
+void cpu_internal_cycle(Arm7TDMI* cpu, int cycles) {
+    tick_components(cpu->master, cycles, false);
+    cpu->master->prefetcher_cycles += cycles;
     if (cpu->pc >= 0x8000000) cpu->next_seq = cpu->master->io.waitcnt.prefetch;
 }
 
@@ -269,8 +292,9 @@ char* mode_name(CpuMode m) {
 }
 
 void print_cpu_state(Arm7TDMI* cpu) {
-    static char* reg_names[16] = {"r0", "r1", "r2",  "r3",  "r4",  "r5", "r6", "r7",
-                                  "r8", "r9", "r10", "r11", "ip", "sp", "lr", "pc"};
+    static char* reg_names[16] = {"r0", "r1", "r2", "r3", "r4",  "r5",
+                                  "r6", "r7", "r8", "r9", "r10", "r11",
+                                  "ip", "sp", "lr", "pc"};
     for (int i = 0; i < 4; i++) {
         if (i == 0) printf("CPU ");
         else printf("    ");
@@ -279,16 +303,17 @@ void print_cpu_state(Arm7TDMI* cpu) {
         }
         printf("\n");
     }
-    printf("    cpsr=%08x (n=%d,z=%d,c=%d,v=%d,i=%d,f=%d,t=%d,m=%s)\n", cpu->cpsr.w, cpu->cpsr.n,
-           cpu->cpsr.z, cpu->cpsr.c, cpu->cpsr.v, cpu->cpsr.i, cpu->cpsr.v, cpu->cpsr.t,
-           mode_name(cpu->cpsr.m));
+    printf("    cpsr=%08x (n=%d,z=%d,c=%d,v=%d,i=%d,f=%d,t=%d,m=%s)\n",
+           cpu->cpsr.w, cpu->cpsr.n, cpu->cpsr.z, cpu->cpsr.c, cpu->cpsr.v,
+           cpu->cpsr.i, cpu->cpsr.v, cpu->cpsr.t, mode_name(cpu->cpsr.m));
 }
 
 void print_cur_instr(Arm7TDMI* cpu) {
     if (cpu->cpsr.t) {
         printf("%08x: %04x ", cpu->cur_instr_addr, cpu->cur_instr.w);
-        thumb_disassemble((ThumbInstr){bus_readh(cpu->master, cpu->cur_instr_addr)},
-                          cpu->cur_instr_addr, stdout);
+        thumb_disassemble(
+            (ThumbInstr){bus_readh(cpu->master, cpu->cur_instr_addr)},
+            cpu->cur_instr_addr, stdout);
         printf("\n");
     } else {
         printf("%08x: %08x ", cpu->cur_instr_addr, cpu->cur_instr.w);

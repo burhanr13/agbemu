@@ -82,7 +82,7 @@ void update_addr(word* addr, int adcnt, int wsize) {
 }
 
 void dma_run(DMAController* dmac, int i) {
-    if ( dmac->master->bus_lock || (dmac->active_dma >= 0 && i > dmac->active_dma)) {
+    if (dmac->master->bus_locks || i > dmac->active_dma) {
         dmac->dma[i].waiting = true;
         return;
     }
@@ -106,18 +106,10 @@ void dma_run(DMAController* dmac, int i) {
             update_addr(&dmac->dma[i].dptr, dmac->master->io.dma[i].cnt.dadcnt,
                         2 << dmac->master->io.dma[i].cnt.wsize);
         dmac->dma[i].initial = false;
-
-        for (int j = 0; j < i; j++) {
-            if (dmac->dma[j].waiting) {
-                dmac->dma[j].waiting = false;
-                dma_run(dmac, j);
-                break;
-            }
-        }
     } while (--dmac->dma[i].ct > 0);
 
     dmac->dma[i].sound = false;
-    dmac->active_dma = -1;
+    dmac->active_dma = 4;
 
     if (!dmac->master->io.dma[i].cnt.repeat) {
         dmac->master->io.dma[i].cnt.enable = 0;
@@ -125,39 +117,39 @@ void dma_run(DMAController* dmac, int i) {
 
     if (dmac->master->io.dma[i].cnt.irq) dmac->master->io.ifl.dma |= (1 << i);
 
-    for (int j = 0; j < 4; j++) {
-        if (dmac->dma[j].waiting) {
-            dmac->dma[j].waiting = false;
-            dma_run(dmac, j);
-            break;
-        }
-    }
+    bus_unlock(dmac->master, 4);
 }
 
 void dma_transh(DMAController* dmac, int i, word daddr, word saddr) {
-    dmac->master->bus_lock = true;
-    tick_components(dmac->master, get_waitstates(dmac->master, saddr, false,
-                                                 !dmac->dma[i].initial));
+    bus_lock(dmac->master);
+    tick_components(
+        dmac->master,
+        get_waitstates(dmac->master, saddr, false, !dmac->dma[i].initial),
+        true);
     hword data = bus_readh(dmac->master, saddr);
     if (dmac->master->openbus || saddr < BIOS_SIZE) data = dmac->dma[i].bus_val;
     else {
         dmac->dma[i].bus_val = data * 0x00010001;
     }
-    tick_components(dmac->master, get_waitstates(dmac->master, daddr, false,
-                                                 !dmac->dma[i].initial));
+    tick_components(
+        dmac->master,
+        get_waitstates(dmac->master, daddr, false, !dmac->dma[i].initial),
+        true);
     bus_writeh(dmac->master, daddr, data);
-    dmac->master->bus_lock = false;
+    bus_unlock(dmac->master, i);
 }
 
 void dma_transw(DMAController* dmac, int i, word daddr, word saddr) {
-    dmac->master->bus_lock = true;
-    tick_components(dmac->master, get_waitstates(dmac->master, saddr, true,
-                                                 !dmac->dma[i].initial));
+    bus_lock(dmac->master);
+    tick_components(
+        dmac->master,
+        get_waitstates(dmac->master, saddr, true, !dmac->dma[i].initial), true);
     word data = bus_readw(dmac->master, saddr);
     if (dmac->master->openbus || saddr < BIOS_SIZE) data = dmac->dma[i].bus_val;
     else dmac->dma[i].bus_val = data;
-    tick_components(dmac->master, get_waitstates(dmac->master, daddr, true,
-                                                 !dmac->dma[i].initial));
+    tick_components(
+        dmac->master,
+        get_waitstates(dmac->master, daddr, true, !dmac->dma[i].initial), true);
     bus_writew(dmac->master, daddr, data);
-    dmac->master->bus_lock = false;
+    bus_unlock(dmac->master, i);
 }

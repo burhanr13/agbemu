@@ -87,7 +87,7 @@ word cpu_swapw(Arm7TDMI* cpu, word addr, word data);
 hword cpu_fetchh(Arm7TDMI* cpu, word addr, bool seq);
 word cpu_fetchw(Arm7TDMI* cpu, word addr, bool seq);
 
-void cpu_internal_cycle(Arm7TDMI* cpu);
+void cpu_internal_cycle(Arm7TDMI* cpu, int cycles);
 
 void print_cpu_state(Arm7TDMI* cpu);
 void print_cur_instr(Arm7TDMI* cpu);

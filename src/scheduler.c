@@ -10,12 +10,25 @@
 void (*apu_events[])(APU*) = {apu_new_sample, ch1_reload, ch2_reload,
                               ch3_reload,     ch4_reload, apu_div_tick};
 
-void run_scheduler(Scheduler* sched, int cycles) {
+void run_scheduler_mem(Scheduler* sched, int cycles) {
     dword end_time = sched->now + cycles;
-    while (sched->n_events && sched->event_queue[0].time <= end_time) {
+    while (sched->n_events && sched->event_queue[0].time < end_time) {
         if (run_next_event(sched) > 0) {
             end_time = sched->now + cycles;
         }
+    }
+    sched->now = end_time;
+    if (sched->n_events && sched->event_queue[0].time == end_time) {
+        bus_lock(sched->master);
+        run_next_event(sched);
+    }
+}
+
+void run_scheduler_internal(Scheduler* sched, int cycles) {
+    dword end_time = sched->now + cycles;
+    while (sched->n_events && sched->event_queue[0].time <= end_time) {
+        run_next_event(sched);
+        if (sched->now > end_time) end_time = sched->now;
     }
     sched->now = end_time;
 }
