@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+
 typedef uint8_t byte;
 typedef int8_t sbyte;
 typedef uint16_t hword;

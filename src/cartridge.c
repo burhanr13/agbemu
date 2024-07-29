@@ -24,7 +24,7 @@ Cartridge* create_cartridge(char* filename) {
     cart->rom_size = ftell(fp);
     fseek(fp, 0, SEEK_SET);
     cart->rom.b = malloc(cart->rom_size + 32);
-    fread(cart->rom.b, 1, cart->rom_size, fp);
+    (void) !fread(cart->rom.b, 1, cart->rom_size, fp);
     fclose(fp);
 
     cart->sav_type = SAV_NONE;
@@ -84,7 +84,7 @@ Cartridge* create_cartridge(char* filename) {
         cart->sram = malloc(cart->sav_size);
         FILE* fp = fopen(cart->sav_filename, "rb");
         if (fp) {
-            fread(cart->sram, 1, cart->sav_size, fp);
+            (void) !fread(cart->sram, 1, cart->sav_size, fp);
             fclose(fp);
             if (cart->sav_type == SAV_EEPROM) {
                 eeprom_reverse_bytes(cart->eeprom, cart->sav_size / 8);

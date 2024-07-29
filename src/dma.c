@@ -131,6 +131,7 @@ void dma_transh(DMAController* dmac, int i, word daddr, word saddr) {
     else {
         dmac->dma[i].bus_val = data * 0x00010001;
     }
+    dmac->master->cpu.bus_val = data * 0x00010001;
     tick_components(
         dmac->master,
         get_waitstates(dmac->master, daddr, false, !dmac->dma[i].initial),
@@ -147,6 +148,7 @@ void dma_transw(DMAController* dmac, int i, word daddr, word saddr) {
     word data = bus_readw(dmac->master, saddr);
     if (dmac->master->openbus || saddr < BIOS_SIZE) data = dmac->dma[i].bus_val;
     else dmac->dma[i].bus_val = data;
+    dmac->master->cpu.bus_val = data;
     tick_components(
         dmac->master,
         get_waitstates(dmac->master, daddr, true, !dmac->dma[i].initial), true);

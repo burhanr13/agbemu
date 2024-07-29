@@ -33,7 +33,7 @@ void debugger_run() {
     while (true) {
         memcpy(prev_line, buf, sizeof buf);
         printf("> ");
-        fgets(buf, 100, stdin);
+        (void) !fgets(buf, 100, stdin);
         if (buf[0] == '\n') {
             memcpy(buf, prev_line, sizeof buf);
         }
@@ -92,7 +92,7 @@ void debugger_run() {
                     default:
                         printf("Reset emulation? ");
                         char ans[5];
-                        fgets(ans, 5, stdin);
+                        (void) !fgets(ans, 5, stdin);
                         if (ans[0] == 'y') {
                             init_gba(agbemu.gba, agbemu.cart, agbemu.bios, agbemu.bootbios);
                             return;

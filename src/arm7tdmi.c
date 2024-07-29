@@ -267,6 +267,7 @@ word cpu_swapw(Arm7TDMI* cpu, word addr, word w) {
 void cpu_internal_cycle(Arm7TDMI* cpu, int cycles) {
     tick_components(cpu->master, cycles, false);
     cpu->master->prefetcher_cycles += cycles;
+    cpu->master->prefetcher_free_read = false;
     if (cpu->pc >= 0x8000000) cpu->next_seq = cpu->master->io.waitcnt.prefetch;
 }
 

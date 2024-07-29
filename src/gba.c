@@ -61,7 +61,7 @@ byte* load_bios(char* filename) {
     if (!fp) return NULL;
     byte* bios = malloc(BIOS_SIZE);
 
-    fread(bios, 1, BIOS_SIZE, fp);
+    (void) !fread(bios, 1, BIOS_SIZE, fp);
     fclose(fp);
     return bios;
 }
@@ -78,7 +78,6 @@ void update_cart_waits(GBA* gba) {
 
 int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
     word region = addr >> 24;
-    gba->prefetcher_free_read = false;
     if (region < 8) {
         int waits = 1;
         if (region == R_EWRAM) waits = 3;
@@ -86,6 +85,7 @@ int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
             waits += waits;
         }
         gba->prefetcher_cycles += waits;
+        gba->prefetcher_free_read = false;
         return waits;
     } else if (region < 16) {
         int i = (region >> 1) & 0b11;
@@ -95,8 +95,11 @@ int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
         int s_waits = gba->cart_s_waits[i];
         int total = 0;
 
+        if (gba->prefetcher_free_read) total += 1;
+
         gba->next_prefetch_addr = -1;
         gba->prefetcher_cycles = 0;
+        gba->prefetcher_free_read = false;
 
         if (addr % 0x20000 == 0) seq = false;
 

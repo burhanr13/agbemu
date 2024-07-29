@@ -1,34 +1,61 @@
+TARGET_EXEC := agbemu
+
 CC := gcc
-CFLAGS := -g -Wall
-CPPFLAGS := -I/opt/homebrew/include -MP -MMD
-LDFLAGS := $(shell sdl2-config --libs) -lm -lz
+
+CFLAGS := -Wall -Wimplicit-fallthrough -Werror
+CFLAGS_RELEASE := -O3 -flto
+CFLAGS_DEBUG := -g
+
+CPPFLAGS := -MP -MMD
+
+LDFLAGS := -lm -lSDL2
+
+ifeq ($(shell uname),Darwin)
+	CPPFLAGS += -I$(shell brew --prefix)/include
+	LDFLAGS := -L$(shell brew --prefix)/lib $(LDFLAGS)
+endif
 
 BUILD_DIR := build
 SRC_DIR := src
 
-TARGET_EXEC := agbemu
+DEBUG_DIR := $(BUILD_DIR)/debug
+RELEASE_DIR := $(BUILD_DIR)/release
 
-SRCS := $(basename $(notdir $(wildcard $(SRC_DIR)/*.c)))
-OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
-DEPS := $(OBJS:.o=.d)
+SRCS := $(shell find $(SRC_DIR) -name '*.c')
+SRCS := $(SRCS:$(SRC_DIR)/%=%)
 
-.PHONY: debug
-debug: $(BUILD_DIR)/$(TARGET_EXEC)
+OBJS_DEBUG := $(SRCS:%.c=$(DEBUG_DIR)/%.o)
+DEPS_DEBUG := $(OBJS_DEBUG:.o=.d)
 
-.PHONY: release
-release:
-	$(CC) -o ./$(TARGET_EXEC) -I/opt/homebrew/include -O3 $(SRCS:%=$(SRC_DIR)/%.c) $(LDFLAGS)
+OBJS_RELEASE := $(SRCS:%.c=$(RELEASE_DIR)/%.o)
+DEPS_RELEASE := $(OBJS_RELEASE:.o=.d)
 
-$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
+.PHONY: release, debug, clean
+
+release: CFLAGS += $(CFLAGS_RELEASE)
+release: $(RELEASE_DIR)/$(TARGET_EXEC)
+
+debug: CFLAGS += $(CFLAGS_DEBUG)
+debug: $(DEBUG_DIR)/$(TARGET_EXEC)
+
+$(RELEASE_DIR)/$(TARGET_EXEC): $(OBJS_RELEASE)
 	$(CC) -o $@ $(CFLAGS) $(CPPFLAGS) $^ $(LDFLAGS)
-	cp $(BUILD_DIR)/$(TARGET_EXEC) ./$(TARGET_EXEC)-dbg
+	cp $@ $(TARGET_EXEC)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(BUILD_DIR)
+$(RELEASE_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-.PHONY: clean
-clean:
-	rm -rf $(BUILD_DIR)
+$(DEBUG_DIR)/$(TARGET_EXEC): $(OBJS_DEBUG)
+	$(CC) -o $@ $(CFLAGS) $(CPPFLAGS) $^ $(LDFLAGS)
+	cp $@ $(TARGET_EXEC)
 
--include $(DEPS)
+$(DEBUG_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(BUILD_DIR) $(TARGET_EXEC)
+
+-include $(DEPS_DEBUG)
+-include $(DEPS_RELEASE)
