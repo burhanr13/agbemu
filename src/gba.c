@@ -511,14 +511,19 @@ void bus_lock(GBA* gba) {
 
 void bus_unlock(GBA* gba, int dma_prio) {
     gba->bus_locks = 0;
-    for (int j = 0; j < dma_prio; j++) {
-        if (gba->dmac.dma[j].waiting) {
-            gba->dmac.dma[j].waiting = false;
-            tick_components(gba, 1, false);
-            gba->prefetcher_cycles += 1;
-            dma_run(&gba->dmac, j);
-            tick_components(gba, 1, false);
-            gba->prefetcher_cycles += 1;
+    for (int i = 0; i < 4 && i < dma_prio; i++) {
+        if (gba->dmac.dma[i].waiting) {
+            gba->dmac.dma[i].waiting = false;
+
+            if (dma_prio == 5) {
+                tick_components(gba, 1, false);
+                gba->prefetcher_cycles += 1;
+            }
+            dma_run(&gba->dmac, i);
+            if (dma_prio == 5) {
+                tick_components(gba, 1, false);
+                gba->prefetcher_cycles += 1;
+            }
             break;
         }
     }

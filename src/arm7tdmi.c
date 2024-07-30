@@ -131,7 +131,7 @@ word cpu_readb(Arm7TDMI* cpu, word addr, bool sx) {
     if (cpu->master->openbus) data = (byte) cpu->bus_val;
     if (sx) data = (sbyte) data;
     cpu->bus_val = data;
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
     return data;
 }
 
@@ -146,7 +146,7 @@ word cpu_readh(Arm7TDMI* cpu, word addr, bool sx) {
         } else data = (data >> 8) | (data << 24);
     } else if (sx) data = (shword) data;
     cpu->bus_val = data;
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
     return data;
 }
 
@@ -160,7 +160,7 @@ word cpu_readw(Arm7TDMI* cpu, word addr) {
             (data >> (8 * (addr & 0b11))) | (data << (32 - 8 * (addr & 0b11)));
     }
     cpu->bus_val = data;
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
     return data;
 }
 
@@ -171,7 +171,7 @@ word cpu_readm(Arm7TDMI* cpu, word addr, int i) {
     word data = bus_readw(cpu->master, addr + 4 * i);
     if (cpu->master->openbus) data = cpu->bus_val;
     else cpu->bus_val = data;
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
     return data;
 }
 
@@ -179,21 +179,21 @@ void cpu_writeb(Arm7TDMI* cpu, word addr, byte b) {
     tick_components(cpu->master,
                     get_waitstates(cpu->master, addr, false, false), true);
     bus_writeb(cpu->master, addr, b);
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
 }
 
 void cpu_writeh(Arm7TDMI* cpu, word addr, hword h) {
     tick_components(cpu->master,
                     get_waitstates(cpu->master, addr, false, false), true);
     bus_writeh(cpu->master, addr, h);
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
 }
 
 void cpu_writew(Arm7TDMI* cpu, word addr, word w) {
     tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false),
                     true);
     bus_writew(cpu->master, addr, w);
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
 }
 
 void cpu_writem(Arm7TDMI* cpu, word addr, int i, word w) {
@@ -201,12 +201,12 @@ void cpu_writem(Arm7TDMI* cpu, word addr, int i, word w) {
                     get_waitstates(cpu->master, addr + 4 * i, true, i != 0),
                     true);
     bus_writew(cpu->master, addr + 4 * i, w);
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
 }
 
 hword cpu_fetchh(Arm7TDMI* cpu, word addr, bool seq) {
     tick_components(cpu->master,
-                   get_fetch_waitstates(cpu->master, addr, false, seq), true);
+                    get_fetch_waitstates(cpu->master, addr, false, seq), true);
     word data = bus_readh(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
     else {
@@ -216,7 +216,7 @@ hword cpu_fetchh(Arm7TDMI* cpu, word addr, bool seq) {
             cpu->bus_val |= data << (16 * (addr & 1));
         } else cpu->bus_val = data * 0x00010001;
     }
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
     return data;
 }
 
@@ -226,7 +226,7 @@ word cpu_fetchw(Arm7TDMI* cpu, word addr, bool seq) {
     word data = bus_readw(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
     else cpu->bus_val = data;
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
     return data;
 }
 
@@ -241,7 +241,7 @@ byte cpu_swapb(Arm7TDMI* cpu, word addr, byte b) {
     tick_components(cpu->master,
                     get_waitstates(cpu->master, addr, false, false), true);
     bus_writeb(cpu->master, addr, b);
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
     return data;
 }
 
@@ -260,7 +260,7 @@ word cpu_swapw(Arm7TDMI* cpu, word addr, word w) {
     tick_components(cpu->master, get_waitstates(cpu->master, addr, true, false),
                     true);
     bus_writew(cpu->master, addr, w);
-    bus_unlock(cpu->master, 4);
+    bus_unlock(cpu->master, 5);
     return data;
 }
 
