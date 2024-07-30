@@ -18,7 +18,7 @@ void run_scheduler_mem(Scheduler* sched, int cycles) {
         }
     }
     sched->now = end_time;
-    if (sched->n_events && sched->event_queue[0].time == end_time) {
+    while (sched->n_events && sched->event_queue[0].time == end_time) {
         bus_lock(sched->master);
         run_next_event(sched);
     }
@@ -48,8 +48,12 @@ int run_next_event(Scheduler* sched) {
         reload_timer(&sched->master->tmc, e.type);
     } else if (e.type < EVENT_TM0_IRQ) {
         enable_timer(&sched->master->tmc, e.type - EVENT_TM0_ENA);
-    } else if (e.type < EVENT_DMA0) {
+    } else if (e.type < EVENT_TM0_WRITE_L) {
         sched->master->io.ifl.timer |= 1 << (e.type - EVENT_TM0_IRQ);
+    } else if (e.type < EVENT_TM0_WRITE_H) {
+        timer_write_l(&sched->master->io, e.type - EVENT_TM0_WRITE_L);
+    } else if (e.type < EVENT_DMA0) {
+        timer_write_h(&sched->master->io, e.type - EVENT_TM0_WRITE_H);
     } else if (e.type < EVENT_PPU_HDRAW) {
         dma_run(&sched->master->dmac, e.type - EVENT_DMA0);
     } else if (e.type == EVENT_PPU_HDRAW) {

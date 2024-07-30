@@ -36,7 +36,8 @@ void io_writeb(IO* io, word addr, byte data) {
 
 hword io_readh(IO* io, word addr) {
     if (BG0HOFS <= addr && addr < SOUND1CNT_L) {
-        if (addr == WININ || addr == WINOUT || addr == BLDCNT || addr == BLDALPHA) {
+        if (addr == WININ || addr == WINOUT || addr == BLDCNT ||
+            addr == BLDALPHA) {
             return io->h[addr >> 1];
         }
         io->master->openbus = true;
@@ -96,8 +97,9 @@ hword io_readh(IO* io, word addr) {
 }
 
 void io_writeh(IO* io, word addr, hword data) {
-    if ((addr & ~0b11) == BG2X || (addr & ~0b11) == BG2Y || (addr & ~0b11) == BG3X ||
-        (addr & ~0b11) == BG3Y || (addr & ~0b11) == FIFO_A || (addr & ~0b11) == FIFO_B) {
+    if ((addr & ~0b11) == BG2X || (addr & ~0b11) == BG2Y ||
+        (addr & ~0b11) == BG3X || (addr & ~0b11) == BG3Y ||
+        (addr & ~0b11) == FIFO_A || (addr & ~0b11) == FIFO_B) {
         io->h[addr >> 1] = data;
         io_writew(io, addr & ~0b11, io->w[addr >> 2]);
         return;
@@ -194,7 +196,8 @@ void io_writeh(IO* io, word addr, hword data) {
             break;
         case SOUND3CNT_L:
             if (!(data & 0b10000000)) io->master->apu.ch3_enable = false;
-            if ((io->nr30 & (1 << 6)) != (data & (1 << 6))) waveram_swap(&io->master->apu);
+            if ((io->nr30 & (1 << 6)) != (data & (1 << 6)))
+                waveram_swap(&io->master->apu);
             io->nr30 = data & 0b11100000;
             break;
         case SOUND3CNT_H:
@@ -287,21 +290,24 @@ void io_writeh(IO* io, word addr, hword data) {
             }
             break;
         }
+        case TM0CNT_L:
+        case TM1CNT_L:
+        case TM2CNT_L:
+        case TM3CNT_L: {
+            int i = (addr - TM0CNT_L) / (TM1CNT_L - TM0CNT_L);
+            io->master->tmc.written_cnt_l[i] = data;
+            add_event(&io->master->sched, EVENT_TM0_WRITE_L + i,
+                      io->master->sched.now + 1);
+            break;
+        }
         case TM0CNT_H:
         case TM1CNT_H:
         case TM2CNT_H:
         case TM3CNT_H: {
             int i = (addr - TM0CNT_H) / (TM1CNT_H - TM0CNT_H);
-            bool prev_ena = io->tm[i].cnt.enable;
-            update_timer_count(&io->master->tmc, i);
-            io->tm[i].cnt.h = data;
-            if (i == 0) io->tm[i].cnt.countup = 0;
-            if (!prev_ena && io->tm[i].cnt.enable) {
-                io->master->tmc.ena_count[i] = io->tm[i].reload;
-                add_event(&io->master->sched, EVENT_TM0_ENA + i, io->master->sched.now + 2);
-            } else {
-                update_timer_reload(&io->master->tmc, i);
-            }
+            io->master->tmc.written_cnt_h[i] = data;
+            add_event(&io->master->sched, EVENT_TM0_WRITE_H + i,
+                      io->master->sched.now + 1);
             break;
         }
         case SIOCNT:
