@@ -133,10 +133,10 @@ void dma_transh(DMAController* dmac, int i, word daddr, word saddr) {
     }
     dmac->master->cpu.bus_val = data * 0x00010001;
     dmac->master->prefetch_halted = true;
-    tick_components(
-        dmac->master,
-        get_waitstates(dmac->master, daddr, false, !dmac->dma[i].initial),
-        true);
+    tick_components(dmac->master,
+                    get_waitstates(dmac->master, daddr, false,
+                                   !dmac->dma[i].initial || (saddr & 1 << 27)),
+                    true);
     bus_writeh(dmac->master, daddr, data);
     bus_unlock(dmac->master, i);
 }
@@ -151,9 +151,10 @@ void dma_transw(DMAController* dmac, int i, word daddr, word saddr) {
     else dmac->dma[i].bus_val = data;
     dmac->master->cpu.bus_val = data;
     dmac->master->prefetch_halted = true;
-    tick_components(
-        dmac->master,
-        get_waitstates(dmac->master, daddr, true, !dmac->dma[i].initial), true);
+    tick_components(dmac->master,
+                    get_waitstates(dmac->master, daddr, true,
+                                   !dmac->dma[i].initial || (saddr & 1 << 27)),
+                    true);
     bus_writew(dmac->master, daddr, data);
     bus_unlock(dmac->master, i);
 }
