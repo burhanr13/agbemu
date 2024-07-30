@@ -206,7 +206,7 @@ void cpu_writem(Arm7TDMI* cpu, word addr, int i, word w) {
 
 hword cpu_fetchh(Arm7TDMI* cpu, word addr, bool seq) {
     tick_components(cpu->master,
-                    get_fetch_waitstates(cpu->master, addr, false, seq), true);
+                   get_fetch_waitstates(cpu->master, addr, false, seq), true);
     word data = bus_readh(cpu->master, addr);
     if (cpu->master->openbus) data = cpu->bus_val;
     else {

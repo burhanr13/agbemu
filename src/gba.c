@@ -84,7 +84,7 @@ int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
         if (w && (region == R_EWRAM || region == R_PRAM || region == R_VRAM)) {
             waits += waits;
         }
-        gba->prefetcher_cycles += waits;
+        if (!gba->prefetch_halted) gba->prefetcher_cycles += waits;
         return waits;
     } else if (region < 16) {
         int i = (region >> 1) & 0b11;
@@ -514,7 +514,11 @@ void bus_unlock(GBA* gba, int dma_prio) {
     for (int j = 0; j < dma_prio; j++) {
         if (gba->dmac.dma[j].waiting) {
             gba->dmac.dma[j].waiting = false;
+            tick_components(gba, 1, false);
+            gba->prefetcher_cycles += 1;
             dma_run(&gba->dmac, j);
+            tick_components(gba, 1, false);
+            gba->prefetcher_cycles += 1;
             break;
         }
     }

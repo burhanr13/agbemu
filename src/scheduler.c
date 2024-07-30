@@ -13,13 +13,16 @@ void (*apu_events[])(APU*) = {apu_new_sample, ch1_reload, ch2_reload,
 void run_scheduler_mem(Scheduler* sched, int cycles) {
     dword end_time = sched->now + cycles;
     while (sched->n_events && sched->event_queue[0].time < end_time) {
+        sched->master->prefetcher_cycles += 1;
         if (run_next_event(sched) > 0) {
             end_time = sched->now + cycles;
+        } else {
+            sched->master->prefetcher_cycles -= 1;
         }
     }
     sched->now = end_time;
+    bus_lock(sched->master);
     while (sched->n_events && sched->event_queue[0].time == end_time) {
-        bus_lock(sched->master);
         run_next_event(sched);
     }
 }

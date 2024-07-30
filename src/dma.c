@@ -30,12 +30,14 @@ void dma_enable(DMAController* dmac, int i) {
         }
     }
 
+    if (i > 0) dmac->dma[i].sptr %= 1 << 28;
+    else dmac->dma[i].sptr %= 1 << 27;
+    if (i < 3) dmac->dma[i].dptr %= 1 << 27;
+    else dmac->dma[i].dptr %= 1 << 28;
+
     if (dmac->master->io.dma[i].cnt.start == DMA_ST_IMM) {
-        int delay = 2;
-        if (dmac->dma[i].sptr & (1 << 27) && dmac->dma[i].dptr & (1 << 27))
-            delay += 2;
         add_event(&dmac->master->sched, EVENT_DMA0 + i,
-                  dmac->master->sched.now + delay);
+                  dmac->master->sched.now + 2);
     }
 }
 
@@ -57,11 +59,13 @@ void dma_activate(DMAController* dmac, int i) {
         if (dmac->dma[i].ct == 0) dmac->dma[i].ct = 0x4000;
     }
 
-    int delay = 2;
-    if (dmac->dma[i].sptr & (1 << 27) && dmac->dma[i].dptr & (1 << 27))
-        delay += 2;
+    if (i > 0) dmac->dma[i].sptr %= 1 << 28;
+    else dmac->dma[i].sptr %= 1 << 27;
+    if (i < 3) dmac->dma[i].dptr %= 1 << 27;
+    else dmac->dma[i].dptr %= 1 << 28;
+
     add_event(&dmac->master->sched, EVENT_DMA0 + i,
-              dmac->master->sched.now + delay);
+              dmac->master->sched.now + 2);
 }
 
 void update_addr(word* addr, int adcnt, int wsize) {
@@ -87,11 +91,6 @@ void dma_run(DMAController* dmac, int i) {
         return;
     }
 
-    if (i > 0) dmac->dma[i].sptr %= 1 << 28;
-    else dmac->dma[i].sptr %= 1 << 27;
-    if (i < 3) dmac->dma[i].dptr %= 1 << 27;
-    else dmac->dma[i].dptr %= 1 << 28;
-
     dmac->dma[i].initial = true;
     do {
         dmac->active_dma = i;
@@ -107,6 +106,7 @@ void dma_run(DMAController* dmac, int i) {
                         2 << dmac->master->io.dma[i].cnt.wsize);
         dmac->dma[i].initial = false;
     } while (--dmac->dma[i].ct > 0);
+    dmac->master->prefetch_halted = false;
 
     dmac->dma[i].sound = false;
     dmac->active_dma = 4;
@@ -132,6 +132,7 @@ void dma_transh(DMAController* dmac, int i, word daddr, word saddr) {
         dmac->dma[i].bus_val = data * 0x00010001;
     }
     dmac->master->cpu.bus_val = data * 0x00010001;
+    dmac->master->prefetch_halted = true;
     tick_components(
         dmac->master,
         get_waitstates(dmac->master, daddr, false, !dmac->dma[i].initial),
@@ -149,6 +150,7 @@ void dma_transw(DMAController* dmac, int i, word daddr, word saddr) {
     if (dmac->master->openbus || saddr < BIOS_SIZE) data = dmac->dma[i].bus_val;
     else dmac->dma[i].bus_val = data;
     dmac->master->cpu.bus_val = data;
+    dmac->master->prefetch_halted = true;
     tick_components(
         dmac->master,
         get_waitstates(dmac->master, daddr, true, !dmac->dma[i].initial), true);
