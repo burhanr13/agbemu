@@ -1,12 +1,12 @@
 # agbemu
 
-An accurate Game Boy Advance Emulator. Supports all of the graphics and audio subsystems, passes many test roms including the AGS Aging Cartridge, ARMWrestler, JSMolka's gba-tests, and a sizable portion of the mGBA test suite including all of the memory and DMA tests and most timing tests. It runs all games I have tested without any issue.
+An accurate Game Boy Advance Emulator. Supports all of the graphics and audio subsystems, passes many test roms including the AGS Aging Cartridge (used to test real GBAs by Nintendo), ARMWrestler, and JSMolka's gba-tests. From the mgba test suite it passes 2020/2020 timing tests, 936/936 timer count-up tests and 90/90 timer irq tests (very few emulators I know pass these), along with all memory, DMA, IO read, shifter, and carry tests. It runs all games I have tested without issue.
 
 ## Building
 
 This project requires SDL2 as a dependency to build and run. 
-To build use `make` or `make debug` to build a debug version 
-or `make release` for the optimized release version.
+To build use `make` or `make release` to build the release version 
+or `make debug` for debug symbols.
 I have tested on both Ubuntu and MacOS.
 
 ## Usage
@@ -39,11 +39,11 @@ Hotkeys are as follows:
 | Reset | `R` |
 | Toggle color filter | `F` |
 | Toggle speedup | `Tab` |
-| Quit | `Esc` |
 
 ## Credits
 
 - [GBATEK](https://www.problemkaputt.de/gbatek.htm)
 - [Tonc](https://www.coranac.com/tonc/text/toc.htm)
-- [mGBA](https://github.com/mgba-emu/mgba)
-- [EmuDev Discord Server](https://discord.gg/dkmJAes)
+- [mGBA](https://github.com/mgba-emu/mgba) and its [test suite](https://github.com/mgba-emu/suite)
+- fleroviux and zayd
+- [Emulator Development Discord Server](https://discord.gg/dkmJAes)

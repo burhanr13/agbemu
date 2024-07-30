@@ -89,9 +89,6 @@ void read_args(int argc, char** argv) {
 
 void hotkey_press(SDL_KeyCode key) {
     switch (key) {
-        case SDLK_ESCAPE:
-            agbemu.running = false;
-            break;
         case SDLK_p:
             agbemu.pause = !agbemu.pause;
             break;
