@@ -55,7 +55,6 @@ typedef struct _GBA {
     int cart_s_waits[3];
     word next_prefetch_addr;
     int prefetcher_cycles;
-    bool prefetcher_free_read;
 
     union {
         byte* b;

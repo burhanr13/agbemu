@@ -85,7 +85,6 @@ int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
             waits += waits;
         }
         gba->prefetcher_cycles += waits;
-        gba->prefetcher_free_read = false;
         return waits;
     } else if (region < 16) {
         int i = (region >> 1) & 0b11;
@@ -95,11 +94,12 @@ int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
         int s_waits = gba->cart_s_waits[i];
         int total = 0;
 
-        if (gba->prefetcher_free_read) total += 1;
+        if (gba->io.waitcnt.prefetch &&
+            gba->prefetcher_cycles % s_waits == s_waits - 1)
+            total += 1;
 
         gba->next_prefetch_addr = -1;
         gba->prefetcher_cycles = 0;
-        gba->prefetcher_free_read = false;
 
         if (addr % 0x20000 == 0) seq = false;
 
@@ -112,7 +112,9 @@ int get_waitstates(GBA* gba, word addr, bool w, bool seq) {
             total += s_waits;
         }
         return total;
-    } else return 1;
+    } else {
+        return 1;
+    }
 }
 
 int get_fetch_waitstates(GBA* gba, word addr, bool w, bool seq) {
@@ -120,7 +122,6 @@ int get_fetch_waitstates(GBA* gba, word addr, bool w, bool seq) {
     word region = addr >> 24;
     word rom_addr = addr % (1 << 25);
     if (region < 8) {
-        gba->prefetcher_free_read = false;
         int waits = 1;
         if (region == R_EWRAM) waits = 3;
         if (w && (region == R_EWRAM || region == R_PRAM || region == R_VRAM)) {
@@ -136,37 +137,27 @@ int get_fetch_waitstates(GBA* gba, word addr, bool w, bool seq) {
         int s_waits = gba->cart_s_waits[i];
         int total = 0;
         if (rom_addr == gba->next_prefetch_addr) {
-            if (gba->prefetcher_free_read) {
-                gba->prefetcher_free_read = false;
-                total--;
-            }
-            if (gba->prefetcher_cycles < s_waits) {
-                total += s_waits - gba->prefetcher_cycles;
-                gba->prefetcher_cycles = 0;
-            } else {
+            if (w && gba->prefetcher_cycles >= 2 * s_waits - 1) {
                 total += 1;
-                gba->prefetcher_free_read = true;
-                gba->prefetcher_cycles -= s_waits;
-            }
-            gba->next_prefetch_addr = rom_addr + 2;
-            if (w) {
-                if (gba->prefetcher_free_read) {
-                    gba->prefetcher_free_read = false;
-                    total--;
+                gba->prefetcher_cycles -= 2 * s_waits;
+                if (gba->prefetcher_cycles < 0) gba->prefetcher_cycles = 0;
+                else gba->prefetcher_cycles += 1;
+                gba->next_prefetch_addr += 4;
+            } else {
+                for (int i = 0; i < (w ? 2 : 1); i++) {
+                    if (gba->prefetcher_cycles < s_waits) {
+                        total += s_waits - gba->prefetcher_cycles;
+                        gba->prefetcher_cycles = 0;
+                    } else {
+                        total += 1;
+                        gba->prefetcher_cycles -= s_waits;
+                        gba->prefetcher_cycles += 1;
+                    }
+                    gba->next_prefetch_addr += 2;
                 }
-                if (gba->prefetcher_cycles < s_waits) {
-                    total += s_waits - gba->prefetcher_cycles;
-                    gba->prefetcher_cycles = 0;
-                } else {
-                    total += 1;
-                    gba->prefetcher_free_read = true;
-                    gba->prefetcher_cycles -= s_waits;
-                }
-                gba->next_prefetch_addr += 2;
             }
         } else {
             gba->prefetcher_cycles = 0;
-            gba->prefetcher_free_read = false;
 
             total += n_waits;
             gba->next_prefetch_addr = rom_addr + 2;
