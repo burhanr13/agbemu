@@ -2,7 +2,7 @@ TARGET_EXEC := agbemu
 
 CC := gcc
 
-CFLAGS := -Wall -Wimplicit-fallthrough -Werror
+CFLAGS := -Wall -Wimplicit-fallthrough -Wno-format -Werror
 CFLAGS_RELEASE := -O3 -flto
 CFLAGS_DEBUG := -g
 
