@@ -344,6 +344,7 @@ void io_writeh(IO* io, word addr, hword data) {
         case POSTFLG:
             io_writeb(io, addr, data);
             io_writeb(io, addr | 1, data >> 8);
+            break;
         case POSTFLG + 2:
             break;
         default:
