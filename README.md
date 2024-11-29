@@ -39,6 +39,8 @@ Hotkeys are as follows:
 | Reset | `R` |
 | Toggle color filter | `F` |
 | Toggle speedup | `Tab` |
+| Save State | `9` |
+| Load State | `0` |
 
 ## Credits
 
