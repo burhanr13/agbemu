@@ -1,6 +1,7 @@
 #include "emulator.h"
 
 #include <SDL2/SDL.h>
+#include <zlib.h>
 
 #include "arm_isa.h"
 #include "gba.h"
@@ -87,6 +88,28 @@ void read_args(int argc, char** argv) {
     }
 }
 
+void save_state() {
+    gba_clear_ptrs(agbemu.gba);
+
+    gzFile fp = gzopen(agbemu.cart->sst_filename, "wb");
+    gzfwrite(agbemu.gba, sizeof *agbemu.gba, 1, fp);
+    gzfwrite(&agbemu.cart->st, sizeof agbemu.cart->st, 1, fp);
+    gzclose(fp);
+
+    gba_set_ptrs(agbemu.gba, agbemu.cart, agbemu.bios);
+}
+
+void load_state() {
+    gba_clear_ptrs(agbemu.gba);
+
+    gzFile fp = gzopen(agbemu.cart->sst_filename, "rb");
+    gzfread(agbemu.gba, sizeof *agbemu.gba, 1, fp);
+    gzfread(&agbemu.cart->st, sizeof agbemu.cart->st, 1, fp);
+    gzclose(fp);
+
+    gba_set_ptrs(agbemu.gba, agbemu.cart, agbemu.bios);
+}
+
 void hotkey_press(SDL_KeyCode key) {
     switch (key) {
         case SDLK_p:
@@ -104,6 +127,12 @@ void hotkey_press(SDL_KeyCode key) {
             break;
         case SDLK_TAB:
             agbemu.uncap = !agbemu.uncap;
+            break;
+        case SDLK_9:
+            save_state();
+            break;
+        case SDLK_0:
+            load_state();
             break;
         default:
             break;
@@ -125,21 +154,26 @@ void update_input_keyboard(GBA* gba) {
 }
 
 void update_input_controller(GBA* gba, SDL_GameController* controller) {
-    gba->io.keyinput.a &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A);
-    gba->io.keyinput.b &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X);
-    gba->io.keyinput.start &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_START);
-    gba->io.keyinput.select &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_BACK);
-    gba->io.keyinput.left &=
-        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
-    gba->io.keyinput.right &=
-        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
-    gba->io.keyinput.up &= ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP);
-    gba->io.keyinput.down &=
-        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
-    gba->io.keyinput.l &=
-        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
-    gba->io.keyinput.r &=
-        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+    gba->io.keyinput.a &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A);
+    gba->io.keyinput.b &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X);
+    gba->io.keyinput.start &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_START);
+    gba->io.keyinput.select &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_BACK);
+    gba->io.keyinput.left &= ~SDL_GameControllerGetButton(
+        controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+    gba->io.keyinput.right &= ~SDL_GameControllerGetButton(
+        controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+    gba->io.keyinput.up &=
+        ~SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP);
+    gba->io.keyinput.down &= ~SDL_GameControllerGetButton(
+        controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+    gba->io.keyinput.l &= ~SDL_GameControllerGetButton(
+        controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+    gba->io.keyinput.r &= ~SDL_GameControllerGetButton(
+        controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
 }
 
 byte color_lookup[32];
@@ -159,10 +193,12 @@ void gba_convert_screen(hword* gba_screen, Uint32* screen) {
         int g = (gba_screen[i] >> 5) & 0x1f;
         int b = (gba_screen[i] >> 10) & 0x1f;
         if (agbemu.filter) {
-            screen[i] = color_lookup_filter[r] << 16 | color_lookup_filter[g] << 8 |
+            screen[i] = color_lookup_filter[r] << 16 |
+                        color_lookup_filter[g] << 8 |
                         color_lookup_filter[b] << 0;
         } else {
-            screen[i] = color_lookup[r] << 16 | color_lookup[g] << 8 | color_lookup[b] << 0;
+            screen[i] = color_lookup[r] << 16 | color_lookup[g] << 8 |
+                        color_lookup[b] << 0;
         }
     }
 }

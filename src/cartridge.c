@@ -79,6 +79,9 @@ Cartridge* create_cartridge(char* filename) {
     cart->sav_filename = malloc(i + sizeof ".sav");
     strncpy(cart->sav_filename, cart->rom_filename, i);
     strcpy(cart->sav_filename + i, ".sav");
+    cart->sst_filename = malloc(i + sizeof ".sst");
+    strncpy(cart->sst_filename, cart->rom_filename, i);
+    strcpy(cart->sst_filename + i, ".sst");
 
     if (cart->sav_size) {
         cart->sram = malloc(cart->sav_size);
@@ -110,6 +113,7 @@ void destroy_cartridge(Cartridge* cart) {
 
     free(cart->rom_filename);
     free(cart->sav_filename);
+    free(cart->sst_filename);
 
     free(cart->rom.b);
     free(cart);

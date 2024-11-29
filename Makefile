@@ -8,7 +8,7 @@ CFLAGS_DEBUG := -g
 
 CPPFLAGS := -MP -MMD
 
-LDFLAGS := -lm -lSDL2
+LDFLAGS := -lm -lSDL2 -lz
 
 ifeq ($(shell uname),Darwin)
 	CPPFLAGS += -I$(shell brew --prefix)/include

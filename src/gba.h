@@ -105,6 +105,9 @@ typedef struct _GBA {
 
 } GBA;
 
+void gba_clear_ptrs(GBA* gba);
+void gba_set_ptrs(GBA* gba, Cartridge* cart, byte* bios);
+
 void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios);
 
 byte* load_bios(char* filename);

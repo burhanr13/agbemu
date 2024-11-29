@@ -20,6 +20,7 @@ typedef struct {
 
     char* rom_filename;
     char* sav_filename;
+    char* sst_filename;
 
     union {
         byte* b;

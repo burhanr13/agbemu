@@ -15,9 +15,19 @@
 
 const int CART_WAITS[4] = {5, 4, 3, 9};
 
-void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
-    memset(gba, 0, sizeof *gba);
-    memset(&cart->st, 0, sizeof cart->st);
+void gba_clear_ptrs(GBA* gba) {
+    gba->cart = NULL;
+    gba->cpu.master = NULL;
+    gba->ppu.master = NULL;
+    gba->apu.master = NULL;
+    gba->dmac.master = NULL;
+    gba->tmc.master = NULL;
+    gba->io.master = NULL;
+    gba->sched.master = gba;
+    gba->bios.b = NULL;
+}
+
+void gba_set_ptrs(GBA* gba, Cartridge* cart, byte* bios) {
     gba->cart = cart;
     gba->cpu.master = gba;
     gba->ppu.master = gba;
@@ -26,10 +36,16 @@ void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
     gba->tmc.master = gba;
     gba->io.master = gba;
     gba->sched.master = gba;
+    gba->bios.b = bios;
+}
+
+void init_gba(GBA* gba, Cartridge* cart, byte* bios, bool bootbios) {
+    memset(gba, 0, sizeof *gba);
+    memset(&cart->st, 0, sizeof cart->st);
+
+    gba_set_ptrs(gba, cart, bios);
 
     gba->dmac.active_dma = 4;
-
-    gba->bios.b = bios;
 
     update_cart_waits(gba);
 
