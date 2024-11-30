@@ -4,7 +4,6 @@ bios.bin
 roms
 build
 
-agbemu
-agbemu-dbg
+agbemu*
 
 perf*

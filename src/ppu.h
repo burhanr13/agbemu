@@ -83,10 +83,10 @@ typedef struct {
     byte window[GBA_SCREEN_W];
 
     struct {
-        word x;
-        word y;
-        word mosx;
-        word mosy;
+        sword x;
+        sword y;
+        sword mosx;
+        sword mosy;
     } bgaffintr[2];
 
     byte bgmos_y;

@@ -359,20 +359,20 @@ word io_readw(IO* io, word addr) {
 void io_writew(IO* io, word addr, word data) {
     switch (addr) {
         case BG2X:
-            io->bgaff[0].x = data;
-            io->master->ppu.bgaffintr[0].x = data;
+            io->bgaff[0].x = (sword) (data << 4) >> 4;
+            io->master->ppu.bgaffintr[0].x = io->bgaff[0].x;
             break;
         case BG2Y:
-            io->bgaff[0].y = data;
-            io->master->ppu.bgaffintr[0].y = data;
+            io->bgaff[0].y = (sword) (data << 4) >> 4;
+            io->master->ppu.bgaffintr[0].y = io->bgaff[0].y;
             break;
         case BG3X:
-            io->bgaff[1].x = data;
-            io->master->ppu.bgaffintr[1].x = data;
+            io->bgaff[1].x = (sword) (data << 4) >> 4;
+            io->master->ppu.bgaffintr[1].x = io->bgaff[1].x;
             break;
         case BG3Y:
-            io->bgaff[1].y = data;
-            io->master->ppu.bgaffintr[1].y = data;
+            io->bgaff[1].y = (sword) (data << 4) >> 4;
+            io->master->ppu.bgaffintr[1].y = io->bgaff[1].y;
             break;
         case FIFO_A:
             fifo_a_push(&io->master->apu, data);
