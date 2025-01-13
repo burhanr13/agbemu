@@ -11,8 +11,8 @@ CPPFLAGS := -MP -MMD
 LDFLAGS := -lm -lSDL2 -lz
 
 ifeq ($(shell uname),Darwin)
-	CPPFLAGS += -I$(shell brew --prefix)/include
-	LDFLAGS := -L$(shell brew --prefix)/lib $(LDFLAGS)
+	CPPFLAGS += -I/opt/homebrew/include
+	LDFLAGS := -L/opt/homebrew/lib $(LDFLAGS)
 endif
 
 BUILD_DIR := build
