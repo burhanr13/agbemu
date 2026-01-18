@@ -60,6 +60,12 @@ void debugger_run() {
             case 'i':
                 print_cpu_state(&agbemu.gba->cpu);
                 break;
+            case 'b':
+                if (read_num(strtok(NULL, " "), &agbemu.breakpoint) < 0) {
+                    printf("Current breakpoint: %#x\n", agbemu.breakpoint);
+                }
+                printf("Breakpoint set: %#x\n", agbemu.breakpoint);
+                break;
             case 'r':
                 switch (com[1]) {
                     case 'b': {

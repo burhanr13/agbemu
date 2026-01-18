@@ -14,7 +14,8 @@
 
 char wintitle[200];
 
-static inline void center_screen_in_window(int windowW, int windowH, SDL_Rect* dst) {
+static inline void center_screen_in_window(int windowW, int windowH,
+                                           SDL_Rect* dst) {
     if (windowW > windowH * GBA_SCREEN_W / GBA_SCREEN_H) {
         dst->h = windowH;
         dst->y = 0;
@@ -41,20 +42,24 @@ int main(int argc, char** argv) {
 
     SDL_Window* window;
     SDL_Renderer* renderer;
-    SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 2, GBA_SCREEN_H * 2, SDL_WINDOW_RESIZABLE, &window,
-                                &renderer);
-    snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", agbemu.romfilenodir, 0.0);
+    SDL_CreateWindowAndRenderer(GBA_SCREEN_W * 2, GBA_SCREEN_H * 2,
+                                SDL_WINDOW_RESIZABLE, &window, &renderer);
+    snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", agbemu.romfilenodir,
+             0.0);
     SDL_SetWindowTitle(window, wintitle);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
-    SDL_Texture* texture =
-        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
-                          GBA_SCREEN_W, GBA_SCREEN_H);
+    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
+                                             SDL_TEXTUREACCESS_STREAMING,
+                                             GBA_SCREEN_W, GBA_SCREEN_H);
 
-    SDL_AudioSpec audio_spec = {
-        .freq = SAMPLE_FREQ, .format = AUDIO_F32, .channels = 2, .samples = SAMPLE_BUF_LEN / 2};
-    SDL_AudioDeviceID audio = SDL_OpenAudioDevice(NULL, 0, &audio_spec, NULL, 0);
+    SDL_AudioSpec audio_spec = {.freq = SAMPLE_FREQ,
+                                .format = AUDIO_F32,
+                                .channels = 2,
+                                .samples = SAMPLE_BUF_LEN / 2};
+    SDL_AudioDeviceID audio =
+        SDL_OpenAudioDevice(NULL, 0, &audio_spec, NULL, 0);
     SDL_PauseAudioDevice(audio, 0);
 
     Uint64 prev_time = SDL_GetPerformanceCounter();
@@ -68,17 +73,25 @@ int main(int argc, char** argv) {
         while (agbemu.running) {
             Uint64 cur_time;
             Uint64 elapsed;
-            bool play_audio = !(agbemu.pause || agbemu.mute || agbemu.uncap || agbemu.gba->stop) &&
+            bool play_audio = !(agbemu.pause || agbemu.mute || agbemu.uncap ||
+                                agbemu.gba->stop) &&
                               (agbemu.gba->io.nr52 & (1 << 7));
 
             if (!(agbemu.pause || agbemu.gba->stop)) {
                 do {
-                    while (!agbemu.gba->stop && !agbemu.gba->ppu.frame_complete) {
+                    while (!agbemu.gba->stop &&
+                           !agbemu.gba->ppu.frame_complete) {
+                        if (agbemu.debugger && agbemu.gba->cpu.cur_instr_addr ==
+                                                   agbemu.breakpoint) {
+                            printf("Breakpoint hit: %#x\n", agbemu.breakpoint);
+                            goto bkpt;
+                        }
                         gba_step(agbemu.gba);
                         if (agbemu.gba->apu.samples_full) {
                             if (play_audio) {
-                                SDL_QueueAudio(audio, agbemu.gba->apu.sample_buf,
-                                               sizeof agbemu.gba->apu.sample_buf);
+                                SDL_QueueAudio(
+                                    audio, agbemu.gba->apu.sample_buf,
+                                    sizeof agbemu.gba->apu.sample_buf);
                             }
                             agbemu.gba->apu.samples_full = false;
                         }
@@ -119,16 +132,18 @@ int main(int argc, char** argv) {
             Sint64 wait = frame_ticks - elapsed;
 
             if (play_audio) {
-                while (SDL_GetQueuedAudioSize(audio) >= 16 * SAMPLE_BUF_LEN) SDL_Delay(1);
+                while (SDL_GetQueuedAudioSize(audio) >= 16 * SAMPLE_BUF_LEN)
+                    SDL_Delay(1);
             } else if (wait > 0 && !agbemu.uncap) {
                 SDL_Delay(wait * 1000 / SDL_GetPerformanceFrequency());
             }
             cur_time = SDL_GetPerformanceCounter();
             elapsed = cur_time - prev_fps_update;
             if (elapsed >= SDL_GetPerformanceFrequency() / 2) {
-                double fps =
-                    (double) SDL_GetPerformanceFrequency() * (frame - prev_fps_frame) / elapsed;
-                snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS", agbemu.romfilenodir, fps);
+                double fps = (double) SDL_GetPerformanceFrequency() *
+                             (frame - prev_fps_frame) / elapsed;
+                snprintf(wintitle, 199, "agbemu | %s | %.2lf FPS",
+                         agbemu.romfilenodir, fps);
                 SDL_SetWindowTitle(window, wintitle);
                 prev_fps_update = cur_time;
                 prev_fps_frame = frame;
@@ -137,6 +152,7 @@ int main(int argc, char** argv) {
         }
 
         if (agbemu.debugger) {
+        bkpt:
             debugger_run();
         } else {
             break;

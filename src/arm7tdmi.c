@@ -317,7 +317,7 @@ void print_cur_instr(Arm7TDMI* cpu) {
         printf("\n");
     } else {
         printf("%08x: %08x ", cpu->cur_instr_addr, cpu->cur_instr.w);
-        arm_disassemble(cpu->cur_instr, cpu->cur_instr_addr, stdout);
+        arm_disassemble(cpu->cur_instr, cpu->cur_instr_addr, false, stdout);
         printf("\n");
     }
 }

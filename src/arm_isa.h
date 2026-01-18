@@ -185,6 +185,6 @@ void exec_arm_block_trans(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_branch(Arm7TDMI* cpu, ArmInstr instr);
 void exec_arm_sw_intr(Arm7TDMI* cpu, ArmInstr instr);
 
-void arm_disassemble(ArmInstr instr, word addr, FILE* out);
+void arm_disassemble(ArmInstr instr, word addr, bool thumb, FILE* out);
 
 #endif

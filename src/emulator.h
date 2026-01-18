@@ -22,6 +22,8 @@ typedef struct {
     Cartridge* cart;
     byte* bios;
 
+    word breakpoint;
+
 } EmulatorState;
 
 extern EmulatorState agbemu;

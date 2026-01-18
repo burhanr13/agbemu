@@ -10,7 +10,7 @@ ArmExecFunc arm_lookup[1 << 12];
 void arm_generate_lookup() {
     for (int i = 0; i < 1 << 12; i++) {
         arm_lookup[i] =
-            arm_decode_instr((ArmInstr){(((i & 0xf) << 4) | (i >> 4 << 20))});
+            arm_decode_instr((ArmInstr) {(((i & 0xf) << 4) | (i >> 4 << 20))});
     }
 }
 
@@ -50,36 +50,21 @@ ArmExecFunc arm_decode_instr(ArmInstr instr) {
 bool eval_cond(Arm7TDMI* cpu, ArmInstr instr) {
     if (instr.cond == C_AL) return true;
     switch (instr.cond) {
-        case C_EQ:
-            return cpu->cpsr.z;
-        case C_NE:
-            return !cpu->cpsr.z;
-        case C_CS:
-            return cpu->cpsr.c;
-        case C_CC:
-            return !cpu->cpsr.c;
-        case C_MI:
-            return cpu->cpsr.n;
-        case C_PL:
-            return !cpu->cpsr.n;
-        case C_VS:
-            return cpu->cpsr.v;
-        case C_VC:
-            return !cpu->cpsr.v;
-        case C_HI:
-            return cpu->cpsr.c && !cpu->cpsr.z;
-        case C_LS:
-            return !cpu->cpsr.c || cpu->cpsr.z;
-        case C_GE:
-            return cpu->cpsr.n == cpu->cpsr.v;
-        case C_LT:
-            return cpu->cpsr.n != cpu->cpsr.v;
-        case C_GT:
-            return !cpu->cpsr.z && (cpu->cpsr.n == cpu->cpsr.v);
-        case C_LE:
-            return cpu->cpsr.z || (cpu->cpsr.n != cpu->cpsr.v);
-        default:
-            return true;
+        case C_EQ: return cpu->cpsr.z;
+        case C_NE: return !cpu->cpsr.z;
+        case C_CS: return cpu->cpsr.c;
+        case C_CC: return !cpu->cpsr.c;
+        case C_MI: return cpu->cpsr.n;
+        case C_PL: return !cpu->cpsr.n;
+        case C_VS: return cpu->cpsr.v;
+        case C_VC: return !cpu->cpsr.v;
+        case C_HI: return cpu->cpsr.c && !cpu->cpsr.z;
+        case C_LS: return !cpu->cpsr.c || cpu->cpsr.z;
+        case C_GE: return cpu->cpsr.n == cpu->cpsr.v;
+        case C_LT: return cpu->cpsr.n != cpu->cpsr.v;
+        case C_GT: return !cpu->cpsr.z && (cpu->cpsr.n == cpu->cpsr.v);
+        case C_LE: return cpu->cpsr.z || (cpu->cpsr.n != cpu->cpsr.v);
+        default: return true;
     }
 }
 
@@ -114,14 +99,9 @@ word arm_shifter(Arm7TDMI* cpu, byte shift, word operand, word* carry) {
         }
     } else {
         switch (shift_type) {
-            case S_LSL:
-                return operand;
-            case S_LSR:
-                *carry = operand >> 31;
-                return 0;
-            case S_ASR:
-                *carry = operand >> 31;
-                return (operand >> 31) ? -1 : 0;
+            case S_LSL: return operand;
+            case S_LSR: *carry = operand >> 31; return 0;
+            case S_ASR: *carry = operand >> 31; return (operand >> 31) ? -1 : 0;
             case S_ROR:
                 *carry = operand & 1;
                 return (operand >> 1) | (cpu->cpsr.c << 31);
@@ -208,12 +188,8 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
         word tmp;
         bool save = true;
         switch (instr.data_proc.opcode) {
-            case A_AND:
-                res = op1 & op2;
-                break;
-            case A_EOR:
-                res = op1 ^ op2;
-                break;
+            case A_AND: res = op1 & op2; break;
+            case A_EOR: res = op1 ^ op2; break;
             case A_SUB:
                 arith = true;
                 op2 = ~op2;
@@ -226,9 +202,7 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
                 op2 = ~tmp;
                 car = 1;
                 break;
-            case A_ADD:
-                arith = true;
-                break;
+            case A_ADD: arith = true; break;
             case A_ADC:
                 arith = true;
                 car = cpu->cpsr.c;
@@ -263,18 +237,10 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
                 arith = true;
                 save = false;
                 break;
-            case A_ORR:
-                res = op1 | op2;
-                break;
-            case A_MOV:
-                res = op2;
-                break;
-            case A_BIC:
-                res = op1 & ~op2;
-                break;
-            case A_MVN:
-                res = ~op2;
-                break;
+            case A_ORR: res = op1 | op2; break;
+            case A_MOV: res = op2; break;
+            case A_BIC: res = op1 & ~op2; break;
+            case A_MVN: res = ~op2; break;
         }
 
         if (arith) {
@@ -305,50 +271,22 @@ void exec_arm_data_proc(Arm7TDMI* cpu, ArmInstr instr) {
     } else {
         word rd = instr.data_proc.rd;
         switch (instr.data_proc.opcode) {
-            case A_AND:
-                cpu->r[rd] = op1 & op2;
-                break;
-            case A_EOR:
-                cpu->r[rd] = op1 ^ op2;
-                break;
-            case A_SUB:
-                cpu->r[rd] = op1 - op2;
-                break;
-            case A_RSB:
-                cpu->r[rd] = op2 - op1;
-                break;
-            case A_ADD:
-                cpu->r[rd] = op1 + op2;
-                break;
-            case A_ADC:
-                cpu->r[rd] = op1 + op2 + cpu->cpsr.c;
-                break;
-            case A_SBC:
-                cpu->r[rd] = op1 - op2 - 1 + cpu->cpsr.c;
-                break;
-            case A_RSC:
-                cpu->r[rd] = op2 - op1 - 1 + cpu->cpsr.c;
-                break;
-            case A_TST:
-                return;
-            case A_TEQ:
-                return;
-            case A_CMP:
-                return;
-            case A_CMN:
-                return;
-            case A_ORR:
-                cpu->r[rd] = op1 | op2;
-                break;
-            case A_MOV:
-                cpu->r[rd] = op2;
-                break;
-            case A_BIC:
-                cpu->r[rd] = op1 & ~op2;
-                break;
-            case A_MVN:
-                cpu->r[rd] = ~op2;
-                break;
+            case A_AND: cpu->r[rd] = op1 & op2; break;
+            case A_EOR: cpu->r[rd] = op1 ^ op2; break;
+            case A_SUB: cpu->r[rd] = op1 - op2; break;
+            case A_RSB: cpu->r[rd] = op2 - op1; break;
+            case A_ADD: cpu->r[rd] = op1 + op2; break;
+            case A_ADC: cpu->r[rd] = op1 + op2 + cpu->cpsr.c; break;
+            case A_SBC: cpu->r[rd] = op1 - op2 - 1 + cpu->cpsr.c; break;
+            case A_RSC: cpu->r[rd] = op2 - op1 - 1 + cpu->cpsr.c; break;
+            case A_TST: return;
+            case A_TEQ: return;
+            case A_CMP: return;
+            case A_CMN: return;
+            case A_ORR: cpu->r[rd] = op1 | op2; break;
+            case A_MOV: cpu->r[rd] = op2; break;
+            case A_BIC: cpu->r[rd] = op1 & ~op2; break;
+            case A_MVN: cpu->r[rd] = ~op2; break;
         }
         if (instr.data_proc.rd == 15) cpu_flush(cpu);
     }
@@ -671,7 +609,7 @@ void exec_arm_sw_intr(Arm7TDMI* cpu, ArmInstr instr) {
     cpu_handle_interrupt(cpu, I_SWI);
 }
 
-void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
+void arm_disassemble(ArmInstr instr, word addr, bool thumb, FILE* out) {
 
     static char* reg_names[16] = {"r0", "r1", "r2", "r3", "r4",  "r5",
                                   "r6", "r7", "r8", "r9", "r10", "r11",
@@ -693,9 +631,19 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
     } else if (instr.branch.c1 == 0b101) {
 
         word off = instr.branch.offset;
-        if (off & (1 << 23)) off |= 0xff000000;
-        fprintf(out, "b%s%s 0x%x", instr.branch.l ? "l" : "", cond,
-                addr + 8 + (off << 2));
+        if (instr.branch.l && thumb) {
+            off <<= 1;
+            if (off & (1 << 23)) {
+                fprintf(out, "bl.2 +%#x", off & ~(1 << 23));
+            } else {
+                off = (sword) (off << 10) >> 10;
+                fprintf(out, "bl.1 %#x+", addr + 4 + off);
+            }
+        } else {
+            if (off & (1 << 23)) off |= 0xff000000;
+            fprintf(out, "b%s%s 0x%x", instr.branch.l ? "l" : "", cond,
+                    addr + (4 << !thumb) + off);
+        }
 
     } else if (instr.block_trans.c1 == 0b100) {
 
@@ -737,7 +685,7 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
 
             word offset = instr.single_trans.offset;
             if (!instr.single_trans.u) offset = -offset;
-            fprintf(out, "0x%x", addr + 8 + offset);
+            fprintf(out, "0x%x", addr + (4 << !thumb) + offset);
             fprintf(out, "]%s", instr.single_trans.w ? "!" : "");
         } else {
             fprintf(out, "%s%s%s %s, [%s", instr.single_trans.l ? "ldr" : "str",
@@ -825,7 +773,7 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
             word offset =
                 instr.half_trans.offlo | (instr.half_trans.offhi << 4);
             if (!instr.half_trans.u) offset = -offset;
-            fprintf(out, "0x%x", addr + 8 + offset);
+            fprintf(out, "0x%x", addr + (4 << !thumb) + offset);
             fprintf(out, "]%s", instr.half_trans.w ? "!" : "");
         } else {
             fprintf(out, "%s%s%s%s %s, [%s", instr.half_trans.l ? "ldr" : "str",
@@ -883,7 +831,7 @@ void arm_disassemble(ArmInstr instr, word addr, FILE* out) {
             word rot = (instr.data_proc.op2 >> 8) << 1;
             offset = (offset >> rot) | (offset << (32 - rot));
             if (instr.data_proc.opcode == A_SUB) offset = -offset;
-            fprintf(out, "0x%x]", addr + 8 + offset);
+            fprintf(out, "0x%x]", (addr & ~3) + (4 << !thumb) + offset);
         } else {
 
             if (instr.data_proc.opcode >> 2 == 0b10) {
